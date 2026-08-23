@@ -4,32 +4,30 @@ from __future__ import annotations
 
 import streamlit as st
 
-from config import (
-    EXPERIENCE_CURIOUS,
-    EXPERIENCE_FIND_ANIMAL,
-    EXPERIENCE_PLAYGROUND,
-    EXPERIENCE_YEAR8,
-    EXPERIENCE_YEAR10,
-)
+from config import EXPERIENCE_CURIOUS
+from experiences.catalog import enabled_experience_names
 
 LANDING = "Introduction"
-VALID_EXPERIENCES = [
-    EXPERIENCE_CURIOUS,
-    EXPERIENCE_YEAR8,
-    EXPERIENCE_YEAR10,
-    EXPERIENCE_PLAYGROUND,
-    EXPERIENCE_FIND_ANIMAL,
-]
+
+# Availability is controlled only in experiences/catalog.py.
+VALID_EXPERIENCES = enabled_experience_names()
 NAV_OPTIONS = [LANDING, *VALID_EXPERIENCES]
 
 
 def open_experience(name: str) -> None:
+    """Open an enabled experience, or return to the Introduction page."""
+    if name not in VALID_EXPERIENCES:
+        name = LANDING
+
     st.session_state["experience"] = name
+
     if name in VALID_EXPERIENCES:
         st.session_state["experience_navigation"] = name
     else:
         st.session_state.pop("experience_navigation", None)
+
     st.session_state["teacher_view"] = False
+
     if name == EXPERIENCE_CURIOUS:
         st.session_state["curious_part"] = 0
         st.session_state.pop("curious_step_selector", None)
@@ -52,8 +50,9 @@ def _sync_navigation() -> None:
 
 
 def render_sidebar_navigation() -> None:
-    """Render the introduction link and persistent experience navigator."""
+    """Render the introduction link and enabled experience navigator."""
     current = current_experience()
+
     if current in VALID_EXPERIENCES and st.session_state.get("experience_navigation") != current:
         st.session_state["experience_navigation"] = current
     elif current == LANDING:
@@ -68,6 +67,11 @@ def render_sidebar_navigation() -> None:
     )
 
     st.markdown("### Experiences")
+
+    if not VALID_EXPERIENCES:
+        st.caption("No experiences are currently available.")
+        return
+
     st.radio(
         "Choose an experience",
         VALID_EXPERIENCES,

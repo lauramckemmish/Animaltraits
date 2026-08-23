@@ -117,9 +117,17 @@ def render(data: pd.DataFrame, open_experience) -> None:
 
     st.markdown("## Choose an experience")
     experiences = experience_catalog()
+
+    if not experiences:
+        st.info("No experiences are currently available.")
+        return
+
     for index in range(0, len(experiences), 2):
         columns = st.columns(2)
-        for column, (name, summary) in zip(columns, experiences[index:index + 2]):
+        for column, experience in zip(columns, experiences[index:index + 2]):
+            name = experience["name"]
+            summary = experience["summary"]
+
             with column:
                 with st.container(border=True):
                     st.markdown(f"### {name}")
