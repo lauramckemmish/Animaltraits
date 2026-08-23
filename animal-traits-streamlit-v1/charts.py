@@ -16,8 +16,7 @@ from models import FitResult
 
 
 # -----------------------------------------------------------------------------
-# Existing CURIOUS chart helpers. Keep these stable while another experience is
-# being developed.
+# Existing CURIOUS chart helpers.
 # -----------------------------------------------------------------------------
 
 def histogram(data: pd.DataFrame, field: str, log_x: bool = False, bins: int = 25):
@@ -71,31 +70,71 @@ def class_comparison(data: pd.DataFrame, field: str = "body mass (kg)", graph_ty
     return fig
 
 
-def body_brain_scatter(data: pd.DataFrame):
+def body_brain_scatter(
+    data: pd.DataFrame,
+    *,
+    log_x: bool = False,
+    log_y: bool = False,
+    colour_by_class: bool = False,
+):
+    """Plot body mass against brain size for CURIOUS.
+
+    Axis scale and animal-class colouring are controlled by the calling experience so
+    the same underlying relationship can be revealed progressively without duplicating
+    chart logic.
+    """
     plot_data = with_common_class_names(data)
-    needed = ["body mass (kg)", "brain size (kg)"]
-    for column in needed:
+    x_field = "body mass (kg)"
+    y_field = "brain size (kg)"
+
+    for column in [x_field, y_field]:
         plot_data[column] = pd.to_numeric(plot_data[column], errors="coerce")
-    plot_data = plot_data.dropna(subset=[*needed, "Animal class"])
-    plot_data = plot_data[(plot_data[needed[0]] > 0) & (plot_data[needed[1]] > 0)]
+
+    required = [x_field, y_field]
+    if colour_by_class:
+        required.append("Animal class")
+    plot_data = plot_data.dropna(subset=required)
+
+    # Plotly cannot display non-positive values on logarithmic axes.
+    if log_x:
+        plot_data = plot_data[plot_data[x_field] > 0]
+    if log_y:
+        plot_data = plot_data[plot_data[y_field] > 0]
+
+    common_name = "common name" if "common name" in plot_data.columns else None
+    hover_fields = [field for field in ["species"] if field in plot_data.columns]
+
+    if log_x and log_y:
+        scale_label = "log–log scale"
+    elif log_x:
+        scale_label = "logarithmic body-mass axis"
+    elif log_y:
+        scale_label = "logarithmic brain-size axis"
+    else:
+        scale_label = "linear scales"
 
     fig = px.scatter(
         plot_data,
-        x="body mass (kg)",
-        y="brain size (kg)",
-        color="Animal class",
-        hover_name="common name",
-        hover_data=["species"],
-        log_x=True,
-        log_y=True,
-        title="Body mass vs brain size · log–log scale",
+        x=x_field,
+        y=y_field,
+        color="Animal class" if colour_by_class else None,
+        hover_name=common_name,
+        hover_data=hover_fields,
+        log_x=log_x,
+        log_y=log_y,
+        title=f"Body mass vs brain size · {scale_label}",
     )
-    fig.update_traces(marker=dict(size=7, opacity=0.8))
+    fig.update_layout(
+        xaxis_title="Body mass (kg)",
+        yaxis_title="Brain size (kg)",
+        legend_title="Animal class" if colour_by_class else None,
+    )
+    fig.update_traces(marker=dict(size=7, opacity=0.78))
     return fig
 
 
 # -----------------------------------------------------------------------------
-# Data Exploration Playground charts.
+# Data Exploration Playground charts. Unchanged by the CURIOUS refinement.
 # -----------------------------------------------------------------------------
 
 def playground_histogram(
