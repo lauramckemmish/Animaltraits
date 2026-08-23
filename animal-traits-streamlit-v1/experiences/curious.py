@@ -20,10 +20,10 @@ from ui_helpers import (
 STEP_LABELS = [
     "Welcome",
     "1 · Meet the data",
-    "2 · Animal size",
-    "3 · Change the scale",
-    "4 · Compare groups",
-    "5 · Traits are connected",
+    "2 · How big are animals?",
+    "3 · Compare groups",
+    "4 · Body mass & brain size",
+    "5 · Compare relationships",
     "Conclusion",
 ]
 
@@ -42,16 +42,16 @@ def render(data: pd.DataFrame) -> None:
     if part == 0:
         teacher_note(
             "Welcome",
-            "Introduce the scientific dataset, its scope and the idea that real datasets are incomplete before students begin analysing it.",
-            "Keep this conversational. The important distinction is that AnimalTraits is a curated dataset of terrestrial animals, not a list of every animal on Earth. Its measurements come from peer-reviewed scientific studies, and missing animals or missing measurements are expected features of real data.",
+            "Introduce the scientific dataset, its terrestrial scope and the idea that real datasets are incomplete before students begin analysing it.",
+            "Keep this conversational. The activity will focus on two traits only: body mass and brain size. Missing animals or missing measurements are expected features of real scientific data.",
             "5 min",
         )
         st.header("Welcome")
         st.write(
             "Animals are incredibly different. Some weigh a tiny fraction of a gram, while others weigh thousands of kilograms. "
-            "Their brains and energy needs vary enormously too. In this activity, you’ll use **real scientific measurements** to look for patterns in those differences."
+            "Their brains also vary enormously. In this activity, you’ll use **real scientific measurements** to look for patterns in those differences."
         )
-        st.info("**Today's challenge:** What can data reveal about how animal traits vary and relate to each other?")
+        st.info("**Today's challenge:** What can data reveal about how animal body size and brain size vary and relate to each other?")
 
         st.subheader("About the dataset")
         st.write(
@@ -59,10 +59,9 @@ def render(data: pd.DataFrame) -> None:
             "It focuses on **terrestrial animals** — animals that live primarily on land — across many different groups, including mammals, birds, reptiles, amphibians, insects, spiders, molluscs and annelids."
         )
 
-        trait_cols = st.columns(3)
+        trait_cols = st.columns(2)
         trait_cols[0].markdown("**Body mass**  \nHow much an animal weighs")
         trait_cols[1].markdown("**Brain size**  \nRecorded brain mass or volume")
-        trait_cols[2].markdown("**Metabolic rate**  \nHow quickly an animal uses energy")
 
         key_idea(
             "Real scientific datasets are incomplete.",
@@ -86,8 +85,8 @@ def render(data: pd.DataFrame) -> None:
     elif part == 1:
         teacher_note(
             "Meet the data",
-            "Understand rows, columns and variables in a real biological dataset, and use animal search to make missing data visible.",
-            "Start by having students search for an animal they know. If it is absent, treat that as useful evidence about dataset scope or missing measurements rather than a failed task. Then connect the search result back to rows and columns. Common names were added by automated matching and may contain errors, so scientific names are the more reliable identifier.",
+            "Use a familiar animal to introduce records, variables and missing data.",
+            "Have students search for an animal they know. If it is absent, treat that as useful evidence about dataset scope or missing measurements rather than a failed task. Then connect the search result back to rows and columns.",
             "8 min",
         )
         st.header("1 · Meet the data")
@@ -102,7 +101,7 @@ def render(data: pd.DataFrame) -> None:
             for column in searchable:
                 mask = mask | data[column].astype(str).str.contains(query.strip(), case=False, na=False, regex=False)
             matches = data.loc[mask]
-            useful = [c for c in ["common name", "species", "class", "body mass (kg)", "brain size (kg)", "metabolic rate (W)"] if c in data.columns]
+            useful = [c for c in ["common name", "species", "class", "body mass (kg)", "brain size (kg)"] if c in data.columns]
             if matches.empty:
                 st.warning(
                     "No matching record was found in this dataset. That is useful information: the animal may be outside AnimalTraits' terrestrial scope, or the relevant measurements may not be present in this curated database."
@@ -114,7 +113,7 @@ def render(data: pd.DataFrame) -> None:
                     st.caption("Showing the first 25 matches.")
 
         with st.expander("Preview the dataset"):
-            useful = [c for c in ["common name", "species", "class", "body mass (kg)", "metabolic rate (W)", "brain size (kg)"] if c in data.columns]
+            useful = [c for c in ["common name", "species", "class", "body mass (kg)", "brain size (kg)"] if c in data.columns]
             st.dataframe(data[useful].head(20), use_container_width=True, hide_index=True)
             st.caption("The full raw-data viewer and CSV download are available in the sidebar.")
 
@@ -122,53 +121,161 @@ def render(data: pd.DataFrame) -> None:
         response_box("What animal did you search for? Was it present, and what did you learn from the result?", "animal_q2")
 
     elif part == 2:
-        teacher_note("Animal size", "Use a single variable to introduce distributions and the limits of inspecting a table.", "Start with body mass because it is intuitive. Let students sort/search the raw table before graphing.", "8 min")
+        teacher_note(
+            "How big are animals?",
+            "Use body mass as the first quantitative variable, then introduce logarithmic scales because animal masses span many orders of magnitude.",
+            "Start with the range and the linear histogram. Let students notice that most values are compressed before switching to the logarithmic view. Emphasise that the data have not changed — only the spacing on the axis has changed.",
+            "12 min",
+        )
         st.header("2 · How big are animals?")
-        st.write("A **variable** is something that can vary between animals. We’ll begin with something familiar: body mass.")
+        st.write(
+            "We’ll begin with just **one variable: body mass**. Animal body masses cover an enormous range, from tiny invertebrates to very large mammals."
+        )
+
         body = pd.to_numeric(data["body mass (kg)"], errors="coerce").dropna()
         body = body[body > 0]
         if not body.empty:
-            st.metric("Largest recorded body mass", f"{body.max():,.3g} kg")
-            st.metric("Smallest recorded body mass", f"{body.min():,.3g} kg")
-        response_box("What is the biggest animal record you can find? What is the smallest? What does that tell you about the range of this dataset?", "animal_q3")
-        key_idea("A table can contain the information we need, but a visualisation can make the overall pattern much easier to see.")
+            smallest, largest = st.columns(2)
+            smallest.metric("Smallest recorded body mass", f"{body.min():,.3g} kg")
+            largest.metric("Largest recorded body mass", f"{body.max():,.3g} kg")
+
+        bins = st.slider("Histogram bins", 5, 80, 25, key="curious_body_bins")
+        scale = st.radio(
+            "Horizontal-axis scale",
+            ["Linear", "Logarithmic"],
+            horizontal=True,
+            key="curious_body_scale",
+        )
+        is_log = scale == "Logarithmic"
+        st.plotly_chart(
+            histogram(data, "body mass (kg)", log_x=is_log, bins=bins),
+            use_container_width=True,
+        )
+
+        if not is_log:
+            st.info(
+                "**Look at the linear graph first.** Are most animal records easy to distinguish, or are they crowded into one part of the graph? "
+                "When you are ready, switch the axis to **Logarithmic** and compare."
+            )
+        else:
+            graph_guide(
+                "On a logarithmic axis, equal distances represent multiplicative changes such as ×10 rather than equal additions.",
+                "What became easier to see when you changed the scale?",
+            )
+            key_idea(
+                "The animals did not change — only the axis did.",
+                "Logarithmic scales are useful when values span many orders of magnitude.",
+            )
+
+        response_box("What changed when you switched from a linear to a logarithmic scale?", "animal_q3")
 
     elif part == 3:
-        teacher_note("Change the scale", "Compare linear and logarithmic representations of a very wide distribution.", "Have students switch back and forth rather than explaining log scales first. Ask what becomes visible.", "10 min")
-        st.header("3 · Why does scale matter?")
-        st.write("A histogram shows how often different values occur. Animal masses span many orders of magnitude, so the axis scale matters.")
-        variable = st.selectbox("Trait", ["body mass (kg)", "brain size (kg)"], key="curious_hist_trait")
-        bins = st.slider("Histogram bins", 5, 80, 25, key="curious_hist_bins")
-        scale = st.radio("Horizontal-axis scale", ["Linear", "Logarithmic"], horizontal=True, key="curious_hist_scale")
-        st.plotly_chart(histogram(data, variable, log_x=scale == "Logarithmic", bins=bins), use_container_width=True)
-        graph_guide("On a linear axis, equal distances represent equal additions. On a logarithmic axis, equal distances represent multiplicative changes such as ×10.", "Which representation lets you see both very small and very large animals clearly?")
-        response_box("Which scale helped you understand the distribution better, and why?", "animal_q4")
+        teacher_note(
+            "Compare groups",
+            "Use animal class as the first categorical variable and compare body-mass distributions between broad groups.",
+            "Keep this visually constrained. We retain a logarithmic body-mass axis because students have just established why it is useful. Focus discussion on biological differences between groups rather than introducing extra graph types.",
+            "8 min",
+        )
+        st.header("3 · Compare animal groups")
+        st.write(
+            "Now keep the same variable — **body mass** — but separate the animals into broad classes such as mammals, birds, reptiles and insects."
+        )
+        st.plotly_chart(
+            class_comparison(data, graph_type="Individual points", log_y=True),
+            use_container_width=True,
+        )
+        st.caption("Body mass stays on a logarithmic scale so very small and very large animals can be compared on the same graph.")
+        response_box("Which animal groups tend to contain larger animals? Which contain smaller animals? What overlap can you see?", "animal_q4")
 
     elif part == 4:
-        teacher_note("Compare groups", "Compare body-mass distributions among broad animal classes and evaluate graph choices.", "Let students try several representations. The question is not 'which graph is correct?' but which is useful for the comparison they are making.", "10 min")
-        st.header("4 · Compare animal groups")
-        st.write("Animal **classes** are broad groups such as mammals, birds and reptiles. Different plots emphasise different features of each group.")
-        graph_type = st.selectbox("Graph type", ["Individual points", "Box plot", "Violin plot", "Average ± spread"], key="curious_class_graph")
-        scale = st.radio("Vertical-axis scale", ["Logarithmic", "Linear"], horizontal=True, key="curious_class_scale")
-        st.plotly_chart(class_comparison(data, graph_type=graph_type, log_y=scale == "Logarithmic"), use_container_width=True)
-        response_box("Which graph helped you compare the animal classes most clearly? What could you see in it?", "animal_q5")
+        teacher_note(
+            "Body mass and brain size",
+            "Introduce the first two-variable relationship and scaffold the move from linear-linear to log-log axes.",
+            "Show all animals together with no class colouring. Begin on linear axes and let students identify the compression problem. Then switch both axes to logarithmic and ask what relationship becomes visible. Explicitly state that the underlying data are unchanged.",
+            "12 min",
+        )
+        st.header("4 · Body mass and brain size")
+        st.write(
+            "So far we have looked at body mass by itself. Now we’ll add a **second variable: brain size**. Each point on the scatter plot is one animal record with both measurements available."
+        )
+
+        scale = st.radio(
+            "Axis scale",
+            ["Linear–linear", "Log–log"],
+            horizontal=True,
+            key="curious_body_brain_scale",
+        )
+        is_log = scale == "Log–log"
+        st.plotly_chart(
+            body_brain_scatter(
+                data,
+                log_x=is_log,
+                log_y=is_log,
+                colour_by_class=False,
+            ),
+            use_container_width=True,
+        )
+
+        if not is_log:
+            st.info(
+                "**Start with the linear–linear graph.** What can you see clearly? What is difficult to see? "
+                "Notice how many points are compressed near the lower-left corner, then switch to **Log–log**."
+            )
+        else:
+            graph_guide(
+                "Both axes are now logarithmic. The points are the same animals with the same measurements; only the axis spacing has changed.",
+                "As body mass increases, does brain size tend to increase, decrease or show no overall relationship?",
+            )
+            key_idea(
+                "Changing the representation can reveal a relationship that was difficult to see before.",
+                "A log–log plot is especially useful when both variables span very large ranges.",
+            )
+
+        response_box("Describe the overall relationship between body mass and brain size. How did changing the axes affect what you could see?", "animal_q5")
 
     elif part == 5:
-        teacher_note("Traits are connected", "Use a two-variable scatter plot to identify correlation and scaling.", "Keep this step guided. The open-ended choose-any-variable investigation belongs in Data Playground, not here.", "10 min")
-        st.header("5 · Are traits connected?")
-        st.write("A **scatter plot** lets us look for a relationship between two variables. Here, each point represents an animal record.")
-        st.plotly_chart(body_brain_scatter(data), use_container_width=True)
-        graph_guide("Both axes use logarithmic scales so very small and very large animals can be compared on the same graph.", "Does brain size tend to increase, decrease or stay unrelated as body mass increases?")
-        response_box("Describe the overall relationship between body mass and brain size.", "animal_q6")
+        teacher_note(
+            "Compare relationships",
+            "Add animal class only after students understand the overall body-mass/brain-size relationship.",
+            "Use the same log–log relationship and colour by animal class. Keep the task guided: ask whether classes occupy different regions or appear to follow different patterns. Do not add open-ended variable selection here.",
+            "10 min",
+        )
+        st.header("5 · Does the relationship look the same for every animal group?")
+        st.write(
+            "The overall pattern is useful, but different kinds of animals may not behave in exactly the same way. Now add **animal class** to the same body-mass and brain-size graph."
+        )
+        st.plotly_chart(
+            body_brain_scatter(
+                data,
+                log_x=True,
+                log_y=True,
+                colour_by_class=True,
+            ),
+            use_container_width=True,
+        )
+        graph_guide(
+            "Body mass and brain size remain on logarithmic axes. Colour now identifies animal class.",
+            "Do different classes occupy different parts of the graph? Do they appear to follow similar or different relationships?",
+        )
+        response_box("What changes when you separate the body-mass/brain-size relationship by animal class?", "animal_q6")
         with st.expander("Advanced prompts"):
             st.write("Can you find humans? What does their position suggest about brain mass relative to body mass?")
-            st.write("Why might there be multiple human records? What does the source database represent?")
+            st.write("Why might there be multiple records for the same species? What does one row in the source database represent?")
 
     else:
-        teacher_note("Conclusion", "Consolidate the role of visualisation choices in interpreting biological data.", "Return to the opening challenge. Ask students for one biological pattern and one data-science idea they now understand better.", "5 min")
+        teacher_note(
+            "Conclusion",
+            "Consolidate the progression from one variable to groups, two-variable relationships and an additional explanatory variable.",
+            "Return to the opening challenge. Ask students for one biological pattern and one data-science idea they now understand better.",
+            "5 min",
+        )
         st.header("Conclusion")
-        st.success("**Take-away:** Data visualisation is not just decoration. Choosing variables, graph types and scales changes which patterns become visible and how confidently we can describe them.")
-        st.write("You used a real dataset to move from individual records to distributions, group comparisons and relationships between traits.")
-        response_box("What is one pattern about animals you noticed, and one choice about data visualisation that helped you see it?", "animal_conclusion")
+        st.success(
+            "**Take-away:** The way we represent data changes what patterns are visible. We can start with one variable, compare groups, add a second variable to look for a relationship, and then ask whether that relationship changes across animal groups."
+        )
+        st.write(
+            "You also worked with a real scientific dataset, where missing animals, missing measurements and biological variation are part of the evidence rather than mistakes to hide."
+        )
+        response_box("What is one pattern about animals you noticed, and one data-science choice that helped you see it?", "animal_conclusion")
 
     step_buttons(STEP_LABELS, "curious_step_selector", "curious_part", "curious_scroll_to_top", part, "curious")
