@@ -9,26 +9,22 @@ from experiences.catalog import enabled_experience_names
 
 LANDING = "Introduction"
 
-# Availability is controlled only in experiences/catalog.py.
-VALID_EXPERIENCES = enabled_experience_names()
-NAV_OPTIONS = [LANDING, *VALID_EXPERIENCES]
+
+def _enabled_experiences() -> list[str]:
+    """Read visibility from the catalogue on every Streamlit rerun."""
+    return enabled_experience_names()
 
 
 def open_experience(name: str) -> None:
-    """Open an enabled experience, or return to the Introduction page."""
-    if name not in VALID_EXPERIENCES:
-        name = LANDING
-
-    st.session_state["experience"] = name
-
-    if name in VALID_EXPERIENCES:
-        st.session_state["experience_navigation"] = name
+    enabled = _enabled_experiences()
+    destination = name if name == LANDING or name in enabled else LANDING
+    st.session_state["experience"] = destination
+    if destination in enabled:
+        st.session_state["experience_navigation"] = destination
     else:
         st.session_state.pop("experience_navigation", None)
-
     st.session_state["teacher_view"] = False
-
-    if name == EXPERIENCE_CURIOUS:
+    if destination == EXPERIENCE_CURIOUS:
         st.session_state["curious_part"] = 0
         st.session_state.pop("curious_step_selector", None)
         st.session_state["curious_scroll_to_top"] = True
@@ -40,20 +36,25 @@ def go_home() -> None:
 
 def current_experience() -> str:
     selected = st.session_state.get("experience", LANDING)
-    return selected if selected in NAV_OPTIONS else LANDING
+    enabled = _enabled_experiences()
+    if selected == LANDING or selected in enabled:
+        return selected
+    st.session_state["experience"] = LANDING
+    st.session_state.pop("experience_navigation", None)
+    return LANDING
 
 
 def _sync_navigation() -> None:
     selected = st.session_state.get("experience_navigation")
-    if selected in VALID_EXPERIENCES:
+    if selected in _enabled_experiences():
         open_experience(selected)
 
 
 def render_sidebar_navigation() -> None:
-    """Render the introduction link and enabled experience navigator."""
+    """Render the introduction link and persistent experience navigator."""
+    enabled = _enabled_experiences()
     current = current_experience()
-
-    if current in VALID_EXPERIENCES and st.session_state.get("experience_navigation") != current:
+    if current in enabled and st.session_state.get("experience_navigation") != current:
         st.session_state["experience_navigation"] = current
     elif current == LANDING:
         st.session_state.pop("experience_navigation", None)
@@ -67,14 +68,13 @@ def render_sidebar_navigation() -> None:
     )
 
     st.markdown("### Experiences")
-
-    if not VALID_EXPERIENCES:
+    if not enabled:
         st.caption("No experiences are currently available.")
         return
 
     st.radio(
         "Choose an experience",
-        VALID_EXPERIENCES,
+        enabled,
         index=None,
         key="experience_navigation",
         label_visibility="collapsed",
