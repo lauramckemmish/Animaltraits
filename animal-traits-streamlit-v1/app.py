@@ -7,12 +7,8 @@ import streamlit as st
 from config import (
     APP_ICON,
     APP_TITLE,
-    DATASET_NAME,
-    DATASET_DOI,
-    DATASET_GITHUB_URL,
     DATASET_PAPER_URL,
     DATASET_SOURCE_LABEL,
-    DATASET_SOURCE_NOTE,
     DATASET_SOURCE_URL,
     EXPERIENCE_CURIOUS,
     EXPERIENCE_FIND_ANIMAL,
@@ -30,31 +26,21 @@ current = router.current_experience()
 
 with st.sidebar:
     st.markdown(f"## {APP_ICON} {APP_TITLE}")
-    router.render_sidebar_navigation()
+
+    st.markdown("### About AnimalTraits")
+    st.write(
+        "A curated scientific dataset of terrestrial animal traits compiled from "
+        "measurements reported in peer-reviewed studies."
+    )
+    st.caption("Herberstein et al. (2022) · Scientific Data 9, 265")
+    st.markdown(
+        f"[{DATASET_SOURCE_LABEL}]({DATASET_SOURCE_URL}) · "
+        f"[Paper / DOI]({DATASET_PAPER_URL})"
+    )
+    st.caption("Full dataset information, provenance and data access are on the Introduction page.")
 
     st.divider()
-    st.markdown("### Dataset")
-    st.caption(f"**{DATASET_NAME}** · {len(data):,} rows × {len(data.columns)} columns")
-
-    with st.expander("View raw data"):
-        st.dataframe(data, use_container_width=True, height=320)
-        st.download_button(
-            "Download CSV",
-            data=data.to_csv(index=False).encode("utf-8"),
-            file_name="animal_traits.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-
-    st.markdown("**Source**")
-    if DATASET_SOURCE_URL:
-        st.markdown(f"[{DATASET_SOURCE_LABEL}]({DATASET_SOURCE_URL})")
-    else:
-        st.write(DATASET_SOURCE_LABEL)
-    if DATASET_SOURCE_NOTE:
-        st.caption(DATASET_SOURCE_NOTE)
-    st.markdown(f"[Paper / DOI]({DATASET_PAPER_URL}) · [GitHub / raw source]({DATASET_GITHUB_URL})")
-    st.caption(f"DOI: {DATASET_DOI}")
+    router.render_sidebar_navigation()
 
 if current == router.LANDING:
     landing.render(data, router.open_experience)
