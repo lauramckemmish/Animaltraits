@@ -5,7 +5,16 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from config import APP_SUBTITLE, APP_TITLE
+from config import (
+    APP_SUBTITLE,
+    APP_TITLE,
+    DATASET_DOI,
+    DATASET_GITHUB_URL,
+    DATASET_NAME,
+    DATASET_PAPER_URL,
+    DATASET_SOURCE_LABEL,
+    DATASET_SOURCE_URL,
+)
 from experiences.catalog import experience_catalog
 
 
@@ -52,18 +61,58 @@ def render(data: pd.DataFrame, open_experience) -> None:
     with st.container(border=True):
         st.markdown("### About this dataset")
         st.write(
-            "The dataset is a curated collection of **terrestrial animal traits** compiled from "
-            "peer-reviewed scientific research. In CURIOUS, we focus mainly on **body mass** and "
-            "**brain size**."
+            "**AnimalTraits** is a curated collection of terrestrial animal traits compiled from "
+            "measurements reported in peer-reviewed scientific research. The original database "
+            "contains measurements such as body mass, brain size and metabolic rate; in CURIOUS, "
+            "we focus on **body mass** and **brain size**."
         )
         st.write(
-            "A species may appear more than once because different studies or groups of animals can "
-            "contribute separate measurements. Real scientific datasets are also incomplete: not every "
-            "animal is included, and not every animal has every trait measured."
+            "A species can appear in more than one record because different studies, animals or "
+            "groups can contribute separate measurements. Real scientific datasets are also incomplete: "
+            "not every animal is represented, and not every animal has every trait measured."
+        )
+        st.info(
+            "**Why are there more records than distinct animals?**  \n"
+            "The dataset stores observations from scientific studies, so the same species can have "
+            "multiple measurements."
+        )
+
+    st.markdown("### Explore the dataset")
+    st.write(
+        "This app uses a classroom-ready copy of the AnimalTraits data. You can inspect the full "
+        "table used by the app or download it as a CSV."
+    )
+    with st.expander("View dataset", expanded=False):
+        st.dataframe(data, use_container_width=True, height=420)
+        st.download_button(
+            "Download classroom dataset (CSV)",
+            data=data.to_csv(index=False).encode("utf-8"),
+            file_name="animal_traits.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    with st.expander("Full provenance and citation", expanded=False):
+        st.markdown(f"**Dataset:** [{DATASET_SOURCE_LABEL}]({DATASET_SOURCE_URL})")
+        st.write(
+            "AnimalTraits was created by compiling and standardising animal-trait measurements "
+            "from original peer-reviewed scientific publications. The database focuses on terrestrial "
+            "animals and preserves scientific provenance for the underlying measurements."
+        )
+        st.markdown(
+            "**Citation**  \n"
+            "Herberstein, M. E., McLean, D. J., Lowe, E. *et al.* (2022). "
+            "*AnimalTraits – a curated animal trait database for body mass, metabolic rate and brain size.* "
+            "**Scientific Data, 9**, 265."
+        )
+        st.markdown(f"**DOI:** [{DATASET_DOI}]({DATASET_PAPER_URL})")
+        st.markdown(
+            f"[AnimalTraits website]({DATASET_SOURCE_URL}) · "
+            f"[GitHub source, raw data and compilation code]({DATASET_GITHUB_URL})"
         )
         st.caption(
-            "Source: AnimalTraits — Herberstein et al. (2022), Scientific Data 9, 265. "
-            "Full provenance, citation and raw-data access are available in the sidebar."
+            f"The app currently uses the classroom-ready dataset labelled “{DATASET_NAME}”. "
+            "The original project files and scientific source information remain available through AnimalTraits."
         )
 
     st.markdown("## Choose an experience")
