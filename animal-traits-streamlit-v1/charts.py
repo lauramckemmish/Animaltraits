@@ -76,6 +76,7 @@ def body_brain_scatter(
     log_x: bool = False,
     log_y: bool = False,
     colour_by_class: bool = False,
+    fit: FitResult | None = None,
 ):
     """Plot body mass against brain size for CURIOUS.
 
@@ -130,6 +131,16 @@ def body_brain_scatter(
         legend_title="Animal class" if colour_by_class else None,
     )
     fig.update_traces(marker=dict(size=7, opacity=0.78))
+    if fit is not None:
+        fig.add_trace(
+            go.Scatter(
+                x=fit.x_line,
+                y=fit.y_line,
+                mode="lines",
+                name=fit.model_name,
+                line=dict(color="#1f2937", width=3),
+            )
+        )
     return fig
 
 

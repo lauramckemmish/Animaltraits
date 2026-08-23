@@ -12,7 +12,7 @@ from config import (
     EXPERIENCE_YEAR10,
 )
 
-LANDING = "Home"
+LANDING = "Introduction"
 VALID_EXPERIENCES = [
     EXPERIENCE_CURIOUS,
     EXPERIENCE_YEAR8,
@@ -25,7 +25,10 @@ NAV_OPTIONS = [LANDING, *VALID_EXPERIENCES]
 
 def open_experience(name: str) -> None:
     st.session_state["experience"] = name
-    st.session_state["experience_navigation"] = name
+    if name in VALID_EXPERIENCES:
+        st.session_state["experience_navigation"] = name
+    else:
+        st.session_state.pop("experience_navigation", None)
     st.session_state["teacher_view"] = False
     if name == EXPERIENCE_CURIOUS:
         st.session_state["curious_part"] = 0
@@ -43,23 +46,32 @@ def current_experience() -> str:
 
 
 def _sync_navigation() -> None:
-    selected = st.session_state.get("experience_navigation", LANDING)
-    if selected in NAV_OPTIONS:
+    selected = st.session_state.get("experience_navigation")
+    if selected in VALID_EXPERIENCES:
         open_experience(selected)
 
 
 def render_sidebar_navigation() -> None:
-    """Render the persistent experience navigator in the sidebar."""
+    """Render the introduction link and persistent experience navigator."""
     current = current_experience()
-    if st.session_state.get("experience_navigation") not in NAV_OPTIONS:
+    if current in VALID_EXPERIENCES and st.session_state.get("experience_navigation") != current:
         st.session_state["experience_navigation"] = current
-    elif st.session_state.get("experience_navigation") != current:
-        st.session_state["experience_navigation"] = current
+    elif current == LANDING:
+        st.session_state.pop("experience_navigation", None)
+
+    st.markdown("### Introduction")
+    st.button(
+        "Introduction",
+        on_click=go_home,
+        type="primary" if current == LANDING else "secondary",
+        use_container_width=True,
+    )
 
     st.markdown("### Experiences")
     st.radio(
         "Choose an experience",
-        NAV_OPTIONS,
+        VALID_EXPERIENCES,
+        index=None,
         key="experience_navigation",
         label_visibility="collapsed",
         on_change=_sync_navigation,

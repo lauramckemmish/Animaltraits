@@ -7,6 +7,9 @@ import streamlit as st
 from config import (
     APP_ICON,
     APP_TITLE,
+    DATASET_NAME,
+    DATASET_DOI,
+    DATASET_GITHUB_URL,
     DATASET_PAPER_URL,
     DATASET_SOURCE_LABEL,
     DATASET_SOURCE_URL,
@@ -28,19 +31,35 @@ with st.sidebar:
     st.markdown(f"## {APP_ICON} {APP_TITLE}")
 
     st.markdown("### About AnimalTraits")
-    st.write(
-        "A curated scientific dataset of terrestrial animal traits compiled from "
-        "measurements reported in peer-reviewed studies."
+    st.caption(
+        "AnimalTraits is a curated scientific dataset of terrestrial animals. It contains real measurements from peer-reviewed studies, including body mass, brain size and metabolic rate. Like all real datasets, it is incomplete: not every animal or trait has been measured."
     )
-    st.caption("Herberstein et al. (2022) · Scientific Data 9, 265")
-    st.markdown(
-        f"[{DATASET_SOURCE_LABEL}]({DATASET_SOURCE_URL}) · "
-        f"[Paper / DOI]({DATASET_PAPER_URL})"
-    )
-    st.caption("Full dataset information, provenance and data access are on the Introduction page.")
+    router.render_sidebar_navigation()
 
     st.divider()
-    router.render_sidebar_navigation()
+    st.markdown("### Dataset")
+    st.caption(f"**{DATASET_NAME}** · {len(data):,} rows × {len(data.columns)} columns")
+
+    with st.expander("View raw data"):
+        st.dataframe(data, use_container_width=True, height=320)
+        st.download_button(
+            "Download CSV",
+            data=data.to_csv(index=False).encode("utf-8"),
+            file_name="animal_traits.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    st.markdown("### Source / citation")
+    if DATASET_SOURCE_URL:
+        st.markdown(f"[{DATASET_SOURCE_LABEL}]({DATASET_SOURCE_URL})")
+    else:
+        st.write(DATASET_SOURCE_LABEL)
+    st.markdown(f"[Paper / DOI]({DATASET_PAPER_URL}) · [GitHub / raw source]({DATASET_GITHUB_URL})")
+    st.caption(
+        "Herberstein, M. E., McLean, D. J., Lowe, E. et al. (2022). *AnimalTraits – a curated animal trait database for body mass, metabolic rate and brain size.* Scientific Data, 9, 265."
+    )
+    st.caption(f"DOI: {DATASET_DOI}")
 
 if current == router.LANDING:
     landing.render(data, router.open_experience)
