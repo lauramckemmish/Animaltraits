@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import math
+from decimal import Decimal
+
 import pandas as pd
 import streamlit as st
 
@@ -35,13 +38,32 @@ def _body_mass_values(data: pd.DataFrame) -> pd.Series:
     return values[values > 0]
 
 
-def _format_mass(value: float) -> str:
-    """Show a readable decimal where practical, with scientific notation alongside."""
+def _plain_decimal(value: float) -> str:
+    """Format a number without computer-style e notation."""
+    decimal = format(Decimal(str(value)), "f")
+    if "." in decimal:
+        decimal = decimal.rstrip("0").rstrip(".")
+    whole, dot, fraction = decimal.partition(".")
+    try:
+        whole = f"{int(whole):,}"
+    except ValueError:
+        pass
+    return whole + (dot + fraction if dot else "")
+
+
+def _superscript_integer(value: int) -> str:
+    translation = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
+    return str(value).translate(translation)
+
+
+def _scientific_notation(value: float, significant_figures: int = 3) -> str:
+    """Return student-facing scientific notation using × 10ⁿ, never e notation."""
     if value == 0:
-        return "0 kg"
-    if 0.001 <= abs(value) < 10_000:
-        return f"{value:,.6g} kg  ·  {value:.2e} kg"
-    return f"{value:.3e} kg"
+        return "0"
+    exponent = math.floor(math.log10(abs(value)))
+    coefficient = value / (10 ** exponent)
+    coefficient_text = f"{coefficient:.{max(significant_figures - 1, 0)}f}".rstrip("0").rstrip(".")
+    return f"{coefficient_text} × 10{_superscript_integer(exponent)}"
 
 
 def render(data: pd.DataFrame) -> None:
@@ -112,37 +134,55 @@ def render(data: pd.DataFrame) -> None:
     elif part == 2:
         teacher_note(
             "Body mass and scale",
-            "Use one familiar variable to introduce distributions, scientific notation and why logarithmic scales are useful for data spanning many orders of magnitude.",
-            "Keep attention on body mass only. Start with the range and the linear histogram. Let students change the histogram bins and notice how little of the distribution is visible. Introduce scientific notation only as a compact way to write very large or very small numbers, then reveal the logarithmic version at the bottom as a solution to the visualisation problem.",
+            "Use one familiar variable to introduce range, then create the need for scientific notation and logarithmic scales rather than teaching either idea in isolation.",
+            "This is deliberately a substantial conceptual step, especially for Year 8 students. Do not expect mastery of scientific notation or logarithms. The aim is recognition: scientific notation is a shorter way to write the same extremely small number, and a logarithmic axis is a different way of spacing the same data so values across many powers of ten can be seen. Build the need for each representation first. Start with the largest value in kilograms, then show the smallest value as an ordinary decimal with all its zeros. Once that becomes awkward to read, introduce ×10ⁿ notation as a useful scientific shorthand. Next show the linear histogram and let students change the bin count. When the smaller animals remain compressed and difficult to see, use that failure to motivate the logarithmic reveal. Keep the explanation concrete and visual: students do not need to calculate logarithms. The important idea is that the dataset spans such a huge range that ordinary number-writing and ordinary linear axes become difficult to use.",
             "15 min",
         )
         st.header("2 · One variable: body mass")
-        st.write("A **variable** is something that can vary between animals. We will begin with one familiar variable: body mass.")
+        st.write("A **variable** is something that can vary between animals. We will begin with one familiar variable: **body mass**.")
 
         body = _body_mass_values(data)
         if not body.empty:
             largest_value = body.max()
             smallest_value = body.min()
-            ratio = largest_value / smallest_value
+            largest_plain = _plain_decimal(largest_value)
+            smallest_plain = _plain_decimal(smallest_value)
+            smallest_scientific = _scientific_notation(smallest_value)
 
-            largest, smallest, spread = st.columns(3)
-            largest.metric("Largest recorded value", _format_mass(largest_value))
-            smallest.metric("Smallest recorded value", _format_mass(smallest_value))
-            spread.metric("Largest ÷ smallest", f"{ratio:.2e}×")
-
-            with st.expander("What does scientific notation mean?"):
-                st.write(
-                    "Scientific notation is a compact way to write very large or very small numbers. "
-                    "For example, **1.0 × 10³ = 1,000** and **1.0 × 10⁻³ = 0.001**."
-                )
-                st.write(
-                    "We use it here because animal body masses span such a huge range that ordinary decimal numbers quickly become awkward to read."
-                )
-
-            st.markdown("### Start with a linear scale")
+            st.markdown("### How big can an animal record be?")
+            st.metric("Largest recorded body mass", f"{largest_plain} kg")
             st.write(
-                "A histogram groups body-mass measurements into ranges. Try changing the number of bins. "
-                "Can you make the small animals easier to see?"
+                "This number is fairly easy to read in kilograms. Now compare it with the smallest value in the dataset."
+            )
+
+            st.markdown("### How small can an animal record be?")
+            st.metric("Smallest recorded body mass", f"{smallest_plain} kg")
+            st.write(
+                f"Written out in full, the smallest value is **{smallest_plain} kg**. "
+                "With lots of zeros, numbers like this are difficult to read and compare."
+            )
+
+            with st.expander("A shorter way to write very small numbers"):
+                st.write(
+                    "Scientists often use **scientific notation** to write very large or very small numbers without a long string of zeros."
+                )
+                st.markdown(f"The same body mass can be written as **{smallest_scientific} kg**.")
+                st.write(
+                    "The power of ten tells us how far the decimal point has moved. A negative power means the number is smaller than 1. "
+                    "For example, **10⁻³ = 0.001**."
+                )
+                st.caption(
+                    "You may sometimes see computers write scientific notation with an 'e' (for example, 1e-6). We will use × 10 with a power instead."
+                )
+
+            response_box(
+                "What surprised you about the largest and smallest body masses in this dataset?",
+                "animal_q2_range",
+            )
+
+            st.markdown("### What does the whole distribution look like?")
+            st.write(
+                "A histogram groups body-mass measurements into ranges. Start with an ordinary **linear scale** and try changing the number of bins."
             )
             bins = st.slider(
                 "Number of histogram bins",
@@ -158,7 +198,7 @@ def render(data: pd.DataFrame) -> None:
             )
             graph_guide(
                 "The horizontal axis is linear: equal distances represent equal additions in body mass.",
-                "Where are most animals? Can you distinguish the smaller animals, or are they crowded together?",
+                "Where are most of the animal records? Can you distinguish the smaller animals, or are they crowded together?",
             )
             response_box(
                 "What is difficult to see on the linear histogram, even after changing the bins?",
@@ -166,13 +206,13 @@ def render(data: pd.DataFrame) -> None:
             )
 
             st.divider()
-            st.markdown("### Reveal: try a logarithmic scale")
+            st.markdown("### We need another way to show the scale")
             st.write(
                 "Changing the number of bins does not solve the main problem: the smallest and largest body masses are enormously different. "
-                "Instead, we can change **how the horizontal axis is spaced**."
+                "A **logarithmic scale** changes the spacing of the axis so that repeated multiplication — such as ×10 — takes up equal space."
             )
             show_log = st.toggle(
-                "Show the logarithmic version",
+                "Reveal the logarithmic version",
                 value=False,
                 key="curious_show_log_histogram",
             )
@@ -182,12 +222,12 @@ def render(data: pd.DataFrame) -> None:
                     use_container_width=True,
                 )
                 graph_guide(
-                    "On a logarithmic axis, equal distances represent equal multiplication, such as ×10. The data are exactly the same; only the axis spacing has changed.",
-                    "Can you now see structure among both small and large animals? What became visible?",
+                    "The data are exactly the same. Only the way the horizontal axis is spaced has changed.",
+                    "What can you see now that was hidden on the linear scale?",
                 )
                 key_idea(
-                    "Logarithmic scales help us visualise data that span many orders of magnitude.",
-                    "The measurements did not change. We changed only the way their positions are represented on the axis.",
+                    "Logarithmic scales help us visualise data that span a huge range.",
+                    "They are especially useful when values differ by repeated factors of 10.",
                 )
                 response_box(
                     "What became easier to see on the logarithmic histogram?",
