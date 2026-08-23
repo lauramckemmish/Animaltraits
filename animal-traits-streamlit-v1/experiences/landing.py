@@ -5,24 +5,66 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from config import APP_SUBTITLE, APP_TITLE, DEVELOPMENT_NOTE, PROJECT_LABEL
+from config import APP_SUBTITLE, APP_TITLE
 from experiences.catalog import experience_catalog
+
+
+def _distinct_animals(data: pd.DataFrame) -> int:
+    """Count distinct animals using the best available scientific-name field."""
+    for column in ["Scientific name", "scientific name", "species"]:
+        if column in data.columns:
+            names = data[column].astype("string").str.strip()
+            names = names[names.notna() & (names != "") & (names != "0")]
+            return int(names.nunique())
+    return 0
 
 
 def render(data: pd.DataFrame, open_experience) -> None:
     st.title(f"🐘 {APP_TITLE}")
     st.markdown(f"### {APP_SUBTITLE}")
+
     st.write(
-        "Use real data from land-dwelling animals to explore body size, animal groups, "
-        "data visualisation and relationships between biological traits."
+        "AnimalTraits brings together real measurements reported in scientific studies of "
+        "terrestrial animals. We can use these data to explore how animal size varies, "
+        "compare broad animal groups, and investigate relationships such as body mass and brain size."
     )
 
-    count, columns = st.columns([1, 3])
-    with count:
-        st.metric("Animal records", f"{len(data):,}")
-    with columns:
-        st.markdown(f"**{PROJECT_LABEL}**")
-        st.info(DEVELOPMENT_NOTE)
+    record_count = len(data)
+    animal_count = _distinct_animals(data)
+
+    records_col, animals_col = st.columns(2)
+    with records_col:
+        st.metric(
+            "Animal records",
+            f"{record_count:,}",
+            help=(
+                "Each row is an observation or measurement from the source database. "
+                "The same animal species can appear in more than one record."
+            ),
+        )
+    with animals_col:
+        st.metric(
+            "Distinct animals",
+            f"{animal_count:,}" if animal_count else "—",
+            help="Number of unique scientific species names represented in the classroom dataset.",
+        )
+
+    with st.container(border=True):
+        st.markdown("### About this dataset")
+        st.write(
+            "The dataset is a curated collection of **terrestrial animal traits** compiled from "
+            "peer-reviewed scientific research. In CURIOUS, we focus mainly on **body mass** and "
+            "**brain size**."
+        )
+        st.write(
+            "A species may appear more than once because different studies or groups of animals can "
+            "contribute separate measurements. Real scientific datasets are also incomplete: not every "
+            "animal is included, and not every animal has every trait measured."
+        )
+        st.caption(
+            "Source: AnimalTraits — Herberstein et al. (2022), Scientific Data 9, 265. "
+            "Full provenance, citation and raw-data access are available in the sidebar."
+        )
 
     st.markdown("## Choose an experience")
     experiences = experience_catalog()
