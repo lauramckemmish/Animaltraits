@@ -37,7 +37,7 @@ STEP_LABELS = [
     "3 · Body mass & scale",
     "4 · Two variables",
     "5 · Animal class",
-    "6 · Did we solve it?",
+    "6 · Are humans the smartest animals?",
 ]
 
 SEARCH_DISPLAY_COLUMNS = [
@@ -488,7 +488,7 @@ def render(data: pd.DataFrame) -> None:
         teacher_note(
             "Animal class",
             "Compare highlighted biological groups on the same full-dataset graph, then consider where Homo records sit within the relationship.",
-            "Guide students through Mammal, then Reptile, then Homo, while allowing them to explore other available groups. Keep the interpretation descriptive and do not connect brain mass directly to intelligence.",
+            "Guide students to compare at least two groups. Mammal and Reptile are the clearest default comparison; if time allows, add Homo. Students can explore other groups if they are interested. Treat the fitted lines only as visual summaries of overlapping point clouds — do not teach regression here. Keep the interpretation descriptive and avoid equating brain mass with intelligence.",
             "10 min",
         )
         st.header("5 · Does the kind of animal matter too?")
@@ -568,18 +568,28 @@ def render(data: pd.DataFrame) -> None:
             st.caption(
                 "That is interesting. But does having relatively high brain mass for body size prove that an animal is more intelligent?"
             )
+        st.markdown("### What have we figured out?")
+        st.markdown(
+            "- **Larger animals generally tend to have larger brains.**\n"
+            "- **Body size is not the whole story.**\n"
+            "- **Different animal groups can show different body–brain patterns.**\n"
+            "- **Some groups have much more data than others, so we should be careful about how strongly we compare them.**\n"
+            "- **The dots show individual records; the lines help us see the overall pattern.**\n"
+            "- **Homo records sit relatively high in brain mass for their body mass compared with many records in this dataset.**"
+        )
+        st.markdown("### So… does that mean humans are the smartest animals?")
         if len(explored_groups) >= 2:
             allow_next = True
 
     elif part == 6:
         allow_next = False
         teacher_note(
-            "Did we solve it?",
+            "Are humans the smartest animals?",
             "Challenge overinterpretation without replacing it with another simple ranking of animals.",
             "Reveal the challenges one at a time. Let students react before each reveal. Use the local still images as visual evidence, then return to what evidence supports and what we would investigate next.",
             "5–7 min",
         )
-        st.header("6 · Did we solve it?")
+        st.header("Are humans the smartest animals?")
         st.write("The Homo records looked pretty interesting.")
         st.write("**So… have we found the smartest animal?**")
 
@@ -603,7 +613,7 @@ def render(data: pd.DataFrame) -> None:
                     st.session_state["curious_step6_challenge_one"] = True
                     st.rerun()
             else:
-                st.markdown("### Challenge 1 · Biggest brain = smartest?")
+                st.markdown("### Challenge 1 · What about animals with bigger brains?")
                 st.write("**Humans don’t have the biggest brains.**")
                 st.write(
                     "A human brain is roughly **1.3 kg**. An African elephant brain is roughly **5 kg**. "
@@ -631,7 +641,7 @@ def render(data: pd.DataFrame) -> None:
                         st.session_state["curious_step6_challenge_two"] = True
                         st.rerun()
                 else:
-                    st.markdown("### Challenge 2 · Small brain = simple?")
+                    st.markdown("### Challenge 2 · What about clever animals with small brains?")
                     st.write("**New Caledonian crows make the story harder again.**")
                     st.write(
                         "They can solve problems and use tools, even though their brains are tiny in absolute mass compared with ours. "
@@ -646,7 +656,7 @@ def render(data: pd.DataFrame) -> None:
                             st.session_state["curious_step6_challenge_three"] = True
                             st.rerun()
                     else:
-                        st.markdown("### Challenge 3 · What if the nervous system is built differently?")
+                        st.markdown("### Challenge 3 · What if brains aren’t built the same way?")
                         st.write("**Octopuses make the story stranger again.**")
                         st.write(
                             "Octopuses can learn and adapt when a problem changes. But their nervous system is organised very differently from ours: "
