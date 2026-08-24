@@ -46,7 +46,8 @@ SEARCH_DISPLAY_COLUMNS = [
     "Brain size (kg)",
 ]
 
-WELCOME_ILLUSTRATION_PATH = Path(__file__).resolve().parents[1] / "assets" / "wide_colorful_cartoon_illustration_like_an_educati.png"
+WELCOME_EVOLUTION_PATH = Path(__file__).resolve().parents[1] / "assets" / "curious_welcome_evolution.png"
+CONCLUSION_EVIDENCE_PATH = Path(__file__).resolve().parents[1] / "assets" / "curious_conclusion_evidence.png"
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
 SPERM_WHALE_IMAGE_PATH = MEDIA_DIR / "6(26) Sperm whale.JPG"
@@ -166,10 +167,8 @@ def render(data: pd.DataFrame) -> None:
         )
         st.header("Welcome")
         st.subheader("Is this story too simple?")
-        st.image(WELCOME_ILLUSTRATION_PATH, use_container_width=True)
-        st.caption(
-            "AI-generated illustration, specially designed for this CURIOUS workshop to explore how we use evidence, technology and curiosity."
-        )
+        st.image(WELCOME_EVOLUTION_PATH, use_container_width=True)
+        st.caption("AI-generated illustration, specially designed for this CURIOUS workshop.")
         st.write("**What story is this picture telling?**")
         st.write("**What feels funny — or maybe a bit too simple — about it?**")
         st.write("**How could we actually figure out whether an animal is intelligent?**")
@@ -662,6 +661,8 @@ def render(data: pd.DataFrame) -> None:
                                 "There may not be one single measurement that settles it."
                             )
                             st.markdown("# Is this story too simple?")
+                            st.image(CONCLUSION_EVIDENCE_PATH, use_container_width=True)
+                            st.caption("AI-generated illustration, specially designed for this CURIOUS workshop.")
                             st.write("At the start, we looked at a neat story about evolution and intelligence.")
                             st.write("Our data helped us build a better story.")
                             st.write("**But even that story has limits.**")
