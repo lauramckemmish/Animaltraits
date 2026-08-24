@@ -32,6 +32,14 @@ STEP_LABELS = [
     "Conclusion",
 ]
 
+SEARCH_DISPLAY_COLUMNS = [
+    "Common name",
+    "Scientific name",
+    "Animal class",
+    "Body mass (kg)",
+    "Brain size (kg)",
+]
+
 
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
     values = pd.to_numeric(data["body mass (kg)"], errors="coerce").dropna()
@@ -158,13 +166,6 @@ def render(data: pd.DataFrame) -> None:
             "Search for an animal",
             key="curious_animal_search",
         )
-        display_columns = [
-            "Common name",
-            "Scientific name",
-            "Animal class",
-            "Body mass (kg)",
-            "Brain size (kg)",
-        ]
         matches = pd.DataFrame()
         human_found = False
         if query.strip():
@@ -174,7 +175,7 @@ def render(data: pd.DataFrame) -> None:
                     "No matching Human record was found. Try searching for `Human`."
                 )
             else:
-                _render_search_results(matches, display_columns)
+                _render_search_results(matches, SEARCH_DISPLAY_COLUMNS)
                 if query.strip().casefold() in {"human", "homo sapiens"}:
                     human_found = True
                     st.write(
@@ -216,7 +217,7 @@ def render(data: pd.DataFrame) -> None:
                     "the animal is listed under another common or scientific name, the search term is broad, or the species is not included."
                 )
             else:
-                _render_search_results(animal_matches, display_columns)
+                _render_search_results(animal_matches, SEARCH_DISPLAY_COLUMNS)
                 _render_measurement_summary(animal_matches)
                 st.caption("Try another animal when you’re ready.")
 
