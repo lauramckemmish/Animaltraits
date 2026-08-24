@@ -489,7 +489,7 @@ def body_brain_class_fit_scatter(
                     name=f"{class_name} fit",
                     showlegend=False,
                     legendgroup=class_name,
-                    line=dict(color=colour, width=4),
+                    line=dict(color="#1f2937", width=5),
                     hoverinfo="skip",
                 )
             )
