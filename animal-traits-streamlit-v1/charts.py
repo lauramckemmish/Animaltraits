@@ -19,6 +19,58 @@ from models import FitResult
 # Existing CURIOUS chart helpers.
 # -----------------------------------------------------------------------------
 
+_SUPERSCRIPT_TRANSLATION = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
+
+
+def _power_of_ten_label(exponent: int) -> str:
+    """Return a student-facing power-of-ten label such as 10⁻³."""
+    return f"10{str(exponent).translate(_SUPERSCRIPT_TRANSLATION)}"
+
+
+def _scientific_log_ticks(values: pd.Series, max_ticks: int = 9) -> tuple[list[float], list[str]]:
+    """Return readable powers-of-ten ticks covering positive values.
+
+    Plotly's automatic log-axis labels can switch to engineering prefixes such as
+    µ or n. CURIOUS has already introduced powers of ten, so these axes use that
+    notation consistently instead.
+    """
+    numeric = pd.to_numeric(values, errors="coerce")
+    numeric = numeric[np.isfinite(numeric) & (numeric > 0)]
+    if numeric.empty:
+        return [], []
+
+    low = int(np.floor(np.log10(numeric.min())))
+    high = int(np.ceil(np.log10(numeric.max())))
+    span = max(high - low, 0)
+    step = max(1, int(np.ceil((span + 1) / max_ticks)))
+
+    exponents = list(range(low, high + 1, step))
+    if exponents[-1] != high:
+        exponents.append(high)
+
+    tick_values = [10.0 ** exponent for exponent in exponents]
+    tick_text = [_power_of_ten_label(exponent) for exponent in exponents]
+    return tick_values, tick_text
+
+
+def _apply_scientific_log_axis(fig, axis: str, values: pd.Series, title: str) -> None:
+    """Apply powers-of-ten tick labels to one Plotly logarithmic axis."""
+    tick_values, tick_text = _scientific_log_ticks(values)
+    axis_settings = dict(
+        type="log",
+        title=title,
+        tickmode="array",
+        tickvals=tick_values,
+        ticktext=tick_text,
+    )
+    if axis == "x":
+        fig.update_xaxes(**axis_settings)
+    elif axis == "y":
+        fig.update_yaxes(**axis_settings)
+    else:
+        raise ValueError("axis must be 'x' or 'y'")
+
+
 def histogram(data: pd.DataFrame, field: str, log_x: bool = False, bins: int = 25):
     values = pd.to_numeric(data[field], errors="coerce")
     plot_data = pd.DataFrame({field: values}).dropna()
@@ -31,7 +83,7 @@ def histogram(data: pd.DataFrame, field: str, log_x: bool = False, bins: int = 2
         counts, edges = np.histogram(plot_data[field], bins=edges)
         centres = np.sqrt(edges[:-1] * edges[1:])
         fig = go.Figure(go.Bar(x=centres, y=counts, width=np.diff(edges)))
-        fig.update_xaxes(type="log", title=field)
+        _apply_scientific_log_axis(fig, "x", plot_data[field], field)
         fig.update_yaxes(title="Number of animals")
         fig.update_layout(title=f"Distribution of {field} · logarithmic scale", bargap=0.02)
         return fig
@@ -130,6 +182,10 @@ def body_brain_scatter(
         yaxis_title="Brain size (kg)",
         legend_title="Animal class" if colour_by_class else None,
     )
+    if log_x:
+        _apply_scientific_log_axis(fig, "x", plot_data[x_field], "Body mass (kg)")
+    if log_y:
+        _apply_scientific_log_axis(fig, "y", plot_data[y_field], "Brain size (kg)")
     fig.update_traces(marker=dict(size=7, opacity=0.78))
     if fit is not None:
         fig.add_trace(
@@ -254,8 +310,14 @@ def body_brain_class_fit_scatter(
         yaxis_title="Brain size (kg)",
         legend_title="Animal class",
     )
-    fig.update_xaxes(type="log" if log_x else "linear")
-    fig.update_yaxes(type="log" if log_y else "linear")
+    if log_x:
+        _apply_scientific_log_axis(fig, "x", plot_data[x_field], "Body mass (kg)")
+    else:
+        fig.update_xaxes(type="linear")
+    if log_y:
+        _apply_scientific_log_axis(fig, "y", plot_data[y_field], "Brain size (kg)")
+    else:
+        fig.update_yaxes(type="linear")
     return fig
 
 
