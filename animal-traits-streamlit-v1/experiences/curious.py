@@ -472,11 +472,10 @@ def render(data: pd.DataFrame) -> None:
                     allow_next = True
 
     elif part == 5:
-        allow_next = False
         teacher_note(
             "Animal class",
-            "Compare Mammals and Reptiles, then consider where Homo records sit within the same body-mass–brain-mass relationship.",
-            "Keep the comparison descriptive. Animal class can help us notice different regions of the graph; it does not prove anything about intelligence.",
+            "Compare highlighted biological groups on the same full-dataset graph, then consider where Homo records sit within the relationship.",
+            "Guide students through Mammal, then Reptile, then Homo, while allowing them to explore other available groups. Keep the interpretation descriptive and do not connect brain mass directly to intelligence.",
             "10 min",
         )
         st.header("5 · Does the kind of animal matter too?")
@@ -485,48 +484,52 @@ def render(data: pd.DataFrame) -> None:
             "Could the kind of animal matter too?"
         )
         st.write("Animal class is a broad biological grouping. Mammals and reptiles are two examples.")
-        st.markdown("### Mammals vs Reptiles")
+        class_options = sorted(
+            with_common_class_names(data)["Animal class"].dropna().unique().tolist()
+        )
+        species_series = data["species"].fillna("").astype(str)
+        homo_records = data[species_series.str.split().str[0].eq("Homo")]
+        group_options = class_options + (["Homo"] if not homo_records.empty else [])
+        selected_groups = st.multiselect(
+            "Highlight groups",
+            options=group_options,
+            key="curious_step5_highlight_groups",
+        )
+
+        if not selected_groups:
+            st.markdown("### First, highlight Mammals")
+            st.caption("Select Mammal. What do you notice about where the mammals sit compared with all the other animals?")
+        elif "Mammal" in selected_groups and "Reptile" not in selected_groups:
+            st.markdown("### Now add Reptiles")
+            st.caption("Keep Mammal selected and add Reptile. What changes?")
+        elif "Mammal" in selected_groups and "Reptile" in selected_groups and "Homo" not in selected_groups:
+            st.markdown("### Where do Homo species sit?")
+            st.caption("Mammals and reptiles are animal classes. Homo is a genus within the mammals. Select Homo to add it to the graph.")
+        else:
+            st.caption("Explore the highlighted groups together. What do you notice about where they sit on the graph?")
+
+        highlighted_classes = [group for group in selected_groups if group != "Homo"]
+        homo_selected = "Homo" in selected_groups
         st.plotly_chart(
             body_brain_class_fit_scatter(
                 data,
-                highlighted_classes=["Mammal", "Reptile"],
+                highlighted_classes=highlighted_classes,
                 fits=None,
-                title="Mammals and reptiles",
+                highlighted_records=homo_records if homo_selected else None,
+                highlighted_label="Homo records",
+                title="Highlighted groups · body mass vs brain mass",
             ),
             use_container_width=True,
         )
-        st.caption(
-            "Do mammals and reptiles occupy the same parts of the graph? For animals with similar body masses, do their brain masses look similar?"
-        )
-
-        homo_revealed = bool(st.session_state.get("curious_step5_homo_revealed", False))
-        if not homo_revealed:
-            if st.button("Reveal Homo records", type="primary", key="curious_reveal_step5_homo"):
-                st.session_state["curious_step5_homo_revealed"] = True
-                st.rerun()
-        else:
-            homo_records = data[
-                data["species"].fillna("").astype(str).str.split().str[0].eq("Homo")
-            ]
-            st.markdown("### Where do Homo species sit?")
-            st.plotly_chart(
-                body_brain_class_fit_scatter(
-                    data,
-                    highlighted_classes=["Mammal", "Reptile"],
-                    fits=None,
-                    highlighted_records=homo_records,
-                    highlighted_label="Homo records",
-                    title="Mammals, reptiles and Homo records",
-                ),
-                use_container_width=True,
-            )
+        if "Mammal" in selected_groups and "Reptile" in selected_groups:
+            st.caption("For animals with similar body masses, do mammals and reptiles seem to occupy the same parts of the graph?")
+        if homo_selected:
             st.write(
                 "The Homo records sit relatively high in brain mass for their body mass compared with many other records in this dataset."
             )
             st.caption(
-                "That’s interesting. But does that mean Homo are the most intelligent animals? Does having relatively high brain mass for body size prove greater intelligence?"
+                "That is interesting. But does having relatively high brain mass for body size prove that an animal is more intelligent?"
             )
-            allow_next = True
 
     else:
         teacher_note(
