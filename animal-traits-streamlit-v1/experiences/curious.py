@@ -255,89 +255,81 @@ def render(data: pd.DataFrame) -> None:
 
             st.markdown("### How big can an animal record be?")
             st.metric("Largest recorded body mass", f"{largest_plain} kg")
-            st.write(
-                "This number is fairly easy to read in kilograms. Now compare it with the smallest value in the dataset."
-            )
+            st.caption("Now compare it with the smallest value in the dataset.")
 
             st.markdown("### How small can an animal record be?")
             st.metric("Smallest recorded body mass", f"{smallest_plain} kg")
             st.write(
-                f"Written out in full, the smallest value is **{smallest_plain} kg**. "
-                "With lots of zeros, numbers like this are difficult to read and compare."
+                "That is a lot of zeros. Scientists often use a shorter way to write numbers like this."
             )
 
-            with st.expander("A shorter way to write very small numbers"):
-                st.write(
-                    "Scientists often use **scientific notation** to write very large or very small numbers without a long string of zeros."
-                )
-                st.markdown(f"The same body mass can be written as **{smallest_scientific} kg**.")
-                st.write(
-                    "The power of ten tells us how far the decimal point has moved. A negative power means the number is smaller than 1. "
-                    "For example, **10⁻³ = 0.001**."
-                )
-                st.caption(
-                    "You may sometimes see computers write scientific notation with an 'e' (for example, 1e-6). We will use × 10 with a power instead."
-                )
+            notation_revealed = bool(st.session_state.get("curious_body_mass_notation_revealed", False))
+            if not notation_revealed:
+                allow_next = False
+                if st.button("Show the shorter version", type="primary", key="curious_reveal_body_mass_notation"):
+                    st.session_state["curious_body_mass_notation_revealed"] = True
+                    st.rerun()
+            else:
+                st.markdown(f"**{smallest_scientific} kg**")
+                st.write("**Same number. Different way of writing it.** For example, 10⁻³ = 0.001.")
 
-            response_box(
-                "What surprised you about the largest and smallest body masses in this dataset?",
-                "animal_q2_range",
-            )
+                linear_revealed = bool(st.session_state.get("curious_body_mass_linear_revealed", False))
+                if not linear_revealed:
+                    allow_next = False
+                    if st.button("Look at all the body-mass measurements", type="primary", key="curious_reveal_body_mass_linear"):
+                        st.session_state["curious_body_mass_linear_revealed"] = True
+                        st.rerun()
+                else:
+                    st.markdown("### Now let’s look at all the body-mass measurements together.")
+                    st.caption("What do you notice? Can you actually see most of the data clearly?")
+                    linear_bins = st.slider(
+                        "Number of bins for the linear histogram",
+                        min_value=5,
+                        max_value=80,
+                        value=25,
+                        step=5,
+                        key="curious_body_mass_bins",
+                    )
+                    st.plotly_chart(
+                        histogram(data, "body mass (kg)", bins=linear_bins, log_x=False),
+                        use_container_width=True,
+                    )
 
-            st.markdown("### What does the whole distribution look like?")
-            st.write(
-                "A histogram groups body-mass measurements into ranges. Start with an ordinary **linear scale** and try changing the number of bins."
-            )
-            bins = st.slider(
-                "Number of histogram bins",
-                min_value=5,
-                max_value=80,
-                value=25,
-                step=5,
-                key="curious_body_mass_bins",
-            )
-            st.plotly_chart(
-                histogram(data, "body mass (kg)", bins=bins, log_x=False),
-                use_container_width=True,
-            )
-            graph_guide(
-                "The horizontal axis is linear: equal distances represent equal additions in body mass.",
-                "Where are most of the animal records? Can you distinguish the smaller animals, or are they crowded together?",
-            )
-            response_box(
-                "What is difficult to see on the linear histogram, even after changing the bins?",
-                "animal_q2_linear",
-            )
-
-            st.divider()
-            st.markdown("### We need another way to show the scale")
-            st.write(
-                "Changing the number of bins does not solve the main problem: the smallest and largest body masses are enormously different. "
-                "A **logarithmic scale** changes the spacing of the axis so that repeated multiplication — such as ×10 — takes up equal space."
-            )
-            show_log = st.toggle(
-                "Reveal the logarithmic version",
-                value=False,
-                key="curious_show_log_histogram",
-            )
-            if show_log:
-                st.plotly_chart(
-                    histogram(data, "body mass (kg)", bins=bins, log_x=True),
-                    use_container_width=True,
-                )
-                _log_axis_reading_example()
-                graph_guide(
-                    "The data are exactly the same. Only the way the horizontal axis is spaced has changed.",
-                    "What can you see now that was hidden on the linear scale?",
-                )
-                key_idea(
-                    "Logarithmic scales help us visualise data that span a huge range.",
-                    "They are especially useful when values differ by repeated factors of 10.",
-                )
-                response_box(
-                    "What became easier to see on the logarithmic histogram?",
-                    "animal_q2_log",
-                )
+                    log_revealed = bool(st.session_state.get("curious_body_mass_log_revealed", False))
+                    if not log_revealed:
+                        allow_next = False
+                        st.write("Can we display the same data in a way that makes the huge range easier to see?")
+                        if st.button("Try a logarithmic scale", type="primary", key="curious_reveal_body_mass_log"):
+                            st.session_state["curious_body_mass_log_revealed"] = True
+                            st.rerun()
+                    else:
+                        st.write("Can we display the same data in a way that makes the huge range easier to see?")
+                        log_bins = st.slider(
+                            "Number of bins for the log histogram",
+                            min_value=5,
+                            max_value=80,
+                            value=25,
+                            step=5,
+                            key="curious_body_mass_log_bins",
+                        )
+                        st.plotly_chart(
+                            histogram(data, "body mass (kg)", bins=log_bins, log_x=True),
+                            use_container_width=True,
+                        )
+                        st.write(
+                            "**The data have not changed — only the spacing of the axis has changed.** "
+                            "The log scale is more useful here because these values span such a huge range."
+                        )
+                        st.caption("10⁻³ kg = 0.001 kg · 10⁰ kg = 1 kg · 10³ kg = 1,000 kg")
+                        st.markdown("### What have we figured out so far?")
+                        st.markdown(
+                            "- Animal body masses span a huge range.\n"
+                            "- Scientific notation makes very small and very large numbers easier to write.\n"
+                            "- A linear graph can squash most of the data together.\n"
+                            "- A logarithmic scale can make patterns across a huge range easier to see."
+                        )
+                        st.caption("Did the log graph change the data, or just how we looked at it?")
+                        allow_next = True
 
     elif part == 4:
         # Design decision: we considered fitting both the linear–linear and log–log
