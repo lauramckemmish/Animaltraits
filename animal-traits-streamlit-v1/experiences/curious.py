@@ -8,8 +8,8 @@ from decimal import Decimal
 import pandas as pd
 import streamlit as st
 
-from charts import body_brain_scatter, histogram
-from data import search_student_animals, student_facing_data
+from charts import body_brain_class_fit_scatter, body_brain_scatter, histogram
+from data import search_student_animals, student_facing_data, with_common_class_names
 from models import fit_relationship
 from ui_helpers import (
     graph_guide,
@@ -328,21 +328,120 @@ def render(data: pd.DataFrame) -> None:
     elif part == 5:
         teacher_note(
             "Animal class",
-            "Add one grouping variable and ask whether broad animal groups occupy different regions of the same relationship.",
-            "This remains a guided question. Open-ended variable selection belongs in the Data Exploration Playground.",
-            "8 min",
+            "Ask whether the same body-mass–brain-size relationship describes every animal class by comparing the overall fit with separate mammal and reptile fits.",
+            "Keep this comparison guided rather than turning it into open exploration. First re-establish the all-animal pattern, then compare mammals and reptiles separately, and finally place both class-specific fits on the same axes. The faint background points preserve the full dataset as context while making the highlighted classes and fitted lines easier to see. Treat different fitted lines as evidence of different patterns in these data, not proof that animal class itself causes the difference. Mammals and reptiles also span different body-size ranges and have different amounts of data.",
+            "10 min",
         )
-        st.header("5 · Add animal class")
-        st.write("**Animal class** groups animals broadly, such as mammals, birds and reptiles. Colour lets us look for differences between groups without changing the two measured traits.")
+        st.header("5 · Does the relationship change by animal class?")
+        st.write(
+            "**Animal class** groups animals broadly, such as mammals, birds and reptiles. "
+            "We have fitted one pattern across all animals — but does that same pattern describe every group?"
+        )
+
+        class_data = with_common_class_names(data)
+        mammals = class_data[class_data["Animal class"] == "Mammal"].copy()
+        reptiles = class_data[class_data["Animal class"] == "Reptile"].copy()
+
+        overall_fit = fit_relationship(
+            data,
+            "body mass (kg)",
+            "brain size (kg)",
+            log_x=True,
+            log_y=True,
+        )
+        mammal_fit = fit_relationship(
+            mammals,
+            "body mass (kg)",
+            "brain size (kg)",
+            log_x=True,
+            log_y=True,
+        )
+        reptile_fit = fit_relationship(
+            reptiles,
+            "body mass (kg)",
+            "brain size (kg)",
+            log_x=True,
+            log_y=True,
+        )
+
+        st.subheader("First: all animals")
+        st.write(
+            "This is the overall relationship from the previous step. The fitted line summarises all animal records with both measurements."
+        )
         st.plotly_chart(
-            body_brain_scatter(data, log_x=True, log_y=True, colour_by_class=True),
+            body_brain_scatter(
+                data,
+                log_x=True,
+                log_y=True,
+                fit=overall_fit,
+            ),
+            use_container_width=True,
+        )
+
+        st.subheader("Now look at the groups separately")
+        st.write(
+            "The faint points show all animals for context. The highlighted points and fitted line show just one animal class."
+        )
+
+        mammal_column, reptile_column = st.columns(2)
+
+        with mammal_column:
+            st.markdown("### Mammals")
+            st.plotly_chart(
+                body_brain_class_fit_scatter(
+                    data,
+                    highlighted_classes=["Mammal"],
+                    fits={"Mammal": mammal_fit},
+                    title="Mammals",
+                ),
+                use_container_width=True,
+            )
+
+        with reptile_column:
+            st.markdown("### Reptiles")
+            st.plotly_chart(
+                body_brain_class_fit_scatter(
+                    data,
+                    highlighted_classes=["Reptile"],
+                    fits={"Reptile": reptile_fit},
+                    title="Reptiles",
+                ),
+                use_container_width=True,
+            )
+
+        graph_guide(
+            "Both graphs use the same log–log axes. Faint points show the full dataset; the stronger points and line belong to the named class.",
+            "Does each class follow a clear relationship? Do the two fitted lines appear to have the same position and direction?",
+        )
+
+        st.subheader("Finally: compare mammals and reptiles")
+        st.write(
+            "Now put both groups on the same graph. Each class keeps its own fitted line so we can compare the relationships directly."
+        )
+        st.plotly_chart(
+            body_brain_class_fit_scatter(
+                data,
+                highlighted_classes=["Mammal", "Reptile"],
+                fits={
+                    "Mammal": mammal_fit,
+                    "Reptile": reptile_fit,
+                },
+                title="Mammals and reptiles",
+            ),
             use_container_width=True,
         )
         graph_guide(
-            "The axes still show body mass and brain size. Colour adds a third variable: animal class.",
-            "Do different animal classes occupy different parts of the graph? Does the relationship look the same for every class?",
+            "The axes and measurements have not changed. Colour identifies animal class, and each class has its own fitted relationship.",
+            "Where do the fitted lines differ? At similar body masses, do mammals and reptiles tend to occupy the same part of the graph?",
         )
-        response_box("What differences or similarities do you notice between animal classes?", "animal_q5")
+        key_idea(
+            "One overall model can hide differences between groups.",
+            "Comparing class-specific fits can reveal biological structure that is less obvious when every animal is treated as one population.",
+        )
+        response_box(
+            "What difference do you notice between the mammal and reptile relationships? What would you want to investigate next?",
+            "animal_q5",
+        )
 
     else:
         teacher_note(
