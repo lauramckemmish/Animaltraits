@@ -439,6 +439,7 @@ def body_brain_class_fit_scatter(
             class_trace = class_figure.data[0]
             class_trace.name = class_name
             class_trace.legendgroup = class_name
+            class_trace.showlegend = True
             class_trace.marker.update(size=8, opacity=0.48)
             fig.add_trace(class_trace)
 
@@ -479,6 +480,7 @@ def body_brain_class_fit_scatter(
                 y=selected_data[y_field],
                 mode="markers",
                 name=highlighted_label,
+                showlegend=True,
                 marker=dict(size=12, color="#d95f02", line=dict(color="#7f2704", width=1.5)),
                 customdata=np.column_stack([common_names.to_numpy(), scientific_names.to_numpy()]),
                 hovertemplate=(
@@ -498,6 +500,14 @@ def body_brain_class_fit_scatter(
         xaxis_title="Body mass (kg)",
         yaxis_title="Brain size (kg)",
         legend_title="Animal class",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+            title=None,
+        ),
     )
     if log_x:
         _apply_scientific_log_axis(fig, "x", plot_data[x_field], "Body mass (kg)")
