@@ -32,7 +32,16 @@ def step_tabs(labels: list[str], key: str, current_step: int):
     return tabs, labels.index(st.session_state.get(key, labels[current_step]))
 
 
-def step_buttons(labels: list[str], tab_key: str, step_key: str, scroll_key: str, step: int, button_prefix: str) -> None:
+def step_buttons(
+    labels: list[str],
+    tab_key: str,
+    step_key: str,
+    scroll_key: str,
+    step: int,
+    button_prefix: str,
+    allow_next: bool = True,
+) -> None:
+    """Render Back/Continue controls, optionally withholding Continue."""
     back, _, next_step = st.columns([1, 4, 1])
     with back:
         if step > 0:
@@ -44,7 +53,7 @@ def step_buttons(labels: list[str], tab_key: str, step_key: str, scroll_key: str
                 args=(tab_key, labels, step_key, scroll_key, step - 1),
             )
     with next_step:
-        if step < len(labels) - 1:
+        if allow_next and step < len(labels) - 1:
             st.button(
                 "Continue →",
                 type="primary",
@@ -84,8 +93,15 @@ def graph_guide(reading: str, looking_for: str) -> None:
         st.caption(f"Look for: {looking_for}")
 
 
-def teacher_note(title: str, purpose: str, facilitation: str, timing: str = "") -> None:
-    if not st.session_state.get("teacher_view", False):
+def teacher_note(
+    title: str,
+    purpose: str,
+    facilitation: str,
+    timing: str = "",
+    *,
+    teacher_state_key: str = "teacher_view",
+) -> None:
+    if not st.session_state.get(teacher_state_key, False):
         return
     with st.container(border=True):
         st.markdown(f"### 👩‍🏫 Teacher view: {title}")
