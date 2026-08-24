@@ -207,6 +207,108 @@ def body_brain_scatter(
     return fig
 
 
+def body_brain_highlight_scatter(
+    data: pd.DataFrame,
+    selected_data: pd.DataFrame,
+    *,
+    log_x: bool = False,
+    log_y: bool = False,
+    selected_label: str = "Selected animal",
+    title: str | None = None,
+):
+    """Plot all body/brain records with selected records highlighted.
+
+    ``selected_data`` is supplied by the calling experience; this helper does not
+    perform search or filtering. Selected rows remain at record level, so repeated
+    measurements and their variation are preserved in the highlighted trace.
+    """
+    x_field = "body mass (kg)"
+    y_field = "brain size (kg)"
+
+    plot_data = with_common_class_names(data).copy()
+    selected_plot_data = selected_data.copy()
+
+    for frame in [plot_data, selected_plot_data]:
+        x_column = next((column for column in [x_field, "Body mass (kg)"] if column in frame), None)
+        y_column = next(
+            (column for column in [y_field, "Brain size (kg)", "Brain mass (kg)"] if column in frame),
+            None,
+        )
+        if x_column is not None and x_column != x_field:
+            frame[x_field] = frame[x_column]
+        if y_column is not None and y_column != y_field:
+            frame[y_field] = frame[y_column]
+        frame[x_field] = pd.to_numeric(frame.get(x_field), errors="coerce")
+        frame[y_field] = pd.to_numeric(frame.get(y_field), errors="coerce")
+
+    plot_data = plot_data.dropna(subset=[x_field, y_field])
+    selected_plot_data = selected_plot_data.dropna(subset=[x_field, y_field])
+    if log_x:
+        plot_data = plot_data[plot_data[x_field] > 0]
+        selected_plot_data = selected_plot_data[selected_plot_data[x_field] > 0]
+    if log_y:
+        plot_data = plot_data[plot_data[y_field] > 0]
+        selected_plot_data = selected_plot_data[selected_plot_data[y_field] > 0]
+
+    if title is None:
+        title = f"Body mass vs brain size · {selected_label}"
+    fig = go.Figure()
+    if not plot_data.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=plot_data[x_field],
+                y=plot_data[y_field],
+                mode="markers",
+                name="All animals (context)",
+                marker=dict(size=6, color="rgba(107, 114, 128, 0.16)"),
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+    def _hover_column(frame: pd.DataFrame, candidates: list[str]) -> pd.Series:
+        for column in candidates:
+            if column in frame:
+                return frame[column].fillna("").astype(str)
+        return pd.Series("", index=frame.index, dtype="string")
+
+    common_names = _hover_column(selected_plot_data, ["common name", "Common name"])
+    scientific_names = _hover_column(selected_plot_data, ["species", "Scientific name"])
+    customdata = np.column_stack([common_names.to_numpy(), scientific_names.to_numpy()])
+    fig.add_trace(
+        go.Scatter(
+            x=selected_plot_data[x_field],
+            y=selected_plot_data[y_field],
+            mode="markers",
+            name=selected_label,
+            marker=dict(size=11, color="#d95f02", line=dict(color="#7f2704", width=1)),
+            customdata=customdata,
+            hovertemplate=(
+                "Common name: %{customdata[0]}<br>"
+                "Scientific name: %{customdata[1]}<br>"
+                "Body mass: %{x}<br>Brain mass: %{y}<extra></extra>"
+            ),
+        )
+    )
+
+    fig.update_layout(
+        title=title,
+        xaxis_title="Body mass (kg)",
+        yaxis_title="Brain size (kg)",
+        legend_title="Highlighted records",
+    )
+    axis_values = plot_data if not plot_data.empty else selected_plot_data
+    if log_x:
+        _apply_scientific_log_axis(fig, "x", axis_values[x_field], "Body mass (kg)")
+    else:
+        fig.update_xaxes(type="linear")
+    if log_y:
+        _apply_scientific_log_axis(fig, "y", axis_values[y_field], "Brain size (kg)")
+    else:
+        fig.update_yaxes(type="linear")
+    return fig
+
+
 
 def body_brain_class_fit_scatter(
     data: pd.DataFrame,
