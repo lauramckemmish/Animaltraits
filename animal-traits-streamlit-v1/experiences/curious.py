@@ -120,35 +120,53 @@ def render(data: pd.DataFrame) -> None:
     elif part == 1:
         teacher_note(
             "Meet the data",
-            "Use an animal search to introduce rows, variables and missing data.",
-            "Search first for an animal students know. If 'human' does not return the expected result, try the scientific name **Homo sapiens**. That is a useful prompt: common names can be inconsistent, while scientific names are intended to identify species precisely. A missing result is evidence about the dataset or its naming, not a failed task.",
-            "8 min",
+            "Bridge the Welcome question into evidence by examining real measurements for Human and another animal.",
+            "Start with Human so repeated records and variation become visible. Then invite students to choose another animal and treat a missing result as evidence about the limits of the source.",
+            "10 min",
         )
-        st.header("1 · Find an animal / meet the data")
-        st.write("Each **row** is an animal record. Each **column** is a variable that describes it.")
+        st.header("1 · How could we investigate this?")
+        st.write("We need evidence, so let’s look at real measurements scientists have collected.")
+        st.markdown("### Start with Human")
         query = st.text_input(
-            "Find an animal",
-            placeholder="Try: elephant, kangaroo, Homo sapiens…",
+            "Search for an animal",
+            value="Human",
+            placeholder="Try another animal you are curious about…",
             key="curious_animal_search",
         )
+        display_columns = [
+            "Common name",
+            "Scientific name",
+            "Animal class",
+            "Body mass (kg)",
+            "Brain size (kg)",
+        ]
         if query.strip():
             matches = search_student_animals(data, query)
             if matches.empty:
                 st.warning(
-                    "No matching record was found. Try a scientific name as well as a common name. The animal may also be outside AnimalTraits' terrestrial scope, or the relevant measurement may not be included. Its absence here does not mean the animal does not exist."
+                    "No matching record was found. AnimalTraits does not contain every animal. It focuses on terrestrial animals, and even within that scope not every species or every measurement is represented."
                 )
             else:
                 st.success(f"Found {len(matches):,} matching record(s).")
-                st.dataframe(matches.head(25), use_container_width=True, hide_index=True)
-                st.caption("A scientific name is shown as the common name when no confident English common name is available.")
+                display_matches = matches[display_columns].rename(columns={"Brain size (kg)": "Brain mass (kg)"})
+                st.dataframe(display_matches.head(25), use_container_width=True, hide_index=True)
+                if query.strip().casefold() in {"human", "homo sapiens"}:
+                    st.write("What measurements are available? Are all the Human records exactly the same?")
+                    st.caption("Now search for another animal you are curious about.")
                 if len(matches) > 25:
                     st.caption("Showing the first 25 matches.")
         else:
-            st.caption("You can search by a common name or a scientific name. For humans, try **Homo sapiens**.")
+            st.caption("Search for Human first, then try another animal you are curious about.")
 
-        with st.expander("Preview the student-facing dataset"):
-            st.dataframe(student_facing_data(data).head(20), use_container_width=True, hide_index=True)
-        response_box("What does one row represent? Which variables look most useful for investigating animal traits?", "animal_q1")
+        student_data = student_facing_data(data)
+        distinct_species = student_data["Scientific name"].replace("", pd.NA).nunique(dropna=True)
+        missing_measurements = int(
+            student_data[["Body mass (kg)", "Brain size (kg)"]].isna().any(axis=1).sum()
+        )
+        st.caption(
+            f"Dataset snapshot: {len(data):,} records from {distinct_species:,} distinct species. "
+            f"Some species have repeated records, and {missing_measurements:,} records are missing body-mass or brain-mass measurements."
+        )
 
     elif part == 2:
         teacher_note(
