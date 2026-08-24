@@ -478,6 +478,7 @@ def render(data: pd.DataFrame) -> None:
                     allow_next = True
 
     elif part == 5:
+        allow_next = False
         teacher_note(
             "Animal class",
             "Compare highlighted biological groups on the same full-dataset graph, then consider where Homo records sit within the relationship.",
@@ -501,18 +502,20 @@ def render(data: pd.DataFrame) -> None:
             options=group_options,
             key="curious_step5_highlight_groups",
         )
+        explored_groups = set(st.session_state.get("curious_step5_explored_groups", []))
+        explored_groups.update(selected_groups)
+        st.session_state["curious_step5_explored_groups"] = sorted(explored_groups)
 
         if not selected_groups:
-            st.markdown("### First, highlight Mammals")
-            st.caption("Select Mammal. What do you notice about where the mammals sit compared with all the other animals?")
-        elif "Mammal" in selected_groups and "Reptile" not in selected_groups:
-            st.markdown("### Now add Reptiles")
-            st.caption("Keep Mammal selected and add Reptile. What changes?")
-        elif "Mammal" in selected_groups and "Reptile" in selected_groups and "Homo" not in selected_groups:
-            st.markdown("### Where do the Homo records sit?")
-            st.caption("Mammals and reptiles are animal classes. Homo is a genus within mammals. In this dataset, the Homo records are human (Homo sapiens) records. Select Homo to add them to the graph.")
+            st.caption("Choose a group to highlight and see where it sits in the full dataset.")
         else:
-            st.caption("Explore the highlighted groups together. What do you notice about where they sit on the graph?")
+            st.caption("What part of the overall pattern does this group occupy?")
+        st.caption("A useful comparison is Mammals and Reptiles. Try highlighting them together.")
+        st.caption("If you have time, add Homo and see where those records sit among the mammals.")
+        if len(explored_groups) < 2:
+            st.caption("Try highlighting another group so you can compare them.")
+        else:
+            st.caption("Compare the highlighted groups. Do they occupy the same parts of the graph?")
 
         highlighted_classes = [group for group in selected_groups if group != "Homo"]
         homo_selected = "Homo" in selected_groups
@@ -530,12 +533,15 @@ def render(data: pd.DataFrame) -> None:
         if "Mammal" in selected_groups and "Reptile" in selected_groups:
             st.caption("For animals with similar body masses, do mammals and reptiles seem to occupy the same parts of the graph?")
         if homo_selected:
+            st.caption("Mammals and reptiles are animal classes. Homo is a genus within mammals. In this dataset, the Homo records are human (Homo sapiens) records.")
             st.write(
                 "The Homo records sit relatively high in brain mass for their body mass compared with many other records in this dataset."
             )
             st.caption(
                 "That is interesting. But does having relatively high brain mass for body size prove that an animal is more intelligent?"
             )
+        if len(explored_groups) >= 2:
+            allow_next = True
 
     else:
         teacher_note(
