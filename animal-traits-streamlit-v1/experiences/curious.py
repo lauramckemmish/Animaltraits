@@ -127,10 +127,10 @@ def render(data: pd.DataFrame) -> None:
         st.header("1 · How could we investigate this?")
         st.write("We need evidence, so let’s look at real measurements scientists have collected.")
         st.markdown("### Start with Human")
+        st.caption("Type `Human` into the search box.")
         query = st.text_input(
             "Search for an animal",
-            value="Human",
-            placeholder="Try another animal you are curious about…",
+            placeholder="Human",
             key="curious_animal_search",
         )
         display_columns = [
