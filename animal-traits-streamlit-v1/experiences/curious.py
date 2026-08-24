@@ -233,11 +233,7 @@ def render(data: pd.DataFrame) -> None:
                 f"It has {len(data):,} total records from {distinct_species:,} distinct species. "
                 f"Some species have multiple records, and {missing_measurements:,} records are missing a body-mass or brain-mass measurement."
             )
-            response_box(
-                "Based on what you’ve explored, what do you think affects how big an animal’s brain is?",
-                "curious_brain_size_hypothesis",
-            )
-            allow_next = bool(st.session_state.get("curious_brain_size_hypothesis", "").strip())
+            allow_next = True
 
     elif part == 3:
         teacher_note(
