@@ -65,6 +65,33 @@ def _scientific_notation(value: float, significant_figures: int = 3) -> str:
     return f"{coefficient_text} × 10{_superscript_integer(exponent)}"
 
 
+def _render_search_results(matches: pd.DataFrame, display_columns: list[str]) -> None:
+    st.success(f"Found {len(matches):,} matching record(s).")
+    display_matches = matches[display_columns].rename(columns={"Brain size (kg)": "Brain mass (kg)"})
+    st.dataframe(display_matches.head(25), use_container_width=True, hide_index=True)
+    if len(matches) > 25:
+        st.caption("Showing the first 25 matches.")
+
+
+def _render_measurement_summary(matches: pd.DataFrame) -> None:
+    body_count = int(matches["Body mass (kg)"].notna().sum())
+    brain_count = int(matches["Brain size (kg)"].notna().sum())
+    both_count = int(matches[["Body mass (kg)", "Brain size (kg)"]].notna().all(axis=1).sum())
+    total_count = len(matches)
+    if both_count == total_count:
+        st.caption(f"All {total_count:,} matching records have both body mass and brain mass.")
+    elif both_count:
+        st.caption(
+            f"{both_count:,} of {total_count:,} matching records have both body mass and brain mass. "
+            f"Body mass is available for {body_count:,}; brain mass is available for {brain_count:,}."
+        )
+    else:
+        st.caption(
+            f"None of the {total_count:,} matching records have both body mass and brain mass. "
+            f"Body mass is available for {body_count:,}; brain mass is available for {brain_count:,}."
+        )
+
+
 def _log_axis_reading_example(*, scatter: bool = False) -> None:
     """Give students a concrete example for reading powers-of-ten graph labels."""
     if scatter:
@@ -139,33 +166,50 @@ def render(data: pd.DataFrame) -> None:
             "Body mass (kg)",
             "Brain size (kg)",
         ]
+        matches = pd.DataFrame()
         if query.strip():
             matches = search_student_animals(data, query)
             if matches.empty:
                 st.warning(
-                    "No matching record was found. AnimalTraits does not contain every animal. It focuses on terrestrial animals, and even within that scope not every species or every measurement is represented."
+                    "**No match found.** AnimalTraits focuses on **terrestrial animals** — animals that live mainly on land, "
+                    "so many marine animals are outside its scope. A no-match can also happen because the spelling is different, "
+                    "the animal is listed under another common or scientific name, the search term is broad, or the species is not included."
                 )
             else:
-                st.success(f"Found {len(matches):,} matching record(s).")
-                display_matches = matches[display_columns].rename(columns={"Brain size (kg)": "Brain mass (kg)"})
-                st.dataframe(display_matches.head(25), use_container_width=True, hide_index=True)
+                _render_search_results(matches, display_columns)
                 if query.strip().casefold() in {"human", "homo sapiens"}:
                     st.write("What measurements are available? Are all the Human records exactly the same?")
                     st.caption("Now search for another animal you are curious about.")
-                if len(matches) > 25:
-                    st.caption("Showing the first 25 matches.")
         else:
             st.caption("Search for Human first, then try another animal you are curious about.")
 
-        student_data = student_facing_data(data)
-        distinct_species = student_data["Scientific name"].replace("", pd.NA).nunique(dropna=True)
-        missing_measurements = int(
-            student_data[["Body mass (kg)", "Brain size (kg)"]].isna().any(axis=1).sum()
-        )
-        st.caption(
-            f"Dataset snapshot: {len(data):,} records from {distinct_species:,} distinct species. "
-            f"Some species have repeated records, and {missing_measurements:,} records are missing body-mass or brain-mass measurements."
-        )
+        human_found = bool(query.strip()) and not matches.empty and query.strip().casefold() in {"human", "homo sapiens"}
+        if human_found:
+            st.markdown("### Try another animal")
+            st.caption("Search repeatedly to compare animals and explore what this dataset includes.")
+            st.caption("Not sure what to try? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — they may not all behave the way you expect.")
+            second_query = st.text_input("Search for another animal", key="curious_second_animal_search")
+            if second_query.strip():
+                second_matches = search_student_animals(data, second_query)
+                if second_matches.empty:
+                    st.warning(
+                        "**No match found.** AnimalTraits focuses on **terrestrial animals** — animals that live mainly on land, "
+                        "so many marine animals are outside its scope. A no-match can also happen because the spelling is different, "
+                        "the animal is listed under another common or scientific name, the search term is broad, or the species is not included."
+                    )
+                else:
+                    _render_search_results(second_matches, display_columns)
+                    _render_measurement_summary(second_matches)
+                student_data = student_facing_data(data)
+                distinct_species = student_data["Scientific name"].replace("", pd.NA).nunique(dropna=True)
+                missing_measurements = int(
+                    student_data[["Body mass (kg)", "Brain size (kg)"]].isna().any(axis=1).sum()
+                )
+                st.info(
+                    f"Dataset limits: {len(data):,} total records from {distinct_species:,} distinct species. "
+                    f"Some species have repeated records, {missing_measurements:,} records are missing a body-mass or brain-mass measurement, "
+                    "and the dataset focuses on terrestrial animals."
+                )
 
     elif part == 2:
         teacher_note(
