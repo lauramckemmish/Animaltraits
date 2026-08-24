@@ -896,7 +896,7 @@ Hirundapus caudacutus,Asian Spine-tailed Swift,Bird,2477130,confident,GBIF Backb
 Hirundo neoxena,Welcome Swallow,Bird,5230789,confident,GBIF Backbone Taxonomy,Welcome Swallow,
 Hirundo rustica,BASW,Bird,9515886,confident,GBIF Backbone Taxonomy,Barn Swallow,
 Hirundo tahitica,Pacific Swallow,Bird,5230787,confident,GBIF Backbone Taxonomy,Eastern Welcome Swallow,
-Homo sapiens,,Mammal,2436436,unresolved,,Human,
+Homo sapiens,Human,Mammal,2436436,confident,Curated local mapping,Human,
 Homonota gaudichaudii,,Reptile,2446141,unresolved,,Chilean Marked Gecko,
 Hophlosphyrum griseus,,Insect,7603903,requires_review,,,
 Hydrochaeris hydrochaeris,capybara,Mammal,2437610,confident,GBIF Backbone Taxonomy,Capybaras,
