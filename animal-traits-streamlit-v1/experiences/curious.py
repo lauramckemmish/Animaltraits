@@ -24,10 +24,11 @@ from ui_helpers import (
 
 STEP_LABELS = [
     "Welcome",
-    "1 · Meet the data",
-    "2 · Body mass & scale",
-    "3 · Two variables",
-    "4 · Animal class",
+    "1 · Human evidence",
+    "2 · Explore animals",
+    "3 · Body mass & scale",
+    "4 · Two variables",
+    "5 · Animal class",
     "Conclusion",
 ]
 
@@ -134,26 +135,23 @@ def render(data: pd.DataFrame) -> None:
             "8 min",
         )
         st.header("Welcome")
-        st.subheader("Are humans really the brainiest animals?")
-        st.write(
-            "When we talk about an animal being intelligent, what could that mean? "
-            "Maybe it could involve problem-solving, learning, memory, communication, tool use or adapting to a new situation."
+        st.subheader("How could we figure out whether an animal is intelligent?")
+        st.write("What could we actually measure?")
+        st.caption(
+            "Discuss possible evidence such as behaviour, problem-solving, memory, communication or tool use."
         )
-        st.write("Think of an animal you consider intelligent. What does it do that makes you think so?")
-        response_box("What do you think makes an animal intelligent?", "animal_intelligence_q1")
-        st.info("**Make a prediction:** Do you think humans have the biggest brains?")
-        response_box("Why do you think that?", "animal_intelligence_q2")
 
     elif part == 1:
         allow_next = False
         teacher_note(
-            "Meet the data",
-            "Bridge the Welcome question into evidence by examining real measurements for Human and another animal.",
-            "Start with Human so repeated records and variation become visible. Then invite students to choose another animal and treat a missing result as evidence about the limits of the source.",
+            "Human evidence",
+            "Move from ideas about intelligence to a measurable feature by examining real human brain measurements.",
+            "Invite students to estimate first, then ask them to type Human and look for variation in the real records.",
             "10 min",
         )
-        st.header("1 · How could we investigate this?")
-        st.write("We need evidence, so let’s look at real measurements scientists have collected.")
+        st.header("1 · How heavy do you think a human brain is?")
+        response_box("Estimate the mass of a human brain.", "curious_human_brain_estimate")
+        st.write("Let’s check some real measurements.")
         st.markdown("### Start with Human")
         st.caption("Type `Human` into the search box.")
         query = st.text_input(
@@ -168,63 +166,86 @@ def render(data: pd.DataFrame) -> None:
             "Brain size (kg)",
         ]
         matches = pd.DataFrame()
+        human_found = False
         if query.strip():
             matches = search_student_animals(data, query)
             if matches.empty:
+                st.warning(
+                    "No matching Human record was found. Try searching for `Human`."
+                )
+            else:
+                _render_search_results(matches, display_columns)
+                if query.strip().casefold() in {"human", "homo sapiens"}:
+                    human_found = True
+                    st.write(
+                        "Was your estimate close? What measurements are available? Are all the Human records identical? "
+                        "Why might scientists have more than one measurement for humans?"
+                    )
+        else:
+            st.caption("Search for Human to reveal the evidence.")
+        if human_found:
+            allow_next = True
+
+    elif part == 2:
+        allow_next = False
+        teacher_note(
+            "Explore the dataset",
+            "Use repeated searches to discover both useful records and the limits of the dataset before making a hypothesis.",
+            "Students can choose any animals. Count each new search attempt, whether or not it returns a match, and invite them to compare the result-level measurement completeness.",
+            "12 min",
+        )
+        st.header("2 · Explore the dataset")
+        st.write("**Try searching for at least three different animals.**")
+        st.caption("Choose animals you’re interested in. Your searches do not all have to succeed.")
+        st.caption("Not sure what to try? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
+        animal_query = st.text_input("Search for an animal", key="curious_exploration_search")
+        last_query = st.session_state.get("curious_exploration_last_query", "")
+        attempts = int(st.session_state.get("curious_exploration_attempts", 0))
+        if animal_query.strip() and animal_query.strip() != last_query:
+            attempts += 1
+            st.session_state["curious_exploration_attempts"] = attempts
+            st.session_state["curious_exploration_last_query"] = animal_query.strip()
+        st.caption(f"Searches tried: {min(attempts, 3)} of 3")
+
+        if animal_query.strip():
+            animal_matches = search_student_animals(data, animal_query)
+            if animal_matches.empty:
                 st.warning(
                     "**No match found.** AnimalTraits focuses on **terrestrial animals** — animals that live mainly on land, "
                     "so many marine animals are outside its scope. A no-match can also happen because the spelling is different, "
                     "the animal is listed under another common or scientific name, the search term is broad, or the species is not included."
                 )
             else:
-                _render_search_results(matches, display_columns)
-                if query.strip().casefold() in {"human", "homo sapiens"}:
-                    st.write("What measurements are available? Are all the Human records exactly the same?")
-                    st.caption("Now search for another animal you are curious about.")
-        else:
-            st.caption("Search for Human first, then try another animal you are curious about.")
+                _render_search_results(animal_matches, display_columns)
+                _render_measurement_summary(animal_matches)
+                st.caption("Try another animal when you’re ready.")
 
-        human_found = bool(query.strip()) and not matches.empty and query.strip().casefold() in {"human", "homo sapiens"}
-        if human_found:
-            st.markdown("### Try another animal")
-            st.caption("Search repeatedly to compare animals and explore what this dataset includes.")
-            st.caption("Not sure what to try? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — they may not all behave the way you expect.")
-            second_query = st.text_input("Search for another animal", key="curious_second_animal_search")
-            second_attempted = bool(st.session_state.get("curious_second_animal_attempted", False))
-            if second_query.strip():
-                st.session_state["curious_second_animal_attempted"] = True
-                second_attempted = True
-                second_matches = search_student_animals(data, second_query)
-                if second_matches.empty:
-                    st.warning(
-                        "**No match found.** AnimalTraits focuses on **terrestrial animals** — animals that live mainly on land, "
-                        "so many marine animals are outside its scope. A no-match can also happen because the spelling is different, "
-                        "the animal is listed under another common or scientific name, the search term is broad, or the species is not included."
-                    )
-                else:
-                    _render_search_results(second_matches, display_columns)
-                    _render_measurement_summary(second_matches)
-            if second_attempted:
-                student_data = student_facing_data(data)
-                distinct_species = student_data["Scientific name"].replace("", pd.NA).nunique(dropna=True)
-                missing_measurements = int(
-                    student_data[["Body mass (kg)", "Brain size (kg)"]].isna().any(axis=1).sum()
-                )
-                st.info(
-                    f"Dataset limits: {len(data):,} total records from {distinct_species:,} distinct species. "
-                    f"Some species have repeated records, {missing_measurements:,} records are missing a body-mass or brain-mass measurement, "
-                    "and the dataset focuses on terrestrial animals."
-                )
-                allow_next = True
+        if attempts >= 3:
+            student_data = student_facing_data(data)
+            distinct_species = student_data["Scientific name"].replace("", pd.NA).nunique(dropna=True)
+            missing_measurements = int(
+                student_data[["Body mass (kg)", "Brain size (kg)"]].isna().any(axis=1).sum()
+            )
+            st.markdown("### What have we learned about this dataset?")
+            st.info(
+                f"AnimalTraits focuses on terrestrial animals and does not contain every animal. "
+                f"It has {len(data):,} total records from {distinct_species:,} distinct species. "
+                f"Some species have multiple records, and {missing_measurements:,} records are missing a body-mass or brain-mass measurement."
+            )
+            response_box(
+                "Based on what you’ve explored, what do you think affects how big an animal’s brain is?",
+                "curious_brain_size_hypothesis",
+            )
+            allow_next = bool(st.session_state.get("curious_brain_size_hypothesis", "").strip())
 
-    elif part == 2:
+    elif part == 3:
         teacher_note(
             "Body mass and scale",
             "Use one familiar variable to introduce range, then create the need for scientific notation and logarithmic scales rather than teaching either idea in isolation.",
             "This is deliberately a substantial conceptual step, especially for Year 8 students. Do not expect mastery of scientific notation or logarithms. The aim is recognition: scientific notation is a shorter way to write the same extremely small number, and a logarithmic axis is a different way of spacing the same data so values across many powers of ten can be seen. Build the need for each representation first. Start with the largest value in kilograms, then show the smallest value as an ordinary decimal with all its zeros. Once that becomes awkward to read, introduce ×10ⁿ notation as a useful scientific shorthand. Next show the linear histogram and let students change the bin count. When the smaller animals remain compressed and difficult to see, use that failure to motivate the logarithmic reveal. Keep the explanation concrete and visual: students do not need to calculate logarithms. The important idea is that the dataset spans such a huge range that ordinary number-writing and ordinary linear axes become difficult to use.",
             "15 min",
         )
-        st.header("2 · One variable: body mass")
+        st.header("3 · One variable: body mass")
         st.write("A **variable** is something that can vary between animals. We will begin with one familiar variable: **body mass**.")
 
         body = _body_mass_values(data)
@@ -321,7 +342,7 @@ def render(data: pd.DataFrame) -> None:
                     "animal_q2_log",
                 )
 
-    elif part == 3:
+    elif part == 4:
         # Design decision: we considered fitting both the linear–linear and log–log
         # graphs and comparing the two models. That was deliberately rejected for
         # CURIOUS because it adds a second modelling question while students are
@@ -332,7 +353,7 @@ def render(data: pd.DataFrame) -> None:
             "Treat the axis change as the major conceptual transition. Students should first experience the crowding on ordinary linear axes, then use the one-way reveal to see the same data on log–log axes. Do not teach logarithm calculations. Give students time to describe the relationship before introducing the fitted line. The fit is only a summary of the overall trend: do not introduce regression calculations or R² here. Only fit the log–log view. Comparing a linear–linear fit with a log–log fit was deliberately considered and rejected because it adds too much modelling complexity while students are still learning the representation change.",
             "12 min",
         )
-        st.header("3 · Two variables: body mass and brain size")
+        st.header("4 · Two variables: body mass and brain size")
         st.write(
             "So far we have looked at body mass by itself. Now we can ask whether **body mass and brain size are related**."
         )
@@ -459,14 +480,14 @@ def render(data: pd.DataFrame) -> None:
                     "animal_q3_fit",
                 )
 
-    elif part == 4:
+    elif part == 5:
         teacher_note(
             "Animal class",
             "Let students test whether the same body-mass–brain-size relationship appears across different animal classes.",
             "This is an investigation rather than a reveal. Students choose one or two animal classes themselves. Keep the full dataset faintly visible for context, but let the selected classes drive the comparison. Encourage students to look at the points and make a prediction before adding fitted lines. The fitted lines are evidence they can use to test their observation, not the answer they are meant to discover. If students need a starting suggestion, mammals and reptiles usually make a useful comparison, but do not present that pair as the required choice. Different fitted lines show different patterns in these data; they do not prove that animal class itself causes the difference.",
             "10 min",
         )
-        st.header("4 · Does the relationship change by animal class?")
+        st.header("5 · Does the relationship change by animal class?")
         st.write(
             "So far we have treated all animals as one group. But **animal class** groups animals broadly — "
             "for example mammals, birds, reptiles and amphibians. Now you can investigate whether the "
