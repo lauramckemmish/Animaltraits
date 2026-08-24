@@ -145,6 +145,7 @@ def render(data: pd.DataFrame) -> None:
         response_box("Why do you think that?", "animal_intelligence_q2")
 
     elif part == 1:
+        allow_next = False
         teacher_note(
             "Meet the data",
             "Bridge the Welcome question into evidence by examining real measurements for Human and another animal.",
@@ -189,7 +190,10 @@ def render(data: pd.DataFrame) -> None:
             st.caption("Search repeatedly to compare animals and explore what this dataset includes.")
             st.caption("Not sure what to try? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — they may not all behave the way you expect.")
             second_query = st.text_input("Search for another animal", key="curious_second_animal_search")
+            second_attempted = bool(st.session_state.get("curious_second_animal_attempted", False))
             if second_query.strip():
+                st.session_state["curious_second_animal_attempted"] = True
+                second_attempted = True
                 second_matches = search_student_animals(data, second_query)
                 if second_matches.empty:
                     st.warning(
@@ -200,6 +204,7 @@ def render(data: pd.DataFrame) -> None:
                 else:
                     _render_search_results(second_matches, display_columns)
                     _render_measurement_summary(second_matches)
+            if second_attempted:
                 student_data = student_facing_data(data)
                 distinct_species = student_data["Scientific name"].replace("", pd.NA).nunique(dropna=True)
                 missing_measurements = int(
@@ -210,6 +215,7 @@ def render(data: pd.DataFrame) -> None:
                     f"Some species have repeated records, {missing_measurements:,} records are missing a body-mass or brain-mass measurement, "
                     "and the dataset focuses on terrestrial animals."
                 )
+                allow_next = True
 
     elif part == 2:
         teacher_note(
