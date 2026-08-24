@@ -509,8 +509,8 @@ def render(data: pd.DataFrame) -> None:
             st.markdown("### Now add Reptiles")
             st.caption("Keep Mammal selected and add Reptile. What changes?")
         elif "Mammal" in selected_groups and "Reptile" in selected_groups and "Homo" not in selected_groups:
-            st.markdown("### Where do Homo species sit?")
-            st.caption("Mammals and reptiles are animal classes. Homo is a genus within the mammals. Select Homo to add it to the graph.")
+            st.markdown("### Where do the Homo records sit?")
+            st.caption("Mammals and reptiles are animal classes. Homo is a genus within mammals. In this dataset, the Homo records are human (Homo sapiens) records. Select Homo to add them to the graph.")
         else:
             st.caption("Explore the highlighted groups together. What do you notice about where they sit on the graph?")
 
