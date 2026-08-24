@@ -27,8 +27,7 @@ STEP_LABELS = [
     "1 · Meet the data",
     "2 · Body mass & scale",
     "3 · Two variables",
-    "4 · Fit a model",
-    "5 · Animal class",
+    "4 · Animal class",
     "Conclusion",
 ]
 
@@ -66,9 +65,32 @@ def _scientific_notation(value: float, significant_figures: int = 3) -> str:
     return f"{coefficient_text} × 10{_superscript_integer(exponent)}"
 
 
+def _log_axis_reading_example(*, scatter: bool = False) -> None:
+    """Give students a concrete example for reading powers-of-ten graph labels."""
+    if scatter:
+        st.caption(
+            "📖 **How to read these axes:** 10⁻³ kg means 0.001 kg and 10² kg means 100 kg. "
+            "For example, a point at body mass 10² kg and brain size 10⁻³ kg represents "
+            "100 kg body mass and 0.001 kg brain size. Each major step on a log axis is ×10."
+        )
+    else:
+        st.caption(
+            "📖 **How to read this axis:** 10⁻³ kg means 0.001 kg, 10⁰ kg means 1 kg, "
+            "and 10³ kg means 1,000 kg. Each major step on the log axis is ×10."
+        )
+
+
+def _power_law_equation(fit) -> str:
+    """Return a student-facing power-law equation without computer e notation."""
+    coefficient = 10 ** fit.intercept
+    coefficient_text = _scientific_notation(coefficient)
+    return f"y ≈ {coefficient_text} × x^{fit.slope:.2f}"
+
+
 def render(data: pd.DataFrame) -> None:
     part = int(st.session_state.get("curious_part", 0))
     part = max(0, min(part, len(STEP_LABELS) - 1))
+    allow_next = True
     page_header("CURIOUS · Animal Traits")
     _, selected = step_tabs(STEP_LABELS, "curious_step_selector", part)
     if selected != part:
@@ -221,6 +243,7 @@ def render(data: pd.DataFrame) -> None:
                     histogram(data, "body mass (kg)", bins=bins, log_x=True),
                     use_container_width=True,
                 )
+                _log_axis_reading_example()
                 graph_guide(
                     "The data are exactly the same. Only the way the horizontal axis is spaced has changed.",
                     "What can you see now that was hidden on the linear scale?",
@@ -235,11 +258,15 @@ def render(data: pd.DataFrame) -> None:
                 )
 
     elif part == 3:
+        # Design decision: we considered fitting both the linear–linear and log–log
+        # graphs and comparing the two models. That was deliberately rejected for
+        # CURIOUS because it adds a second modelling question while students are
+        # still learning the axis transformation. Fit only the log–log view.
         teacher_note(
             "Two variables",
-            "Introduce a scatter plot, then create the need for log–log axes by first showing how poorly the full range is represented on ordinary linear axes.",
-            "Treat this as a major conceptual transition. Start with the linear–linear graph and ask what is hidden or crowded together before revealing the log–log view. Do not teach logarithm calculations. Students only need to understand that the animals, measurements and units stay the same; only the spacing of both axes changes. Keep animal class for a later step.",
-            "10 min",
+            "Move from a difficult linear–linear scatter plot to a readable log–log view, then use one fitted power-law line as a simple mathematical summary of the pattern.",
+            "Treat the axis change as the major conceptual transition. Students should first experience the crowding on ordinary linear axes, then use the one-way reveal to see the same data on log–log axes. Do not teach logarithm calculations. Give students time to describe the relationship before introducing the fitted line. The fit is only a summary of the overall trend: do not introduce regression calculations or R² here. Only fit the log–log view. Comparing a linear–linear fit with a log–log fit was deliberately considered and rejected because it adds too much modelling complexity while students are still learning the representation change.",
+            "12 min",
         )
         st.header("3 · Two variables: body mass and brain size")
         st.write(
@@ -272,12 +299,20 @@ def render(data: pd.DataFrame) -> None:
             "**How could we spread those animals out without losing the largest animals?**"
         )
 
-        show_log = st.toggle(
-            "Reveal the log–log version",
-            value=False,
-            key="curious_body_brain_log_reveal",
+        log_revealed = bool(
+            st.session_state.get("curious_body_brain_log_revealed", False)
         )
-        if show_log:
+
+        if not log_revealed:
+            allow_next = False
+            if st.button(
+                "Reveal the log–log view",
+                type="primary",
+                key="curious_reveal_body_brain_log",
+            ):
+                st.session_state["curious_body_brain_log_revealed"] = True
+                st.rerun()
+        else:
             st.subheader("Now compare the log–log view")
             st.write(
                 "The **animals and measurements have not changed**. We are showing the same body masses and brain sizes, but changing how both axes are spaced."
@@ -286,53 +321,88 @@ def render(data: pd.DataFrame) -> None:
                 body_brain_scatter(data, log_x=True, log_y=True),
                 use_container_width=True,
             )
+            _log_axis_reading_example(scatter=True)
             graph_guide(
                 "Both axes now use logarithmic spacing, which spreads out values across many powers of ten.",
-                "What became easier to see? As body mass increases, does brain size tend to increase, decrease, or show no pattern?",
+                "What became easier to see? As body mass increases, does brain size tend to increase, decrease or show no pattern?",
             )
             st.markdown(
-                "### Discuss\nWhat became easier to see on the log–log graph? Can you see the overall relationship between body mass and brain size more clearly?"
-            )
-            key_idea(
-                "A log–log graph can make relationships clearer when both variables span a very large range.",
-                "The data, measurements and units are unchanged — only the spacing of the axes is different.",
+                "### Discuss\nWhat became easier to see on the log–log graph? What overall relationship can you now see between body mass and brain size?"
             )
             response_box(
-                "Describe the overall relationship between body mass and brain size. What became easier to see after changing the axes?",
-                "animal_q3",
+                "Describe the overall relationship between body mass and brain size before adding a mathematical model.",
+                "animal_q3_log",
+            )
+            key_idea(
+                "A log–log graph can make a relationship easier to see when both variables span a very large range.",
+                "The animals, measurements and units are unchanged — only the spacing of the axes is different.",
             )
 
-    elif part == 4:
-        teacher_note(
-            "Fit a model",
-            "Use a fitted line as a simplified mathematical description of the overall pattern.",
-            "Emphasise that the line describes a trend, not a rule that every animal obeys. Variation is scientifically interesting.",
-            "10 min",
-        )
-        st.header("4 · Fit a model")
-        st.write("A **model** is a simplified mathematical description of a pattern. It helps us describe the overall relationship, even though real animals do not sit exactly on the line.")
-        show_fit = st.toggle("Show a fitted model", value=True, key="curious_show_fit")
-        fit = fit_relationship(data, "body mass (kg)", "brain size (kg)", log_x=True, log_y=True) if show_fit else None
-        st.plotly_chart(body_brain_scatter(data, log_x=True, log_y=True, fit=fit), use_container_width=True)
-        if fit is not None:
-            model_stats, model_equation = st.columns([1, 2])
-            model_stats.metric("Records used", f"{fit.n:,}")
-            model_stats.metric("R²", f"{fit.r_squared:.2f}")
-            model_equation.markdown(f"**{fit.model_name}:** `{fit.equation}`")
-        key_idea(
-            "Variation matters.",
-            "Points far from the line are not mistakes by default. They may reflect biological differences, measurement choices or missing variables.",
-        )
-        response_box("What does the model summarise well? What does it leave out?", "animal_q4")
+            st.divider()
+            st.markdown("### Can we summarise that pattern with one line?")
+            st.write(
+                "The points do not all sit in exactly the same place, but there is an overall trend. "
+                "A **line of best fit** is one mathematical way to summarise that trend."
+            )
 
-    elif part == 5:
+            fit_revealed = bool(
+                st.session_state.get("curious_body_brain_fit_revealed", False)
+            )
+
+            if not fit_revealed:
+                allow_next = False
+                if st.button(
+                    "Add a line of best fit",
+                    type="primary",
+                    key="curious_reveal_body_brain_fit",
+                ):
+                    st.session_state["curious_body_brain_fit_revealed"] = True
+                    st.rerun()
+            else:
+                fit = fit_relationship(
+                    data,
+                    "body mass (kg)",
+                    "brain size (kg)",
+                    log_x=True,
+                    log_y=True,
+                )
+                st.plotly_chart(
+                    body_brain_scatter(
+                        data,
+                        log_x=True,
+                        log_y=True,
+                        fit=fit,
+                    ),
+                    use_container_width=True,
+                )
+                _log_axis_reading_example(scatter=True)
+
+                if fit is not None:
+                    st.markdown("#### The fitted power-law model")
+                    st.markdown(f"**{_power_law_equation(fit)}**")
+                    st.caption(
+                        "Here **x is body mass (kg)** and **y is brain size (kg)**. "
+                        "The equation is a compact mathematical description of the overall pattern; "
+                        "individual animals do not have to sit exactly on the line."
+                    )
+
+                key_idea(
+                    "A fitted model summarises a trend; it is not a rule for every animal.",
+                    "The variation around the line is part of the biology and gives us something else to investigate.",
+                )
+                response_box(
+                    "What does the fitted line summarise well? What information about individual animals does it leave out?",
+                    "animal_q3_fit",
+                )
+
+    elif part == 4:
         teacher_note(
             "Animal class",
             "Ask whether the same body-mass–brain-size relationship describes every animal class by comparing the overall fit with separate mammal and reptile fits.",
             "Keep this comparison guided rather than turning it into open exploration. First re-establish the all-animal pattern, then compare mammals and reptiles separately, and finally place both class-specific fits on the same axes. The faint background points preserve the full dataset as context while making the highlighted classes and fitted lines easier to see. Treat different fitted lines as evidence of different patterns in these data, not proof that animal class itself causes the difference. Mammals and reptiles also span different body-size ranges and have different amounts of data.",
             "10 min",
         )
-        st.header("5 · Does the relationship change by animal class?")
+        st.header("4 · Does the relationship change by animal class?")
         st.write(
             "**Animal class** groups animals broadly, such as mammals, birds and reptiles. "
             "We have fitted one pattern across all animals — but does that same pattern describe every group?"
@@ -377,6 +447,7 @@ def render(data: pd.DataFrame) -> None:
             ),
             use_container_width=True,
         )
+        _log_axis_reading_example(scatter=True)
 
         st.subheader("Now look at the groups separately")
         st.write(
@@ -396,6 +467,7 @@ def render(data: pd.DataFrame) -> None:
                 ),
                 use_container_width=True,
             )
+            _log_axis_reading_example(scatter=True)
 
         with reptile_column:
             st.markdown("### Reptiles")
@@ -408,6 +480,7 @@ def render(data: pd.DataFrame) -> None:
                 ),
                 use_container_width=True,
             )
+            _log_axis_reading_example(scatter=True)
 
         graph_guide(
             "Both graphs use the same log–log axes. Faint points show the full dataset; the stronger points and line belong to the named class.",
@@ -430,6 +503,7 @@ def render(data: pd.DataFrame) -> None:
             ),
             use_container_width=True,
         )
+        _log_axis_reading_example(scatter=True)
         graph_guide(
             "The axes and measurements have not changed. Colour identifies animal class, and each class has its own fitted relationship.",
             "Where do the fitted lines differ? At similar body masses, do mammals and reptiles tend to occupy the same part of the graph?",
@@ -440,7 +514,7 @@ def render(data: pd.DataFrame) -> None:
         )
         response_box(
             "What difference do you notice between the mammal and reptile relationships? What would you want to investigate next?",
-            "animal_q5",
+            "animal_q4_class",
         )
 
     else:
@@ -455,4 +529,12 @@ def render(data: pd.DataFrame) -> None:
         st.write("Remember: real datasets can be incomplete, graph scales affect what becomes visible, and models describe patterns without explaining every individual animal.")
         response_box("What is one pattern about animals you noticed, and one data-science idea that helped you see it?", "animal_conclusion")
 
-    step_buttons(STEP_LABELS, "curious_step_selector", "curious_part", "curious_scroll_to_top", part, "curious")
+    step_buttons(
+        STEP_LABELS,
+        "curious_step_selector",
+        "curious_part",
+        "curious_scroll_to_top",
+        part,
+        "curious",
+        allow_next=allow_next,
+    )
