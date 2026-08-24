@@ -5,7 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from config import EXPERIENCE_CURIOUS
-from experiences.catalog import enabled_experience_names
+from experiences.catalog import enabled_experience_names, experience_display_label
 
 LANDING = "Introduction"
 
@@ -51,7 +51,7 @@ def _sync_navigation() -> None:
 
 
 def render_sidebar_navigation() -> None:
-    """Render the introduction link and persistent experience navigator."""
+    """Render the persistent student-facing experience navigator."""
     enabled = _enabled_experiences()
     current = current_experience()
     if current in enabled and st.session_state.get("experience_navigation") != current:
@@ -59,14 +59,7 @@ def render_sidebar_navigation() -> None:
     elif current == LANDING:
         st.session_state.pop("experience_navigation", None)
 
-    st.button(
-        "Introduction",
-        on_click=go_home,
-        type="primary" if current == LANDING else "secondary",
-        use_container_width=True,
-    )
-
-    st.markdown("### Experiences")
+    st.markdown("### Choose an experience")
     if not enabled:
         st.caption("No experiences are currently available.")
         return
@@ -76,6 +69,13 @@ def render_sidebar_navigation() -> None:
         enabled,
         index=None,
         key="experience_navigation",
+        format_func=experience_display_label,
         label_visibility="collapsed",
         on_change=_sync_navigation,
+    )
+    st.button(
+        "Introduction",
+        on_click=go_home,
+        type="primary" if current == LANDING else "secondary",
+        use_container_width=True,
     )

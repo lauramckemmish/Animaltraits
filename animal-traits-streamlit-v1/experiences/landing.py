@@ -126,11 +126,12 @@ def render(data: pd.DataFrame, open_experience) -> None:
         columns = st.columns(2)
         for column, experience in zip(columns, experiences[index:index + 2]):
             name = experience["name"]
+            label = experience.get("label", name)
             summary = experience["summary"]
 
             with column:
                 with st.container(border=True):
-                    st.markdown(f"### {name}")
+                    st.markdown(f"### {label}")
                     st.write(summary)
                     st.button(
                         "Open experience →",

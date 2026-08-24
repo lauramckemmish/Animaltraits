@@ -30,11 +30,13 @@ current = router.current_experience()
 with st.sidebar:
     st.markdown(f"## {APP_ICON} {APP_TITLE}")
 
+    router.render_sidebar_navigation()
+
+    st.divider()
     st.markdown("### About AnimalTraits")
     st.caption(
         "AnimalTraits is a curated scientific dataset of terrestrial animals. It contains real measurements from peer-reviewed studies, including body mass, brain size and metabolic rate. Like all real datasets, it is incomplete: not every animal or trait has been measured."
     )
-    router.render_sidebar_navigation()
 
     st.divider()
     st.markdown("### Dataset")

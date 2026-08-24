@@ -17,7 +17,8 @@ from config import (
 EXPERIENCES = [
     {
         "name": EXPERIENCE_CURIOUS,
-        "summary": "A guided, facilitator-led investigation using real animal-trait data.",
+        "label": "1️⃣ 🧠 Who’s the Smartest Animal?",
+        "summary": "Use real animal data to investigate brains, body size and the surprisingly difficult question of animal intelligence.",
         "enabled": True,
     },
     {
@@ -32,6 +33,7 @@ EXPERIENCES = [
     },
     {
         "name": EXPERIENCE_PLAYGROUND,
+        "label": "🔎 Explore the Data",
         "summary": (
             "Open exploration using one, two or three variables, "
             "with animal-class filtering and optional model fitting."
@@ -66,3 +68,11 @@ def enabled_experience_names() -> list[str]:
         for experience in EXPERIENCES
         if experience["enabled"]
     ]
+
+
+def experience_display_label(name: str) -> str:
+    """Return the student-facing label while keeping internal names stable."""
+    return next(
+        (experience.get("label", experience["name"]) for experience in EXPERIENCES if experience["name"] == name),
+        name,
+    )
