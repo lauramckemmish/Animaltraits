@@ -15,7 +15,7 @@ def page_header(
 ) -> None:
     """Render a page title with an optional Teacher view toggle at top-right."""
     if teacher_control:
-        title_col, control_col = st.columns([5, 1], vertical_alignment="center")
+        title_col, control_col = st.columns([4, 2], vertical_alignment="center")
         with title_col:
             if compact:
                 st.subheader(title)
@@ -24,7 +24,7 @@ def page_header(
             if subtitle:
                 st.caption(subtitle)
         with control_col:
-            st.toggle("Teacher view", key="teacher_view", label_visibility="collapsed", help="Teacher view")
+            st.toggle("Teacher view", key="teacher_view")
     else:
         if compact:
             st.subheader(title)
