@@ -206,7 +206,7 @@ def render(data: pd.DataFrame) -> None:
             attempts += 1
             st.session_state["curious_exploration_attempts"] = attempts
             st.session_state["curious_exploration_last_query"] = animal_query.strip()
-        st.caption(f"Searches tried: {min(attempts, 3)} of 3")
+        st.caption(f"Searches tried: {attempts} of 3")
 
         if animal_query.strip():
             animal_matches = search_student_animals(data, animal_query)
