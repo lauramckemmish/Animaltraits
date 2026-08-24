@@ -353,6 +353,42 @@ def body_brain_highlight_scatter(
     return fig
 
 
+def body_brain_class_sample_size_bar(
+    data: pd.DataFrame,
+    *,
+    title: str = "Usable body-and-brain records by animal class",
+):
+    """Count usable body/brain records for each student-facing animal class."""
+    plot_data = with_common_class_names(data).copy()
+    for column in ["body mass (kg)", "brain size (kg)"]:
+        plot_data[column] = pd.to_numeric(plot_data[column], errors="coerce")
+    plot_data = plot_data.dropna(subset=["Animal class", "body mass (kg)", "brain size (kg)"])
+    plot_data = plot_data[
+        (plot_data["body mass (kg)"] > 0) & (plot_data["brain size (kg)"] > 0)
+    ]
+    counts = (
+        plot_data.groupby("Animal class", as_index=False)
+        .size()
+        .rename(columns={"size": "Usable records"})
+        .sort_values("Usable records", ascending=True)
+    )
+    fig = px.bar(
+        counts,
+        x="Usable records",
+        y="Animal class",
+        orientation="h",
+        text="Usable records",
+        title=title,
+    )
+    fig.update_traces(marker_color="#4c78a8", textposition="outside", cliponaxis=False)
+    fig.update_layout(
+        xaxis_title="Number of usable records",
+        yaxis_title="Animal class",
+        showlegend=False,
+    )
+    return fig
+
+
 
 def body_brain_class_fit_scatter(
     data: pd.DataFrame,

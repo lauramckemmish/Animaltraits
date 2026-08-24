@@ -12,6 +12,7 @@ import streamlit as st
 from charts import (
     body_brain_class_fit_scatter,
     body_brain_highlight_scatter,
+    body_brain_class_sample_size_bar,
     body_brain_representative_scatter,
     body_brain_scatter,
     histogram,
@@ -495,7 +496,18 @@ def render(data: pd.DataFrame) -> None:
             "Body mass explains part of the pattern, but animals with similar body masses do not always have the same brain mass. "
             "Could the kind of animal matter too?"
         )
-        st.write("Animal class is a broad biological grouping. Mammals and reptiles are two examples.")
+        st.write(
+            "Animals can be grouped into broad biological classes. Mammals, birds and reptiles are some examples represented in this dataset."
+        )
+        st.plotly_chart(
+            body_brain_class_sample_size_bar(data),
+            use_container_width=True,
+        )
+        st.write("**Which classes have lots of data? Which have only a few records?**")
+        key_idea(
+            "Some classes have much more data than others.",
+            "Keep that in mind when you compare their patterns.",
+        )
         class_options = sorted(
             with_common_class_names(data)["Animal class"].dropna().unique().tolist()
         )
