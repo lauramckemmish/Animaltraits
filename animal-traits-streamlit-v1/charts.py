@@ -27,6 +27,13 @@ def _power_of_ten_label(exponent: int) -> str:
     return f"10{str(exponent).translate(_SUPERSCRIPT_TRANSLATION)}"
 
 
+def _log_tick_label(exponent: int) -> str:
+    """Use familiar decimals for readable powers and powers for extreme values."""
+    if -3 <= exponent <= 3:
+        return f"{10 ** exponent:,}"
+    return _power_of_ten_label(exponent)
+
+
 def _scientific_log_ticks(values: pd.Series, max_ticks: int = 9) -> tuple[list[float], list[str]]:
     """Return readable powers-of-ten ticks covering positive values.
 
@@ -49,7 +56,7 @@ def _scientific_log_ticks(values: pd.Series, max_ticks: int = 9) -> tuple[list[f
         exponents.append(high)
 
     tick_values = [10.0 ** exponent for exponent in exponents]
-    tick_text = [_power_of_ten_label(exponent) for exponent in exponents]
+    tick_text = [_log_tick_label(exponent) for exponent in exponents]
     return tick_values, tick_text
 
 
