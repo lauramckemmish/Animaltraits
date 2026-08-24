@@ -53,8 +53,6 @@ ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), M
 SPERM_WHALE_IMAGE_PATH = MEDIA_DIR / "6(26) Sperm whale.JPG"
 CROW_IMAGE_PATH = MEDIA_DIR / "Corvus moneduloides, Sarramea, New Caledonia 1.jpg"
 OCTOPUS_IMAGE_PATH = MEDIA_DIR / "Octopus-vulgaris.jpg"
-CROW_VIDEO_PATH = MEDIA_DIR / "An-Investigation-into-the-Cognition-Behind-Spontaneous-String-Pulling-in-New-Caledonian-Crows-pone.0009345.s001.ogv"
-OCTOPUS_VIDEO_PATH = MEDIA_DIR / "Pull-or-Push-Octopuses-Solve-a-Puzzle-Problem-pone.0152048.s004.ogv"
 
 
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
@@ -554,7 +552,7 @@ def render(data: pd.DataFrame) -> None:
         teacher_note(
             "Did we solve it?",
             "Challenge overinterpretation without replacing it with another simple ranking of animals.",
-            "Reveal the challenges one at a time. Let students react before each reveal. Images work locally; videos are optional enrichment. Then return to what evidence supports and what we would investigate next.",
+            "Reveal the challenges one at a time. Let students react before each reveal. Use the local still images as visual evidence, then return to what evidence supports and what we would investigate next.",
             "5–7 min",
         )
         st.header("6 · Did we solve it?")
@@ -595,10 +593,12 @@ def render(data: pd.DataFrame) -> None:
                 with whale_col:
                     st.image(SPERM_WHALE_IMAGE_PATH, use_container_width=True)
                     st.caption("Sperm whale")
-                st.write("And hang on — where was the sperm whale on our graph?")
-                st.write("**It wasn’t there.**")
+                st.write("And hang on — where were the elephant and sperm whale on our graph?")
+                st.write("**They weren’t there.**")
                 st.write(
-                    "AnimalTraits focuses on **terrestrial animals**, and it does not contain every species. "
+                    "AnimalTraits focuses on **terrestrial animals**, but that does not mean it contains every terrestrial species. "
+                    "The elephant is terrestrial, yet it is absent from this dataset; we do not know from the dataset why it is absent. "
+                    "The sperm whale is absent too because marine animals are outside the dataset’s main scope. "
                     "**A dataset can only answer questions about what it contains.**"
                 )
                 challenge_two = bool(st.session_state.get("curious_step6_challenge_two", False))
@@ -616,9 +616,6 @@ def render(data: pd.DataFrame) -> None:
                     st.write("**So does brain mass alone tell us what a brain can do?**")
                     st.image(CROW_IMAGE_PATH, use_container_width=True)
                     st.caption("New Caledonian crow (*Corvus moneduloides*)")
-                    if CROW_VIDEO_PATH.exists():
-                        st.caption("Optional supporting evidence: first trial of Zola solving the standard string-pulling problem.")
-                        st.video(CROW_VIDEO_PATH)
                     challenge_three = bool(st.session_state.get("curious_step6_challenge_three", False))
                     if not challenge_three:
                         if st.button("Reveal challenge 3", type="primary", key="curious_step6_reveal_three"):
@@ -634,42 +631,25 @@ def render(data: pd.DataFrame) -> None:
                         st.write("**If we only weigh the central brain, are we measuring everything that matters?**")
                         st.image(OCTOPUS_IMAGE_PATH, use_container_width=True)
                         st.caption("*Octopus vulgaris*")
-                        if OCTOPUS_VIDEO_PATH.exists():
-                            st.caption("Optional supporting evidence: an octopus completing level 1 of the puzzle task.")
-                            st.video(OCTOPUS_VIDEO_PATH)
-
-                        st.markdown("### So what would we measure next?")
+                        st.markdown("### So what would we investigate next?")
                         st.write("**Brain mass gave us one clue.**")
-                        st.write("**If we really wanted to investigate animal intelligence, what other evidence would we want?**")
-                        evidence_options = [
-                            "Problem solving",
-                            "Learning",
-                            "Memory",
-                            "Communication",
-                            "Tool use",
-                            "Social behaviour",
-                            "Brain structure",
-                        ]
-                        evidence_selected = st.multiselect(
-                            "Choose one or more kinds of evidence",
-                            options=evidence_options,
-                            key="curious_step6_evidence_options",
+                        st.write(
+                            "**If we really wanted to investigate animal intelligence, what else could we measure or observe?**"
                         )
-                        if evidence_selected:
-                            st.info(
-                                "Different kinds of evidence test different parts of what we call intelligence. "
-                                "There may not be one single measurement that settles it."
-                            )
-                            st.markdown("# Is this story too simple?")
-                            st.image(CONCLUSION_EVIDENCE_PATH, use_container_width=True)
-                            st.caption("AI-generated illustration, specially designed for this CURIOUS workshop.")
-                            st.write("At the start, we looked at a neat story about evolution and intelligence.")
-                            st.write("Our data helped us build a better story.")
-                            st.write("**But even that story has limits.**")
-                            key_idea(
-                                "Good science is not about finding the neatest story.",
-                                "It is about asking what the evidence supports, what it does not support, and what we would investigate next.",
-                            )
+                        st.caption(
+                            "You might think about problem solving, learning, memory, communication, "
+                            "tool use, social behaviour, or brain structure."
+                        )
+                        st.markdown("# Is this story too simple?")
+                        st.image(CONCLUSION_EVIDENCE_PATH, use_container_width=True)
+                        st.caption("AI-generated illustration, specially designed for this CURIOUS workshop.")
+                        st.write("At the start, we looked at a neat story about evolution and intelligence.")
+                        st.write("Our data helped us build a better story.")
+                        st.write("**But even that story has limits.**")
+                        key_idea(
+                            "Good science is not about finding the neatest story.",
+                            "It is about asking what the evidence supports, what it does not support, and what we would investigate next.",
+                        )
 
                         with st.expander("Sources and media credits"):
                             st.markdown(
@@ -680,7 +660,7 @@ def render(data: pd.DataFrame) -> None:
                                 "The elephant, sperm whale, crow and octopus stills are CC0 Wikimedia Commons sources. "
                                 "See `assets/MEDIA_SOURCES.md` for complete local filenames, source pages, and retrieval details."
                             )
-                        allow_next = bool(evidence_selected)
+                        allow_next = True
 
     step_buttons(
         STEP_LABELS,
