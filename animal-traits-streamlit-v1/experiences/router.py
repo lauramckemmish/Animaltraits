@@ -51,31 +51,20 @@ def _sync_navigation() -> None:
 
 
 def render_sidebar_navigation() -> None:
-    """Render the persistent student-facing experience navigator."""
+    """Render the persistent student-facing button navigator."""
     enabled = _enabled_experiences()
     current = current_experience()
-    if current in enabled and st.session_state.get("experience_navigation") != current:
-        st.session_state["experience_navigation"] = current
-    elif current == LANDING:
-        st.session_state.pop("experience_navigation", None)
-
-    st.markdown("### Choose an experience")
-    if not enabled:
-        st.caption("No experiences are currently available.")
-        return
-
-    st.radio(
-        "Choose an experience",
-        enabled,
-        index=None,
-        key="experience_navigation",
-        format_func=experience_display_label,
-        label_visibility="collapsed",
-        on_change=_sync_navigation,
+    destinations = [(LANDING, "Introduction")]
+    destinations.extend(
+        (name, experience_display_label(name))
+        for name in enabled
     )
-    st.button(
-        "Introduction",
-        on_click=go_home,
-        type="primary" if current == LANDING else "secondary",
-        use_container_width=True,
-    )
+    for destination, label in destinations:
+        st.button(
+            label,
+            key=f"sidebar_navigation_{destination}",
+            on_click=open_experience,
+            args=(destination,),
+            type="primary" if current == destination else "secondary",
+            use_container_width=True,
+        )
