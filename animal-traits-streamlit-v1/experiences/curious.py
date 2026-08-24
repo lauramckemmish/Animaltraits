@@ -137,21 +137,6 @@ def _render_measurement_summary(matches: pd.DataFrame) -> None:
         )
 
 
-def _log_axis_reading_example(*, scatter: bool = False) -> None:
-    """Give students a concrete example for reading powers-of-ten graph labels."""
-    if scatter:
-        st.caption(
-            "📖 **How to read these axes:** 10⁻³ kg means 0.001 kg and 10² kg means 100 kg. "
-            "For example, a point at body mass 10² kg and brain size 10⁻³ kg represents "
-            "100 kg body mass and 0.001 kg brain size. Each major step on a log axis is ×10."
-        )
-    else:
-        st.caption(
-            "📖 **How to read this axis:** 10⁻³ kg means 0.001 kg, 10⁰ kg means 1 kg, "
-            "and 10³ kg means 1,000 kg. Each major step on the log axis is ×10."
-        )
-
-
 def _power_law_equation(fit) -> str:
     """Return a student-facing power-law equation without computer e notation."""
     coefficient = 10 ** fit.intercept
@@ -433,7 +418,6 @@ def render(data: pd.DataFrame) -> None:
                         body_brain_scatter(data, log_x=True, log_y=True),
                         use_container_width=True,
                     )
-                    _log_axis_reading_example(scatter=True)
                     st.write(
                         "The animals and measurements have not changed — only the spacing of the axes has changed. "
                         "This makes small and large animals easier to see together."
@@ -566,8 +550,6 @@ def render(data: pd.DataFrame) -> None:
                 ),
                 use_container_width=True,
             )
-            _log_axis_reading_example(scatter=True)
-
             if len(selected_classes) == 1:
                 allow_next = False
                 graph_guide(
@@ -629,8 +611,6 @@ def render(data: pd.DataFrame) -> None:
                         ),
                         use_container_width=True,
                     )
-                    _log_axis_reading_example(scatter=True)
-
                     graph_guide(
                         "Each selected class keeps its own fitted line. The lines summarise the overall pattern within each group.",
                         "Do the fitted lines support what you thought from the points alone? Compare their position and steepness rather than looking for one 'correct' answer.",
