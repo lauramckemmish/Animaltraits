@@ -130,7 +130,6 @@ def render(data: pd.DataFrame) -> None:
         st.caption("Type `Human` into the search box.")
         query = st.text_input(
             "Search for an animal",
-            placeholder="Human",
             key="curious_animal_search",
         )
         display_columns = [
