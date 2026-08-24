@@ -35,11 +35,12 @@ def _log_tick_label(exponent: int) -> str:
 
 
 def _scientific_log_ticks(values: pd.Series, max_ticks: int = 9) -> tuple[list[float], list[str]]:
-    """Return readable powers-of-ten ticks covering positive values.
+    """Return readable ticks at every power of ten covering positive values.
 
     Plotly's automatic log-axis labels can switch to engineering prefixes such as
     µ or n. CURIOUS has already introduced powers of ten, so these axes use that
-    notation consistently instead.
+    notation consistently instead. ``max_ticks`` remains for compatibility but
+    does not thin the decades: students need every order of magnitude to be visible.
     """
     numeric = pd.to_numeric(values, errors="coerce")
     numeric = numeric[np.isfinite(numeric) & (numeric > 0)]
@@ -48,12 +49,7 @@ def _scientific_log_ticks(values: pd.Series, max_ticks: int = 9) -> tuple[list[f
 
     low = int(np.floor(np.log10(numeric.min())))
     high = int(np.ceil(np.log10(numeric.max())))
-    span = max(high - low, 0)
-    step = max(1, int(np.ceil((span + 1) / max_ticks)))
-
-    exponents = list(range(low, high + 1, step))
-    if exponents[-1] != high:
-        exponents.append(high)
+    exponents = list(range(low, high + 1))
 
     tick_values = [10.0 ** exponent for exponent in exponents]
     tick_text = [_log_tick_label(exponent) for exponent in exponents]
