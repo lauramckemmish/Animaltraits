@@ -32,12 +32,12 @@ from ui_helpers import (
 
 STEP_LABELS = [
     "Welcome",
-    "1 · Human evidence",
-    "2 · Explore animals",
-    "3 · Body mass & scale",
-    "4 · Two variables",
-    "5 · Animal class",
-    "6 · Are humans the smartest animals?",
+    "Human brain",
+    "Explore",
+    "Size & scale",
+    "Body + brain",
+    "Animal groups",
+    "Smartest animal?",
 ]
 
 SEARCH_DISPLAY_COLUMNS = [
@@ -169,8 +169,7 @@ def render(data: pd.DataFrame) -> None:
             "Use the illustration as a quick provocation, not as a factual model of evolution. Ask what story it appears to tell and whether that story is too simple. The fork is about how tools are used, not whether technology itself is good or bad: tools do not replace curiosity, evidence or thinking. Then move quickly into the animal-intelligence investigation.",
             "8 min",
         )
-        st.header("Welcome")
-        st.subheader("Is this story too simple?")
+        st.header("Is this story too simple?")
         st.image(WELCOME_EVOLUTION_PATH, use_container_width=True)
         st.caption("AI-generated illustration, specially designed for this CURIOUS workshop.")
         st.write("**What story is this picture telling?**")
@@ -186,7 +185,7 @@ def render(data: pd.DataFrame) -> None:
             "Invite students to estimate first, then ask them to type Human and look for variation in the real records.",
             "10 min",
         )
-        st.header("1 · How heavy do you think a human brain is?")
+        st.header("How heavy do you think a human brain is?")
         response_box("Estimate the mass of a human brain.", "curious_human_brain_estimate")
         st.write("Let’s check some real measurements.")
         st.markdown("### Start with Human")
@@ -224,7 +223,7 @@ def render(data: pd.DataFrame) -> None:
             "Students can choose any animals. Count each new search attempt, whether or not it returns a match, and invite them to compare the result-level measurement completeness.",
             "12 min",
         )
-        st.header("2 · Explore the dataset")
+        st.header("What animals can we find?")
         st.write("**Try searching for at least three different animals.**")
         st.caption("Choose animals you’re interested in. Your searches do not all have to succeed.")
         st.caption("Not sure what to try? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
@@ -274,7 +273,7 @@ def render(data: pd.DataFrame) -> None:
             "This is deliberately a substantial conceptual step, especially for Year 8 students. Do not expect mastery of scientific notation or logarithms. The aim is recognition: scientific notation is a shorter way to write the same extremely small number, and a logarithmic axis is a different way of spacing the same data so values across many powers of ten can be seen. Build the need for each representation first. Start with the largest value in kilograms, then show the smallest value as an ordinary decimal with all its zeros. Once that becomes awkward to read, introduce ×10ⁿ notation as a useful scientific shorthand. Next show the linear histogram and let students change the bin count. When the smaller animals remain compressed and difficult to see, use that failure to motivate the logarithmic reveal. Keep the explanation concrete and visual: students do not need to calculate logarithms. The important idea is that the dataset spans such a huge range that ordinary number-writing and ordinary linear axes become difficult to use.",
             "15 min",
         )
-        st.header("3 · One variable: body mass")
+        st.header("How can we make sense of such a huge range?")
         st.write("A **variable** is something that can vary between animals. We will begin with one familiar variable: **body mass**.")
 
         body = _body_mass_values(data)
@@ -370,7 +369,7 @@ def render(data: pd.DataFrame) -> None:
             "Keep the pace conversational. Ask students to interpret positions and notice the overall relationship; do not introduce a fitted model here.",
             "12 min",
         )
-        st.header("4 · Two variables: body mass and brain size")
+        st.header("Do bigger animals have bigger brains?")
         st.write("A scatter plot lets us look at two variables together.")
         orientation = _curious_orientation_animals(data)
         st.markdown("### A few familiar animals")
@@ -495,7 +494,7 @@ def render(data: pd.DataFrame) -> None:
             "Guide students to compare at least two groups. Mammal and Reptile are the clearest default comparison; if time allows, add Homo. Students can explore other groups if they are interested. Treat the fitted lines only as visual summaries of overlapping point clouds — do not teach regression here. Keep the interpretation descriptive and avoid equating brain mass with intelligence.",
             "10 min",
         )
-        st.header("5 · Does the kind of animal matter too?")
+        st.header("Does the kind of animal matter too?")
         st.write(
             "Body mass explains part of the pattern, but animals with similar body masses do not always have the same brain mass. "
             "Could the kind of animal matter too?"
