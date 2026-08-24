@@ -451,8 +451,10 @@ def body_brain_class_fit_scatter(
                     y=fit.y_line,
                     mode="lines",
                     name=f"{class_name} fit",
+                    showlegend=False,
                     legendgroup=class_name,
                     line=dict(color=colour, width=4),
+                    hoverinfo="skip",
                 )
             )
 

@@ -17,6 +17,7 @@ from charts import (
     histogram,
 )
 from data import search_student_animals, student_facing_data, with_common_class_names
+from models import fit_relationship
 from ui_helpers import (
     graph_guide,
     key_idea,
@@ -523,11 +524,22 @@ def render(data: pd.DataFrame) -> None:
 
         highlighted_classes = [group for group in selected_groups if group != "Homo"]
         homo_selected = "Homo" in selected_groups
+        class_data = with_common_class_names(data)
+        class_fits = {
+            class_name: fit_relationship(
+                class_data[class_data["Animal class"].eq(class_name)],
+                "body mass (kg)",
+                "brain size (kg)",
+                log_x=True,
+                log_y=True,
+            )
+            for class_name in highlighted_classes
+        }
         st.plotly_chart(
             body_brain_class_fit_scatter(
                 data,
                 highlighted_classes=highlighted_classes,
-                fits=None,
+                fits=class_fits,
                 highlighted_records=homo_records if homo_selected else None,
                 highlighted_label="Homo records",
                 title="Highlighted groups · body mass vs brain mass",
