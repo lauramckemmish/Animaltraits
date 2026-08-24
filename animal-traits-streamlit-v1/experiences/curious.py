@@ -151,7 +151,11 @@ def render(data: pd.DataFrame) -> None:
     part = int(st.session_state.get("curious_part", 0))
     part = max(0, min(part, len(STEP_LABELS) - 1))
     allow_next = True
-    page_header("CURIOUS · Animal Traits")
+    page_header(
+        "🧠 Who’s the Smartest Animal?",
+        subtitle="A CURIOUS data investigation of animal brains, bodies and intelligence",
+        compact=True,
+    )
     _, selected = step_tabs(STEP_LABELS, "curious_step_selector", part)
     if selected != part:
         part = selected
@@ -589,19 +593,22 @@ def render(data: pd.DataFrame) -> None:
             "Reveal the challenges one at a time. Let students react before each reveal. Use the local still images as visual evidence, then return to what evidence supports and what we would investigate next.",
             "5–7 min",
         )
-        st.header("Are humans the smartest animals?")
-        st.write("The Homo records looked pretty interesting.")
+        st.header("🧠 Are humans the smartest animals?")
+        st.image(ELEPHANT_IMAGE_PATH, width=320)
+        st.caption("A real animal can challenge a simple ranking.")
+        st.write("**Homo looked pretty impressive in our data.**")
+        st.write("**But before we declare ourselves the winners…**")
         st.write("**So… have we found the smartest animal?**")
 
         opening_choice = st.session_state.get("curious_step6_opening_choice")
         if opening_choice is None:
             maybe_col, careful_col = st.columns(2)
             with maybe_col:
-                if st.button("Maybe!", key="curious_step6_maybe"):
+                if st.button("Maybe… 👀", key="curious_step6_maybe"):
                     st.session_state["curious_step6_opening_choice"] = "Maybe!"
                     st.rerun()
             with careful_col:
-                if st.button("Not so fast…", key="curious_step6_not_so_fast"):
+                if st.button("Not so fast… 🤔", key="curious_step6_not_so_fast"):
                     st.session_state["curious_step6_opening_choice"] = "Not so fast…"
                     st.rerun()
         else:
@@ -613,7 +620,7 @@ def render(data: pd.DataFrame) -> None:
                     st.session_state["curious_step6_challenge_one"] = True
                     st.rerun()
             else:
-                st.markdown("### Challenge 1 · What about animals with bigger brains?")
+                st.markdown("### 🐘 Challenge 1 · Biggest brain wins?")
                 st.write("**Humans don’t have the biggest brains.**")
                 st.write(
                     "A human brain is roughly **1.3 kg**. An African elephant brain is roughly **5 kg**. "
@@ -641,7 +648,7 @@ def render(data: pd.DataFrame) -> None:
                         st.session_state["curious_step6_challenge_two"] = True
                         st.rerun()
                 else:
-                    st.markdown("### Challenge 2 · What about clever animals with small brains?")
+                    st.markdown("### 🐦 Challenge 2 · What about a tiny clever brain?")
                     st.write("**New Caledonian crows make the story harder again.**")
                     st.write(
                         "They can solve problems and use tools, even though their brains are tiny in absolute mass compared with ours. "
@@ -656,7 +663,7 @@ def render(data: pd.DataFrame) -> None:
                             st.session_state["curious_step6_challenge_three"] = True
                             st.rerun()
                     else:
-                        st.markdown("### Challenge 3 · What if brains aren’t built the same way?")
+                        st.markdown("### 🐙 Challenge 3 · What even counts as a brain?")
                         st.write("**Octopuses make the story stranger again.**")
                         st.write(
                             "Octopuses can learn and adapt when a problem changes. But their nervous system is organised very differently from ours: "

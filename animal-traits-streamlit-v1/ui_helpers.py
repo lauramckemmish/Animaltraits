@@ -6,16 +6,32 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 
-def page_header(title: str, *, teacher_control: bool = True) -> None:
+def page_header(
+    title: str,
+    *,
+    subtitle: str | None = None,
+    teacher_control: bool = True,
+    compact: bool = False,
+) -> None:
     """Render a page title with an optional Teacher view toggle at top-right."""
     if teacher_control:
         title_col, control_col = st.columns([5, 1], vertical_alignment="center")
         with title_col:
-            st.title(title)
+            if compact:
+                st.subheader(title)
+            else:
+                st.title(title)
+            if subtitle:
+                st.caption(subtitle)
         with control_col:
-            st.toggle("Teacher view", key="teacher_view")
+            st.toggle("Teacher view", key="teacher_view", label_visibility="collapsed", help="Teacher view")
     else:
-        st.title(title)
+        if compact:
+            st.subheader(title)
+        else:
+            st.title(title)
+        if subtitle:
+            st.caption(subtitle)
 
 
 def select_tab_step(tab_key: str, labels: list[str], step_key: str, scroll_key: str, step: int) -> None:
