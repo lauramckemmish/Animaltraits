@@ -144,6 +144,121 @@ def body_brain_scatter(
     return fig
 
 
+
+def body_brain_class_fit_scatter(
+    data: pd.DataFrame,
+    *,
+    highlighted_classes: list[str],
+    fits: dict[str, FitResult] | None = None,
+    log_x: bool = True,
+    log_y: bool = True,
+    show_background: bool = True,
+    title: str | None = None,
+):
+    """Compare selected animal classes against the full body-mass/brain-size dataset.
+
+    All animals can remain as a faint background for context. Selected classes are
+    drawn more clearly, and optional per-class fitted models are overlaid using the
+    same colour as the corresponding class.
+
+    Model fitting remains the responsibility of ``models.py`` / the calling
+    experience; this helper only constructs the figure.
+    """
+    plot_data = with_common_class_names(data)
+    x_field = "body mass (kg)"
+    y_field = "brain size (kg)"
+
+    for column in [x_field, y_field]:
+        plot_data[column] = pd.to_numeric(plot_data[column], errors="coerce")
+
+    plot_data = plot_data.dropna(subset=[x_field, y_field, "Animal class"])
+
+    if log_x:
+        plot_data = plot_data[plot_data[x_field] > 0]
+    if log_y:
+        plot_data = plot_data[plot_data[y_field] > 0]
+
+    available_classes = sorted(plot_data["Animal class"].dropna().unique().tolist())
+    selected_classes = [
+        class_name
+        for class_name in highlighted_classes
+        if class_name in available_classes
+    ]
+
+    # Build a stable class-colour mapping from all classes in the dataset. This means
+    # Mammal, for example, keeps the same colour in a Mammal-only view and in a
+    # Mammal + Reptile comparison.
+    palette = px.colors.qualitative.Plotly
+    class_colours = {
+        class_name: palette[index % len(palette)]
+        for index, class_name in enumerate(available_classes)
+    }
+
+    fig = go.Figure()
+
+    if show_background and not plot_data.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=plot_data[x_field],
+                y=plot_data[y_field],
+                mode="markers",
+                name="All animals (context)",
+                marker=dict(size=6, color="rgba(107, 114, 128, 0.14)"),
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+    common_name = "common name" if "common name" in plot_data.columns else None
+    hover_fields = [field for field in ["species"] if field in plot_data.columns]
+
+    for class_name in selected_classes:
+        class_data = plot_data[plot_data["Animal class"] == class_name]
+        colour = class_colours[class_name]
+
+        class_figure = px.scatter(
+            class_data,
+            x=x_field,
+            y=y_field,
+            hover_name=common_name,
+            hover_data=hover_fields,
+            color_discrete_sequence=[colour],
+        )
+        if class_figure.data:
+            class_trace = class_figure.data[0]
+            class_trace.name = class_name
+            class_trace.legendgroup = class_name
+            class_trace.marker.update(size=8, opacity=0.48)
+            fig.add_trace(class_trace)
+
+        fit = (fits or {}).get(class_name)
+        if fit is not None:
+            fig.add_trace(
+                go.Scatter(
+                    x=fit.x_line,
+                    y=fit.y_line,
+                    mode="lines",
+                    name=f"{class_name} fit",
+                    legendgroup=class_name,
+                    line=dict(color=colour, width=4),
+                )
+            )
+
+    if title is None:
+        comparison_label = " + ".join(selected_classes) if selected_classes else "Selected classes"
+        title = f"Body mass vs brain size · {comparison_label}"
+
+    fig.update_layout(
+        title=title,
+        xaxis_title="Body mass (kg)",
+        yaxis_title="Brain size (kg)",
+        legend_title="Animal class",
+    )
+    fig.update_xaxes(type="log" if log_x else "linear")
+    fig.update_yaxes(type="log" if log_y else "linear")
+    return fig
+
+
 # -----------------------------------------------------------------------------
 # Data Exploration Playground charts. Unchanged by the CURIOUS refinement.
 # -----------------------------------------------------------------------------
