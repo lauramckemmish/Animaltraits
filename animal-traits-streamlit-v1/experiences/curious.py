@@ -102,23 +102,20 @@ def render(data: pd.DataFrame) -> None:
     if part == 0:
         teacher_note(
             "Welcome",
-            "Introduce a real, incomplete scientific dataset before students begin analysing it.",
-            "AnimalTraits is a curated dataset, not a catalogue of every animal. Its terrestrial-animal measurements come from peer-reviewed studies, so missing animals and missing traits are expected.",
-            "5 min",
+            "Create curiosity about what intelligence might mean in animals before introducing the investigation.",
+            "Invite several ideas without deciding which animal is most intelligent. Encourage students to think beyond human-style intelligence and to make an initial prediction.",
+            "8 min",
         )
         st.header("Welcome")
+        st.subheader("Are humans really the brainiest animals?")
         st.write(
-            "AnimalTraits is a **curated scientific dataset** built from measurements in peer-reviewed studies. "
-            "It focuses on **terrestrial animals** and includes traits such as body mass and brain size."
+            "When we talk about an animal being intelligent, what could that mean? "
+            "Maybe it could involve problem-solving, learning, memory, communication, tool use or adapting to a new situation."
         )
-        st.info("**Today's question:** What can data reveal about how animal traits vary and relate to each other?")
-        trait_cols = st.columns(2)
-        trait_cols[0].markdown("**Body mass**  \nHow much an animal weighs")
-        trait_cols[1].markdown("**Brain size**  \nRecorded brain mass")
-        key_idea(
-            "Real scientific datasets are incomplete.",
-            "Not every animal, and not every trait, has been measured. A missing row or value does not mean the animal does not exist.",
-        )
+        st.write("Think of an animal you consider intelligent. What does it do that makes you think so?")
+        response_box("What do you think makes an animal intelligent?", "animal_intelligence_q1")
+        st.info("**Make a prediction:** Do you think humans have the biggest brains?")
+        response_box("Why do you think that?", "animal_intelligence_q2")
 
     elif part == 1:
         teacher_note(
