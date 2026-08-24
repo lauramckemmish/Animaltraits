@@ -59,7 +59,6 @@ def render_sidebar_navigation() -> None:
     elif current == LANDING:
         st.session_state.pop("experience_navigation", None)
 
-    st.markdown("### Introduction")
     st.button(
         "Introduction",
         on_click=go_home,
