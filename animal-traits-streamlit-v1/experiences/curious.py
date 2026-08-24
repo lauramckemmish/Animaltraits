@@ -35,7 +35,7 @@ STEP_LABELS = [
     "3 · Body mass & scale",
     "4 · Two variables",
     "5 · Animal class",
-    "Conclusion",
+    "6 · Did we solve it?",
 ]
 
 SEARCH_DISPLAY_COLUMNS = [
@@ -47,6 +47,13 @@ SEARCH_DISPLAY_COLUMNS = [
 ]
 
 WELCOME_ILLUSTRATION_PATH = Path(__file__).resolve().parents[1] / "assets" / "wide_colorful_cartoon_illustration_like_an_educati.png"
+MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
+ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
+SPERM_WHALE_IMAGE_PATH = MEDIA_DIR / "6(26) Sperm whale.JPG"
+CROW_IMAGE_PATH = MEDIA_DIR / "Corvus moneduloides, Sarramea, New Caledonia 1.jpg"
+OCTOPUS_IMAGE_PATH = MEDIA_DIR / "Octopus-vulgaris.jpg"
+CROW_VIDEO_PATH = MEDIA_DIR / "An-Investigation-into-the-Cognition-Behind-Spontaneous-String-Pulling-in-New-Caledonian-Crows-pone.0009345.s001.ogv"
+OCTOPUS_VIDEO_PATH = MEDIA_DIR / "Pull-or-Push-Octopuses-Solve-a-Puzzle-Problem-pone.0152048.s004.ogv"
 
 
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
@@ -543,17 +550,136 @@ def render(data: pd.DataFrame) -> None:
         if len(explored_groups) >= 2:
             allow_next = True
 
-    else:
+    elif part == 6:
+        allow_next = False
         teacher_note(
-            "Conclusion",
-            "Consolidate the connection between real data, visualisation, modelling and biological variation.",
-            "Return to the opening question and ask students to name one biological pattern and one data-science idea.",
-            "5 min",
+            "Did we solve it?",
+            "Challenge overinterpretation without replacing it with another simple ranking of animals.",
+            "Reveal the challenges one at a time. Let students react before each reveal. Images work locally; videos are optional enrichment. Then return to what evidence supports and what we would investigate next.",
+            "5–7 min",
         )
-        st.header("Conclusion")
-        st.success("You used a real scientific dataset to move from individual records to distributions, relationships, a model and biological variation.")
-        st.write("Remember: real datasets can be incomplete, graph scales affect what becomes visible, and models describe patterns without explaining every individual animal.")
-        response_box("What is one pattern about animals you noticed, and one data-science idea that helped you see it?", "animal_conclusion")
+        st.header("6 · Did we solve it?")
+        st.write("The Homo records looked pretty interesting.")
+        st.write("**So… have we found the smartest animal?**")
+
+        opening_choice = st.session_state.get("curious_step6_opening_choice")
+        if opening_choice is None:
+            maybe_col, careful_col = st.columns(2)
+            with maybe_col:
+                if st.button("Maybe!", key="curious_step6_maybe"):
+                    st.session_state["curious_step6_opening_choice"] = "Maybe!"
+                    st.rerun()
+            with careful_col:
+                if st.button("Not so fast…", key="curious_step6_not_so_fast"):
+                    st.session_state["curious_step6_opening_choice"] = "Not so fast…"
+                    st.rerun()
+        else:
+            st.write("Let’s test that idea.")
+
+            challenge_one = bool(st.session_state.get("curious_step6_challenge_one", False))
+            if not challenge_one:
+                if st.button("Reveal challenge 1", type="primary", key="curious_step6_reveal_one"):
+                    st.session_state["curious_step6_challenge_one"] = True
+                    st.rerun()
+            else:
+                st.markdown("### Challenge 1 · Biggest brain = smartest?")
+                st.write("**Humans don’t have the biggest brains.**")
+                st.write(
+                    "A human brain is roughly **1.3 kg**. An African elephant brain is roughly **5 kg**. "
+                    "A sperm whale brain can be around **8 kg**."
+                )
+                st.write("**So absolute brain mass cannot be a simple intelligence score.**")
+                elephant_col, whale_col = st.columns(2)
+                with elephant_col:
+                    st.image(ELEPHANT_IMAGE_PATH, use_container_width=True)
+                    st.caption("African bush elephant")
+                with whale_col:
+                    st.image(SPERM_WHALE_IMAGE_PATH, use_container_width=True)
+                    st.caption("Sperm whale")
+                st.write("And hang on — where was the sperm whale on our graph?")
+                st.write("**It wasn’t there.**")
+                st.write(
+                    "AnimalTraits focuses on **terrestrial animals**, and it does not contain every species. "
+                    "**A dataset can only answer questions about what it contains.**"
+                )
+                challenge_two = bool(st.session_state.get("curious_step6_challenge_two", False))
+                if not challenge_two:
+                    if st.button("Reveal challenge 2", type="primary", key="curious_step6_reveal_two"):
+                        st.session_state["curious_step6_challenge_two"] = True
+                        st.rerun()
+                else:
+                    st.markdown("### Challenge 2 · Small brain = simple?")
+                    st.write("**New Caledonian crows make the story harder again.**")
+                    st.write(
+                        "They can solve problems and use tools, even though their brains are tiny in absolute mass compared with ours. "
+                        "Corvid and parrot brains can also pack very large numbers of neurons into a relatively small brain."
+                    )
+                    st.write("**So does brain mass alone tell us what a brain can do?**")
+                    st.image(CROW_IMAGE_PATH, use_container_width=True)
+                    st.caption("New Caledonian crow (*Corvus moneduloides*)")
+                    if CROW_VIDEO_PATH.exists():
+                        st.caption("Optional supporting evidence: first trial of Zola solving the standard string-pulling problem.")
+                        st.video(CROW_VIDEO_PATH)
+                    challenge_three = bool(st.session_state.get("curious_step6_challenge_three", False))
+                    if not challenge_three:
+                        if st.button("Reveal challenge 3", type="primary", key="curious_step6_reveal_three"):
+                            st.session_state["curious_step6_challenge_three"] = True
+                            st.rerun()
+                    else:
+                        st.markdown("### Challenge 3 · What if the nervous system is built differently?")
+                        st.write("**Octopuses make the story stranger again.**")
+                        st.write(
+                            "Octopuses can learn and adapt when a problem changes. But their nervous system is organised very differently from ours: "
+                            "much of their neural circuitry is distributed through their arms, not only in one central brain."
+                        )
+                        st.write("**If we only weigh the central brain, are we measuring everything that matters?**")
+                        st.image(OCTOPUS_IMAGE_PATH, use_container_width=True)
+                        st.caption("*Octopus vulgaris*")
+                        if OCTOPUS_VIDEO_PATH.exists():
+                            st.caption("Optional supporting evidence: an octopus completing level 1 of the puzzle task.")
+                            st.video(OCTOPUS_VIDEO_PATH)
+
+                        st.markdown("### So what would we measure next?")
+                        st.write("**Brain mass gave us one clue.**")
+                        st.write("**If we really wanted to investigate animal intelligence, what other evidence would we want?**")
+                        evidence_options = [
+                            "Problem solving",
+                            "Learning",
+                            "Memory",
+                            "Communication",
+                            "Tool use",
+                            "Social behaviour",
+                            "Brain structure",
+                        ]
+                        evidence_selected = st.multiselect(
+                            "Choose one or more kinds of evidence",
+                            options=evidence_options,
+                            key="curious_step6_evidence_options",
+                        )
+                        if evidence_selected:
+                            st.info(
+                                "Different kinds of evidence test different parts of what we call intelligence. "
+                                "There may not be one single measurement that settles it."
+                            )
+                            st.markdown("# Is this story too simple?")
+                            st.write("At the start, we looked at a neat story about evolution and intelligence.")
+                            st.write("Our data helped us build a better story.")
+                            st.write("**But even that story has limits.**")
+                            key_idea(
+                                "Good science is not about finding the neatest story.",
+                                "It is about asking what the evidence supports, what it does not support, and what we would investigate next.",
+                            )
+
+                        with st.expander("Sources and media credits"):
+                            st.markdown(
+                                "Crow video: Taylor A, Medina F, Holzhaider J, Hearne L, Hunt G & Gray R, "
+                                "PLOS ONE (2010), DOI 10.1371/journal.pone.0009345.s001, CC BY 2.5.  \n"
+                                "Octopus video: Richter J, Hochner B & Kuba M, PLOS ONE (2016), "
+                                "DOI 10.1371/journal.pone.0152048.s004, CC BY 4.0.  \n"
+                                "The elephant, sperm whale, crow and octopus stills are CC0 Wikimedia Commons sources. "
+                                "See `assets/MEDIA_SOURCES.md` for complete local filenames, source pages, and retrieval details."
+                            )
+                        allow_next = bool(evidence_selected)
 
     step_buttons(
         STEP_LABELS,
