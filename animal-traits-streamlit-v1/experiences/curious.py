@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from decimal import Decimal
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -44,6 +45,8 @@ SEARCH_DISPLAY_COLUMNS = [
     "Body mass (kg)",
     "Brain size (kg)",
 ]
+
+WELCOME_ILLUSTRATION_PATH = Path(__file__).resolve().parents[1] / "assets" / "wide_colorful_cartoon_illustration_like_an_educati.png"
 
 
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
@@ -151,16 +154,19 @@ def render(data: pd.DataFrame) -> None:
     if part == 0:
         teacher_note(
             "Welcome",
-            "Create curiosity about what intelligence might mean in animals before introducing the investigation.",
-            "Invite several ideas without deciding which animal is most intelligent. Encourage students to think beyond human-style intelligence and to make an initial prediction.",
+            "Use the illustration as a quick provocation, not as a factual model of evolution. Ask what story it appears to tell and whether that story is too simple. The fork is about how tools are used, not whether technology itself is good or bad: tools do not replace curiosity, evidence or thinking. Then move quickly into the animal-intelligence investigation.",
             "8 min",
         )
         st.header("Welcome")
-        st.subheader("How could we figure out whether an animal is intelligent?")
-        st.write("What could we actually measure?")
+        st.subheader("Is this story too simple?")
+        st.image(WELCOME_ILLUSTRATION_PATH, use_container_width=True)
         st.caption(
-            "Discuss possible evidence such as behaviour, problem-solving, memory, communication or tool use."
+            "AI-generated illustration, specially designed for this CURIOUS workshop to explore how we use evidence, technology and curiosity."
         )
+        st.write("**What story is this picture telling?**")
+        st.write("**What feels funny — or maybe a bit too simple — about it?**")
+        st.write("**How could we actually figure out whether an animal is intelligent?**")
+        st.write("**What could we measure?**")
 
     elif part == 1:
         allow_next = False
