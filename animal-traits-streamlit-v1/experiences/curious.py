@@ -16,7 +16,6 @@ from charts import (
     histogram,
 )
 from data import search_student_animals, student_facing_data, with_common_class_names
-from models import fit_relationship
 from ui_helpers import (
     graph_guide,
     key_idea,
@@ -135,13 +134,6 @@ def _render_measurement_summary(matches: pd.DataFrame) -> None:
             f"None of the {total_count:,} matching records have both body mass and brain mass. "
             f"Body mass is available for {body_count:,}; brain mass is available for {brain_count:,}."
         )
-
-
-def _power_law_equation(fit) -> str:
-    """Return a student-facing power-law equation without computer e notation."""
-    coefficient = 10 ** fit.intercept
-    coefficient_text = _scientific_notation(coefficient)
-    return f"y ≈ {coefficient_text} × x^{fit.slope:.2f}"
 
 
 def render(data: pd.DataFrame) -> None:
@@ -480,162 +472,61 @@ def render(data: pd.DataFrame) -> None:
                     allow_next = True
 
     elif part == 5:
+        allow_next = False
         teacher_note(
             "Animal class",
-            "Let students test whether the same body-mass–brain-size relationship appears across different animal classes.",
-            "This is an investigation rather than a reveal. Students choose one or two animal classes themselves. Keep the full dataset faintly visible for context, but let the selected classes drive the comparison. Encourage students to look at the points and make a prediction before adding fitted lines. The fitted lines are evidence they can use to test their observation, not the answer they are meant to discover. If students need a starting suggestion, mammals and reptiles usually make a useful comparison, but do not present that pair as the required choice. Different fitted lines show different patterns in these data; they do not prove that animal class itself causes the difference.",
+            "Compare Mammals and Reptiles, then consider where Homo records sit within the same body-mass–brain-mass relationship.",
+            "Keep the comparison descriptive. Animal class can help us notice different regions of the graph; it does not prove anything about intelligence.",
             "10 min",
         )
-        st.header("5 · Does the relationship change by animal class?")
+        st.header("5 · Does the kind of animal matter too?")
         st.write(
-            "So far we have treated all animals as one group. But **animal class** groups animals broadly — "
-            "for example mammals, birds, reptiles and amphibians. Now you can investigate whether the "
-            "body-mass–brain-size relationship looks the same for different groups."
+            "Body mass explains part of the pattern, but animals with similar body masses do not always have the same brain mass. "
+            "Could the kind of animal matter too?"
         )
-
-        class_data = with_common_class_names(data).copy()
-        class_data["body mass (kg)"] = pd.to_numeric(
-            class_data["body mass (kg)"], errors="coerce"
-        )
-        class_data["brain size (kg)"] = pd.to_numeric(
-            class_data["brain size (kg)"], errors="coerce"
-        )
-        usable_class_data = class_data.dropna(
-            subset=["Animal class", "body mass (kg)", "brain size (kg)"]
-        )
-        usable_class_data = usable_class_data[
-            (usable_class_data["body mass (kg)"] > 0)
-            & (usable_class_data["brain size (kg)"] > 0)
-        ]
-
-        class_counts = usable_class_data.groupby("Animal class").size()
-        available_classes = sorted(
-            class_counts[class_counts >= 3].index.tolist()
-        )
-
-        selected_classes = st.multiselect(
-            "Choose one or two animal classes to investigate",
-            options=available_classes,
-            max_selections=2,
-            key="curious_selected_animal_classes",
-            placeholder="Choose an animal class…",
+        st.write("Animal class is a broad biological grouping. Mammals and reptiles are two examples.")
+        st.markdown("### Mammals vs Reptiles")
+        st.plotly_chart(
+            body_brain_class_fit_scatter(
+                data,
+                highlighted_classes=["Mammal", "Reptile"],
+                fits=None,
+                title="Mammals and reptiles",
+            ),
+            use_container_width=True,
         )
         st.caption(
-            "Choose the groups that interest you. If you are not sure where to start, try two familiar groups and compare them."
+            "Do mammals and reptiles occupy the same parts of the graph? For animals with similar body masses, do their brain masses look similar?"
         )
 
-        selection_signature = tuple(selected_classes)
-        if st.session_state.get("curious_class_fit_selection") != selection_signature:
-            st.session_state["curious_class_fit_selection"] = selection_signature
-            st.session_state["curious_class_fits_revealed"] = False
-
-        if not selected_classes:
-            allow_next = False
-            st.info(
-                "Choose at least one animal class to begin. The full dataset will remain faintly visible so you can compare your selected group with the overall pattern."
-            )
+        homo_revealed = bool(st.session_state.get("curious_step5_homo_revealed", False))
+        if not homo_revealed:
+            if st.button("Reveal Homo records", type="primary", key="curious_reveal_step5_homo"):
+                st.session_state["curious_step5_homo_revealed"] = True
+                st.rerun()
         else:
-            st.markdown("### Look at the data first")
-            st.write(
-                "The faint grey points show all animals for context. Your selected class"
-                + (" is" if len(selected_classes) == 1 else "es are")
-                + " highlighted."
-            )
+            homo_records = data[
+                data["species"].fillna("").astype(str).str.split().str[0].eq("Homo")
+            ]
+            st.markdown("### Where do Homo species sit?")
             st.plotly_chart(
                 body_brain_class_fit_scatter(
                     data,
-                    highlighted_classes=selected_classes,
+                    highlighted_classes=["Mammal", "Reptile"],
                     fits=None,
-                    title="Compare animal classes",
+                    highlighted_records=homo_records,
+                    highlighted_label="Homo records",
+                    title="Mammals, reptiles and Homo records",
                 ),
                 use_container_width=True,
             )
-            if len(selected_classes) == 1:
-                allow_next = False
-                graph_guide(
-                    "The axes still show body mass and brain size. The highlighted points belong to the class you chose.",
-                    "Does this class appear to follow the same general direction as the full dataset? Where does it sit compared with the faint background points?",
-                )
-                st.info(
-                    "Now choose a second animal class so you can compare two groups directly."
-                )
-            else:
-                first_class, second_class = selected_classes
-                graph_guide(
-                    "Both selected classes use the same log–log axes, so their positions can be compared directly.",
-                    f"Do {first_class.lower()} and {second_class.lower()} appear to follow the same pattern? Look at both the direction of the points and where each group sits.",
-                )
-                response_box(
-                    f"Before adding fitted lines, what similarities or differences do you notice between {first_class.lower()} and {second_class.lower()}?",
-                    "animal_q4_before_fit",
-                )
-
-                st.divider()
-                st.markdown("### Test your observation with fitted lines")
-                st.write(
-                    "You have made an observation from the points. A fitted line can now help you test whether the two groups follow similar or different overall relationships."
-                )
-
-                fits_revealed = bool(
-                    st.session_state.get("curious_class_fits_revealed", False)
-                )
-
-                if not fits_revealed:
-                    if st.button(
-                        "Add fitted lines",
-                        type="primary",
-                        key="curious_reveal_class_fits",
-                    ):
-                        st.session_state["curious_class_fits_revealed"] = True
-                        st.rerun()
-                else:
-                    class_fits = {}
-                    for class_name in selected_classes:
-                        subset = usable_class_data[
-                            usable_class_data["Animal class"] == class_name
-                        ]
-                        class_fits[class_name] = fit_relationship(
-                            subset,
-                            "body mass (kg)",
-                            "brain size (kg)",
-                            log_x=True,
-                            log_y=True,
-                        )
-
-                    st.plotly_chart(
-                        body_brain_class_fit_scatter(
-                            data,
-                            highlighted_classes=selected_classes,
-                            fits=class_fits,
-                            title="Compare fitted relationships",
-                        ),
-                        use_container_width=True,
-                    )
-                    graph_guide(
-                        "Each selected class keeps its own fitted line. The lines summarise the overall pattern within each group.",
-                        "Do the fitted lines support what you thought from the points alone? Compare their position and steepness rather than looking for one 'correct' answer.",
-                    )
-
-                    with st.expander("See the fitted equations"):
-                        for class_name in selected_classes:
-                            fit = class_fits.get(class_name)
-                            if fit is not None:
-                                st.markdown(
-                                    f"**{class_name}:** {_power_law_equation(fit)}"
-                                )
-                        st.caption(
-                            "For each equation, x is body mass (kg) and y is brain size (kg). "
-                            "The equations summarise trends in these data; they do not explain why the groups differ."
-                        )
-
-                    key_idea(
-                        "One overall model can hide differences between groups.",
-                        "Comparing groups helps us ask a deeper question: is the pattern we saw for all animals equally useful for every kind of animal?",
-                    )
-                    response_box(
-                        f"Did the fitted lines support your first impression of {first_class.lower()} and {second_class.lower()}? What would you investigate next?",
-                        "animal_q4_after_fit",
-                    )
+            st.write(
+                "The Homo records sit relatively high in brain mass for their body mass compared with many other records in this dataset."
+            )
+            st.caption(
+                "That’s interesting. But does that mean Homo are the most intelligent animals? Does having relatively high brain mass for body size prove greater intelligence?"
+            )
+            allow_next = True
 
     else:
         teacher_note(

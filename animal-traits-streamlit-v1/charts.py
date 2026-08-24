@@ -359,6 +359,8 @@ def body_brain_class_fit_scatter(
     *,
     highlighted_classes: list[str],
     fits: dict[str, FitResult] | None = None,
+    highlighted_records: pd.DataFrame | None = None,
+    highlighted_label: str = "Selected records",
     log_x: bool = True,
     log_y: bool = True,
     show_background: bool = True,
@@ -452,6 +454,40 @@ def body_brain_class_fit_scatter(
                     line=dict(color=colour, width=4),
                 )
             )
+
+    if highlighted_records is not None:
+        selected_data = highlighted_records.copy()
+        for column in [x_field, y_field]:
+            selected_data[column] = pd.to_numeric(selected_data[column], errors="coerce")
+        selected_data = selected_data.dropna(subset=[x_field, y_field])
+        if log_x:
+            selected_data = selected_data[selected_data[x_field] > 0]
+        if log_y:
+            selected_data = selected_data[selected_data[y_field] > 0]
+
+        def _selected_hover_column(candidates: list[str]) -> pd.Series:
+            for column in candidates:
+                if column in selected_data:
+                    return selected_data[column].fillna("").astype(str)
+            return pd.Series("", index=selected_data.index, dtype="string")
+
+        common_names = _selected_hover_column(["common name", "Common name"])
+        scientific_names = _selected_hover_column(["species", "Scientific name"])
+        fig.add_trace(
+            go.Scatter(
+                x=selected_data[x_field],
+                y=selected_data[y_field],
+                mode="markers",
+                name=highlighted_label,
+                marker=dict(size=12, color="#d95f02", line=dict(color="#7f2704", width=1.5)),
+                customdata=np.column_stack([common_names.to_numpy(), scientific_names.to_numpy()]),
+                hovertemplate=(
+                    "Common name: %{customdata[0]}<br>"
+                    "Scientific name: %{customdata[1]}<br>"
+                    "Body mass: %{x}<br>Brain mass: %{y}<extra></extra>"
+                ),
+            )
+        )
 
     if title is None:
         comparison_label = " + ".join(selected_classes) if selected_classes else "Selected classes"
