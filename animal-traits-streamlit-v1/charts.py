@@ -65,6 +65,13 @@ def _apply_scientific_log_axis(fig, axis: str, values: pd.Series, title: str) ->
         tickmode="array",
         tickvals=tick_values,
         ticktext=tick_text,
+        ticks="outside",
+        ticklen=6,
+        tickwidth=1,
+        tickcolor="rgba(55, 65, 81, 0.85)",
+        showgrid=True,
+        gridcolor="rgba(55, 65, 81, 0.28)",
+        gridwidth=1,
     )
     if axis == "x":
         fig.update_xaxes(**axis_settings)
@@ -200,6 +207,47 @@ def body_brain_scatter(
                 line=dict(color="#1f2937", width=3),
             )
         )
+    return fig
+
+
+def body_brain_representative_scatter(
+    representative_data: pd.DataFrame,
+    *,
+    title: str = "A few familiar animals",
+):
+    """Plot labelled representative body/brain points for orientation."""
+    x_field = "body mass (kg)"
+    y_field = "brain size (kg)"
+    plot_data = representative_data.copy()
+    plot_data[x_field] = pd.to_numeric(plot_data[x_field], errors="coerce")
+    plot_data[y_field] = pd.to_numeric(plot_data[y_field], errors="coerce")
+    plot_data = plot_data.dropna(subset=[x_field, y_field, "Animal"])
+    scientific_names = plot_data.get("Scientific name", pd.Series("", index=plot_data.index)).astype(str)
+    fig = go.Figure(
+        go.Scatter(
+            x=plot_data[x_field],
+            y=plot_data[y_field],
+            mode="markers+text",
+            text=plot_data["Animal"],
+            textposition="top center",
+            name="Selected familiar animals",
+            marker=dict(size=11, color="#2563eb", line=dict(color="#1e3a8a", width=1)),
+            customdata=np.column_stack([plot_data["Animal"].astype(str), scientific_names]),
+            hovertemplate=(
+                "Animal: %{customdata[0]}<br>"
+                "Scientific name: %{customdata[1]}<br>"
+                "Body mass: %{x}<br>Brain mass: %{y}<extra></extra>"
+            ),
+        )
+    )
+    fig.update_layout(
+        title=title,
+        xaxis_title="Body mass (kg)",
+        yaxis_title="Brain size (kg)",
+        showlegend=False,
+    )
+    fig.update_xaxes(type="linear")
+    fig.update_yaxes(type="linear")
     return fig
 
 

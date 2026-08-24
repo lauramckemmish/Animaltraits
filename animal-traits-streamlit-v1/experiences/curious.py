@@ -8,7 +8,13 @@ from decimal import Decimal
 import pandas as pd
 import streamlit as st
 
-from charts import body_brain_class_fit_scatter, body_brain_scatter, histogram
+from charts import (
+    body_brain_class_fit_scatter,
+    body_brain_highlight_scatter,
+    body_brain_representative_scatter,
+    body_brain_scatter,
+    histogram,
+)
 from data import search_student_animals, student_facing_data, with_common_class_names
 from models import fit_relationship
 from ui_helpers import (
@@ -44,6 +50,36 @@ SEARCH_DISPLAY_COLUMNS = [
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
     values = pd.to_numeric(data["body mass (kg)"], errors="coerce").dropna()
     return values[values > 0]
+
+
+def _curious_orientation_animals(data: pd.DataFrame) -> pd.DataFrame:
+    """Return verified median records for a few familiar orientation animals."""
+    candidates = [
+        ("Human", "Homo sapiens"),
+        ("Eastern Grey Kangaroo", "Macropus giganteus"),
+        ("American Crow", "Corvus brachyrhynchos"),
+        ("Domestic Dog", "Canis familiaris"),
+        ("Hazel Dormouse", "Muscardinus avellanarius"),
+    ]
+    usable = data.copy()
+    for column in ["body mass (kg)", "brain size (kg)"]:
+        usable[column] = pd.to_numeric(usable[column], errors="coerce")
+    usable = usable.dropna(subset=["species", "body mass (kg)", "brain size (kg)"])
+    usable = usable[(usable["body mass (kg)"] > 0) & (usable["brain size (kg)"] > 0)]
+    records = []
+    for label, species in candidates:
+        species_records = usable[usable["species"].eq(species)]
+        if species_records.empty:
+            continue
+        records.append(
+            {
+                "Animal": label,
+                "Scientific name": species,
+                "body mass (kg)": species_records["body mass (kg)"].median(),
+                "brain size (kg)": species_records["brain size (kg)"].median(),
+            }
+        )
+    return pd.DataFrame(records)
 
 
 def _plain_decimal(value: float) -> str:
@@ -206,6 +242,9 @@ def render(data: pd.DataFrame) -> None:
             attempts += 1
             st.session_state["curious_exploration_attempts"] = attempts
             st.session_state["curious_exploration_last_query"] = animal_query.strip()
+            history = list(st.session_state.get("curious_exploration_history", []))
+            history.append(animal_query.strip())
+            st.session_state["curious_exploration_history"] = history
         st.caption(f"Searches tried: {attempts} of 3")
 
         if animal_query.strip():
@@ -332,142 +371,129 @@ def render(data: pd.DataFrame) -> None:
                         allow_next = True
 
     elif part == 4:
-        # Design decision: we considered fitting both the linear–linear and log–log
-        # graphs and comparing the two models. That was deliberately rejected for
-        # CURIOUS because it adds a second modelling question while students are
-        # still learning the axis transformation. Fit only the log–log view.
         teacher_note(
             "Two variables",
-            "Move from a difficult linear–linear scatter plot to a readable log–log view, then use one fitted power-law line as a simple mathematical summary of the pattern.",
-            "Treat the axis change as the major conceptual transition. Students should first experience the crowding on ordinary linear axes, then use the one-way reveal to see the same data on log–log axes. Do not teach logarithm calculations. Give students time to describe the relationship before introducing the fitted line. The fit is only a summary of the overall trend: do not introduce regression calculations or R² here. Only fit the log–log view. Comparing a linear–linear fit with a log–log fit was deliberately considered and rejected because it adds too much modelling complexity while students are still learning the representation change.",
+            "Move from a few familiar records to the full two-variable dataset, then reactivate the log-scale idea from Step 3 to make the full pattern easier to see.",
+            "Keep the pace conversational. Ask students to interpret positions and notice the overall relationship; do not introduce a fitted model here.",
             "12 min",
         )
         st.header("4 · Two variables: body mass and brain size")
-        st.write(
-            "So far we have looked at body mass by itself. Now we can ask whether **body mass and brain size are related**."
-        )
-        st.write(
-            "A **scatter plot** shows two variables at once. Each point is an animal record with both measurements available."
-        )
-
-        st.subheader("First: ordinary linear axes")
-        graph_guide(
-            "The bottom axis shows body mass; the side axis shows brain size. Both are ordinary linear scales.",
-            "Farther right means greater body mass. Higher means greater brain size. Where are most of the animal records?",
-        )
-        st.plotly_chart(
-            body_brain_scatter(data, log_x=False, log_y=False),
+        st.write("A scatter plot lets us look at two variables together.")
+        orientation = _curious_orientation_animals(data)
+        st.markdown("### A few familiar animals")
+        st.caption("Which animal is heaviest? Which has the largest brain?")
+        st.dataframe(
+            orientation[["Animal", "body mass (kg)", "brain size (kg)" ]].rename(
+                columns={"body mass (kg)": "Body mass (kg)", "brain size (kg)": "Brain mass (kg)"}
+            ),
             use_container_width=True,
-        )
-        response_box(
-            "What is difficult to see on this graph? Are many animals crowded together in one part of the plot?",
-            "animal_q3_linear",
+            hide_index=True,
         )
 
-        st.divider()
-        st.markdown("### The largest animals set the scale")
-        st.write(
-            "A few very large animals stretch both axes, so many of the smaller animals are crowded together near the bottom-left corner."
-        )
-        st.write(
-            "**How could we spread those animals out without losing the largest animals?**"
-        )
-
-        log_revealed = bool(
-            st.session_state.get("curious_body_brain_log_revealed", False)
-        )
-
-        if not log_revealed:
+        orientation_revealed = bool(st.session_state.get("curious_step4_orientation_revealed", False))
+        if not orientation_revealed:
             allow_next = False
-            if st.button(
-                "Reveal the log–log view",
-                type="primary",
-                key="curious_reveal_body_brain_log",
-            ):
-                st.session_state["curious_body_brain_log_revealed"] = True
+            if st.button("Show the familiar-animal points", type="primary", key="curious_reveal_step4_orientation"):
+                st.session_state["curious_step4_orientation_revealed"] = True
                 st.rerun()
         else:
-            st.subheader("Now compare the log–log view")
-            st.write(
-                "The **animals and measurements have not changed**. We are showing the same body masses and brain sizes, but changing how both axes are spaced."
-            )
             st.plotly_chart(
-                body_brain_scatter(data, log_x=True, log_y=True),
+                body_brain_representative_scatter(orientation),
                 use_container_width=True,
             )
-            _log_axis_reading_example(scatter=True)
-            graph_guide(
-                "Both axes now use logarithmic spacing, which spreads out values across many powers of ten.",
-                "What became easier to see? As body mass increases, does brain size tend to increase, decrease or show no pattern?",
-            )
-            st.markdown(
-                "### Discuss\nWhat became easier to see on the log–log graph? What overall relationship can you now see between body mass and brain size?"
-            )
-            response_box(
-                "Describe the overall relationship between body mass and brain size before adding a mathematical model.",
-                "animal_q3_log",
-            )
-            key_idea(
-                "A log–log graph can make a relationship easier to see when both variables span a very large range.",
-                "The animals, measurements and units are unchanged — only the spacing of the axes is different.",
-            )
-
-            st.divider()
-            st.markdown("### Can we summarise that pattern with one line?")
             st.write(
-                "The points do not all sit in exactly the same place, but there is an overall trend. "
-                "A **line of best fit** is one mathematical way to summarise that trend."
+                "Farther right means greater body mass. Higher up means greater brain mass. "
+                "Each point combines two measurements. Can you find Human? Which animals are farther right? Which are higher?"
             )
 
-            fit_revealed = bool(
-                st.session_state.get("curious_body_brain_fit_revealed", False)
-            )
-
-            if not fit_revealed:
+            linear_revealed = bool(st.session_state.get("curious_step4_linear_revealed", False))
+            if not linear_revealed:
                 allow_next = False
-                if st.button(
-                    "Add a line of best fit",
-                    type="primary",
-                    key="curious_reveal_body_brain_fit",
-                ):
-                    st.session_state["curious_body_brain_fit_revealed"] = True
+                if st.button("Add all the records", type="primary", key="curious_reveal_step4_linear"):
+                    st.session_state["curious_step4_linear_revealed"] = True
                     st.rerun()
             else:
-                fit = fit_relationship(
-                    data,
-                    "body mass (kg)",
-                    "brain size (kg)",
-                    log_x=True,
-                    log_y=True,
-                )
+                st.markdown("### What happens when we add all the records with both measurements?")
                 st.plotly_chart(
-                    body_brain_scatter(
-                        data,
-                        log_x=True,
-                        log_y=True,
-                        fit=fit,
-                    ),
+                    body_brain_scatter(data, log_x=False, log_y=False),
                     use_container_width=True,
                 )
-                _log_axis_reading_example(scatter=True)
+                st.caption("Can you see the small animals clearly? Many are compressed near the bottom-left.")
+                st.write("We had this problem with body mass before. What could we change?")
 
-                if fit is not None:
-                    st.markdown("#### The fitted power-law model")
-                    st.markdown(f"**{_power_law_equation(fit)}**")
-                    st.caption(
-                        "Here **x is body mass (kg)** and **y is brain size (kg)**. "
-                        "The equation is a compact mathematical description of the overall pattern; "
-                        "individual animals do not have to sit exactly on the line."
+                log_revealed = bool(st.session_state.get("curious_step4_log_revealed", False))
+                if not log_revealed:
+                    allow_next = False
+                    if st.button("Try log scales on both axes", type="primary", key="curious_reveal_step4_log"):
+                        st.session_state["curious_step4_log_revealed"] = True
+                        st.rerun()
+                else:
+                    st.markdown("### Now look at the full dataset on log–log axes")
+                    st.plotly_chart(
+                        body_brain_scatter(data, log_x=True, log_y=True),
+                        use_container_width=True,
+                    )
+                    _log_axis_reading_example(scatter=True)
+                    st.write(
+                        "The animals and measurements have not changed — only the spacing of the axes has changed. "
+                        "This makes small and large animals easier to see together."
+                    )
+                    st.caption("As body mass increases, what seems to happen to brain mass?")
+                    st.write(
+                        "Larger animals generally tend to have larger brains, although the points do not all lie in the same place."
                     )
 
-                key_idea(
-                    "A fitted model summarises a trend; it is not a rule for every animal.",
-                    "The variation around the line is part of the biology and gives us something else to investigate.",
-                )
-                response_box(
-                    "What does the fitted line summarise well? What information about individual animals does it leave out?",
-                    "animal_q3_fit",
-                )
+                    st.markdown("### Find an animal on the graph")
+                    st.write("This connects the full graph back to the animals you explored earlier.")
+                    history = list(st.session_state.get("curious_exploration_history", []))
+                    history_options = [""] + list(dict.fromkeys(history))
+                    previous_search = st.selectbox(
+                        "Use an earlier search (optional)",
+                        options=history_options,
+                        key="curious_step4_previous_search",
+                    )
+                    new_search = st.text_input("Or search for an animal", key="curious_step4_animal_search")
+                    selected_query = new_search.strip() or previous_search.strip()
+                    if selected_query:
+                        selected_matches = search_student_animals(data, selected_query)
+                        if selected_matches.empty:
+                            st.warning(
+                                "No match found. AnimalTraits focuses on terrestrial animals — animals that live mainly on land, "
+                                "so many marine animals are outside its scope. The spelling, name or species coverage can also explain a no-match."
+                            )
+                        else:
+                            complete_matches = selected_matches.dropna(subset=["Body mass (kg)", "Brain size (kg)"])
+                            complete_matches = complete_matches[
+                                (complete_matches["Body mass (kg)"] > 0) & (complete_matches["Brain size (kg)"] > 0)
+                            ]
+                            if complete_matches.empty:
+                                st.info(
+                                    "We found this animal in the dataset, but it does not have both measurements needed to place it on this graph."
+                                )
+                            else:
+                                st.caption(f"Highlighting {len(complete_matches):,} usable record(s) for {selected_query}.")
+                            st.plotly_chart(
+                                body_brain_highlight_scatter(
+                                    data,
+                                    selected_matches,
+                                    log_x=True,
+                                    log_y=True,
+                                    selected_label=selected_query,
+                                    title=f"Body mass vs brain size · {selected_query}",
+                                ),
+                                use_container_width=True,
+                            )
+
+                    st.markdown("### What have we figured out so far?")
+                    st.markdown(
+                        "- A scatter plot lets us look at two variables together.\n"
+                        "- Each record on the full plot has both a body mass and a brain mass.\n"
+                        "- Linear axes hide much of this dataset because the values span such a huge range.\n"
+                        "- Log scales make small and large animals easier to see together.\n"
+                        "- Larger animals generally tend to have larger brains, but there is substantial variation.\n"
+                        "- We can locate particular animals within the overall pattern when the required measurements are available."
+                    )
+                    allow_next = True
 
     elif part == 5:
         teacher_note(
