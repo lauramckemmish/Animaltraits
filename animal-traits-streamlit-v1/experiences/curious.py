@@ -237,18 +237,70 @@ def render(data: pd.DataFrame) -> None:
     elif part == 3:
         teacher_note(
             "Two variables",
-            "Introduce a scatter plot as a way to look for a relationship between body mass and brain size.",
-            "At this point, describe the pattern before explaining it. Keep animal class for the next step.",
-            "8 min",
+            "Introduce a scatter plot, then create the need for log–log axes by first showing how poorly the full range is represented on ordinary linear axes.",
+            "Treat this as a major conceptual transition. Start with the linear–linear graph and ask what is hidden or crowded together before revealing the log–log view. Do not teach logarithm calculations. Students only need to understand that the animals, measurements and units stay the same; only the spacing of both axes changes. Keep animal class for a later step.",
+            "10 min",
         )
         st.header("3 · Two variables: body mass and brain size")
-        st.write("A **scatter plot** shows two variables at once. Each point is an animal record with both measurements available.")
-        st.plotly_chart(body_brain_scatter(data, log_x=True, log_y=True), use_container_width=True)
-        graph_guide(
-            "Both axes are logarithmic so very small and very large animals can appear on the same graph.",
-            "As body mass increases, does brain size tend to increase, decrease or show no pattern?",
+        st.write(
+            "So far we have looked at body mass by itself. Now we can ask whether **body mass and brain size are related**."
         )
-        response_box("Describe the overall relationship between body mass and brain size.", "animal_q3")
+        st.write(
+            "A **scatter plot** shows two variables at once. Each point is an animal record with both measurements available."
+        )
+
+        st.subheader("First: ordinary linear axes")
+        graph_guide(
+            "The bottom axis shows body mass; the side axis shows brain size. Both are ordinary linear scales.",
+            "Farther right means greater body mass. Higher means greater brain size. Where are most of the animal records?",
+        )
+        st.plotly_chart(
+            body_brain_scatter(data, log_x=False, log_y=False),
+            use_container_width=True,
+        )
+        response_box(
+            "What is difficult to see on this graph? Are many animals crowded together in one part of the plot?",
+            "animal_q3_linear",
+        )
+
+        st.divider()
+        st.markdown("### The largest animals set the scale")
+        st.write(
+            "A few very large animals stretch both axes, so many of the smaller animals are crowded together near the bottom-left corner."
+        )
+        st.write(
+            "**How could we spread those animals out without losing the largest animals?**"
+        )
+
+        show_log = st.toggle(
+            "Reveal the log–log version",
+            value=False,
+            key="curious_body_brain_log_reveal",
+        )
+        if show_log:
+            st.subheader("Now compare the log–log view")
+            st.write(
+                "The **animals and measurements have not changed**. We are showing the same body masses and brain sizes, but changing how both axes are spaced."
+            )
+            st.plotly_chart(
+                body_brain_scatter(data, log_x=True, log_y=True),
+                use_container_width=True,
+            )
+            graph_guide(
+                "Both axes now use logarithmic spacing, which spreads out values across many powers of ten.",
+                "What became easier to see? As body mass increases, does brain size tend to increase, decrease, or show no pattern?",
+            )
+            st.markdown(
+                "### Discuss\nWhat became easier to see on the log–log graph? Can you see the overall relationship between body mass and brain size more clearly?"
+            )
+            key_idea(
+                "A log–log graph can make relationships clearer when both variables span a very large range.",
+                "The data, measurements and units are unchanged — only the spacing of the axes is different.",
+            )
+            response_box(
+                "Describe the overall relationship between body mass and brain size. What became easier to see after changing the axes?",
+                "animal_q3",
+            )
 
     elif part == 4:
         teacher_note(
