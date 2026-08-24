@@ -72,7 +72,6 @@ def with_common_class_names(data: pd.DataFrame) -> pd.DataFrame:
     return prepared
 
 
-@st.cache_data
 def load_common_name_mapping(path: str | Path = COMMON_NAME_MAPPING_PATH) -> pd.DataFrame:
     """Load the checked-in taxonomy mapping; never query GBIF at app runtime."""
     mapping = pd.read_csv(path, keep_default_na=False)
