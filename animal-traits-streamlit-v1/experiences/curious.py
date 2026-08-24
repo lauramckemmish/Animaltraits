@@ -21,7 +21,7 @@ from data import search_student_animals, student_facing_data, with_common_class_
 from models import fit_relationship
 from ui_helpers import (
     graph_guide,
-    key_idea,
+    data_science_callout,
     page_header,
     response_box,
     scroll_to_top_if_requested,
@@ -176,6 +176,9 @@ def render(data: pd.DataFrame) -> None:
         st.write("**What feels funny — or maybe a bit too simple — about it?**")
         st.write("**How could we actually figure out whether an animal is intelligent?**")
         st.write("**What could we measure?**")
+        st.info(
+            "### 🔎 Data science starts with a question.\n\n**What evidence could help us investigate ours?**"
+        )
 
     elif part == 1:
         allow_next = False
@@ -209,6 +212,9 @@ def render(data: pd.DataFrame) -> None:
                     st.write(
                         "Was your estimate close? What measurements are available? Are all the Human records identical? "
                         "Why might scientists have more than one measurement for humans?"
+                    )
+                    data_science_callout(
+                        "You compared a prediction with real measurements — and found that real data vary."
                     )
         else:
             st.caption("Search for Human to reveal the evidence.")
@@ -263,6 +269,9 @@ def render(data: pd.DataFrame) -> None:
                 f"AnimalTraits focuses on terrestrial animals and does not contain every animal. "
                 f"It has {len(data):,} total records from {distinct_species:,} distinct species. "
                 f"Some species have multiple records, and {missing_measurements:,} records are missing a body-mass or brain-mass measurement."
+            )
+            data_science_callout(
+                "You explored a real scientific dataset and discovered its gaps and limits."
             )
             allow_next = True
 
@@ -352,14 +361,10 @@ def render(data: pd.DataFrame) -> None:
                             "The log scale is more useful here because these values span such a huge range."
                         )
                         st.caption("10⁻³ kg = 0.001 kg · 10⁰ kg = 1 kg · 10³ kg = 1,000 kg")
-                        st.markdown("### What have we figured out so far?")
-                        st.markdown(
-                            "- Animal body masses span a huge range.\n"
-                            "- Scientific notation makes very small and very large numbers easier to write.\n"
-                            "- A linear graph can squash most of the data together.\n"
-                            "- A logarithmic scale can make patterns across a huge range easier to see."
+                        data_science_callout(
+                            "You changed how the data were displayed so a huge range became easier to see.",
+                            "Same data. Better view.",
                         )
-                        st.caption("Did the log graph change the data, or just how we looked at it?")
                         allow_next = True
 
     elif part == 4:
@@ -475,14 +480,8 @@ def render(data: pd.DataFrame) -> None:
                                 use_container_width=True,
                             )
 
-                    st.markdown("### What have we figured out so far?")
-                    st.markdown(
-                        "- A scatter plot lets us look at two variables together.\n"
-                        "- Each record on the full plot has both a body mass and a brain mass.\n"
-                        "- Linear axes hide much of this dataset because the values span such a huge range.\n"
-                        "- Log scales make small and large animals easier to see together.\n"
-                        "- Larger animals generally tend to have larger brains, but there is substantial variation.\n"
-                        "- We can locate particular animals within the overall pattern when the required measurements are available."
+                    data_science_callout(
+                        "You put two measurements together to look for a relationship."
                     )
                     allow_next = True
 
@@ -507,10 +506,6 @@ def render(data: pd.DataFrame) -> None:
             use_container_width=True,
         )
         st.write("**Which classes have lots of data? Which have only a few records?**")
-        key_idea(
-            "Some classes have much more data than others.",
-            "Keep that in mind when you compare their patterns.",
-        )
         class_options = sorted(
             with_common_class_names(data)["Animal class"].dropna().unique().tolist()
         )
@@ -571,14 +566,8 @@ def render(data: pd.DataFrame) -> None:
             st.caption(
                 "That is interesting. But does having relatively high brain mass for body size prove that an animal is more intelligent?"
             )
-        st.markdown("### What have we figured out?")
-        st.markdown(
-            "- **Larger animals generally tend to have larger brains.**\n"
-            "- **Body size is not the whole story.**\n"
-            "- **Different animal groups can show different body–brain patterns.**\n"
-            "- **Some groups have much more data than others, so we should be careful about how strongly we compare them.**\n"
-            "- **The dots show individual records; the lines help us see the overall pattern.**\n"
-            "- **Homo records sit relatively high in brain mass for their body mass compared with many records in this dataset.**"
+        data_science_callout(
+            "You added another piece of information — animal group — to see whether the pattern changed."
         )
         st.markdown("### So… does that mean humans are the smartest animals?")
         if len(explored_groups) >= 2:
@@ -680,15 +669,24 @@ def render(data: pd.DataFrame) -> None:
                             "You might think about problem solving, learning, memory, communication, "
                             "tool use, social behaviour, or brain structure."
                         )
+                        data_science_callout(
+                            "You found a pattern — and then challenged your own explanation."
+                        )
+                        st.markdown("## 🔎 Look what you just did.")
+                        st.write(
+                            "**Question → real data → explore → visualise → compare → find patterns → challenge the story**"
+                        )
+                        st.write("**That’s data science.**")
                         st.markdown("# Is this story too simple?")
                         st.image(CONCLUSION_EVIDENCE_PATH, use_container_width=True)
                         st.caption("AI-generated illustration, specially designed for this CURIOUS workshop.")
                         st.write("At the start, we looked at a neat story about evolution and intelligence.")
                         st.write("Our data helped us build a better story.")
                         st.write("**But even that story has limits.**")
-                        key_idea(
-                            "Good science is not about finding the neatest story.",
-                            "It is about asking what the evidence supports, what it does not support, and what we would investigate next.",
+                        st.success(
+                            "**Good science is not about finding the neatest story.** "
+                            "It is about asking what the evidence supports, what it does not support, "
+                            "and what we would investigate next."
                         )
 
                         with st.expander("Sources and media credits"):

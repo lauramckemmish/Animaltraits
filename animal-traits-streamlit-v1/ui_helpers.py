@@ -102,6 +102,14 @@ def key_idea(text: str, prompt: str | None = None) -> None:
         st.caption(prompt)
 
 
+def data_science_callout(text: str, supporting_text: str | None = None) -> None:
+    """Show a compact, consistent signpost for the data-science move just made."""
+    message = f"### 🔎 You just did data science!\n\n**{text}**"
+    if supporting_text:
+        message += f"\n\n{supporting_text}"
+    st.info(message)
+
+
 def graph_guide(reading: str, looking_for: str) -> None:
     with st.container(border=True):
         st.markdown("**Reading the graph**")
