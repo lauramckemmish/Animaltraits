@@ -3,7 +3,8 @@
 from pathlib import Path
 
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
-SIDEBAR_INSTITUTIONAL_LOGO = ASSETS_DIR / "unsw-sydney-logo-portrait.png"
+# Landscape is the compact horizontal identity treatment for both identity rows.
+SIDEBAR_INSTITUTIONAL_LOGO = ASSETS_DIR / "unsw-sydney-logo-landscape.png"
 ABOUT_INSTITUTIONAL_LOGO = ASSETS_DIR / "unsw-sydney-logo-landscape.png"
 SIDEBAR_LANDSCAPE_LOGO = ASSETS_DIR / "unsw-sydney-logo-landscape.png"
 
@@ -47,8 +48,18 @@ DATASET_SOURCE_NOTE = (
 
 RESOURCE_ABOUT = {
     "title": DESCRIPTIVE_NAME,
+    "stewardship": (
+        "**Resource stewardship · Dr Laura McKemmish, UNSW Chemistry**  \n"
+        "*Computational astrochemist · 10+ years creating research-connected science experiences and data-rich investigations for school students*"
+    ),
     "description": "Animal Traits is a classroom-ready resource for learning with authentic animal-trait data.",
-    "why": "The resource uses a curated copy of the AnimalTraits database to support guided and open-ended investigations while keeping the limits of real scientific data visible.",
+    "why": "The resource uses a curated copy of the AnimalTraits database to support guided and open-ended investigations while keeping the limits of real scientific data visible. It exists to help learners ask questions, make graphs and reason from evidence rather than treat a dataset as a list of answers.",
     "development": DEVELOPMENT_NOTE,
-    "feedback": "Project-specific feedback and contributor details are retained for later review rather than inferred here.",
+    "feedback": "This resource is intended to improve through classroom use, testing and feedback. A project-specific feedback route will be added when one is established.",
+    "details_label": "Development, feedback and acknowledgements",
+    "contributors": {
+        "Lauren McKnight": "Pedagogical expertise",
+        "James Cleaver": "Data-science perspective",
+    },
+    "contributors_intro": "These credits recognise distinctive perspectives and intellectual contributions that materially shaped the resource.",
 }

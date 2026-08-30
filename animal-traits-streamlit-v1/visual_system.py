@@ -23,6 +23,9 @@ def apply_visual_system() -> None:
     [data-testid="stSidebar"] {{ border-right:1px solid rgba(255,220,0,.35); }}
     [data-testid="stSidebar"] .st-key-sidebar_brand {{ background:var(--unsw-brand); color:#000; padding:.65rem .7rem .6rem; margin:-.15rem -.35rem .6rem; border-radius:0 0 .3rem .3rem; }}
     [data-testid="stSidebar"] .st-key-sidebar_brand h3 {{ color:#000 !important; }}
+    /* The sidebar identity plate is intentionally compact; config supplies the landscape mark. */
+    [data-testid="stSidebar"] .st-key-sidebar_brand .unsw-logo-plate {{ background:transparent !important; padding:0 !important; max-width:125px; }}
+    [data-testid="stSidebar"] .st-key-sidebar_brand .unsw-logo-plate img {{ display:block; width:125px; max-width:100%; height:auto; }}
     [data-testid="stSidebar"] .st-key-sidebar_data_source {{ background:#111827; color:#fff; border:1px solid rgba(255,255,255,.18); border-radius:.3rem; padding:.55rem .65rem .5rem; margin:0 0 .55rem; }}
     [data-testid="stSidebar"] .st-key-sidebar_data_source [data-testid="stVerticalBlock"] {{ gap:.12rem; }}
     [data-testid="stSidebar"] .st-key-sidebar_data_source p, [data-testid="stSidebar"] .st-key-sidebar_data_source [data-testid="stCaptionContainer"] {{ color:#fff !important; }}
@@ -33,14 +36,7 @@ def apply_visual_system() -> None:
     [data-testid="stExpander"] {{ border-left:3px solid var(--unsw-exploration); }}
     .type-major-section {{ font-size:clamp(1.35rem, 2.2vw, 1.65rem); line-height:1.2; }}
     .type-subsection {{ font-size:1.25rem; line-height:1.25; }}
-    .type-resource-identity {{ font-size:clamp(1rem, 1.5vw, 1.2rem); line-height:1.25; }}
-    .st-key-unsw_identity_row [data-testid="stHorizontalBlock"] {{ align-items:center; }}
-    .st-key-unsw_identity_row .unsw-logo-plate {{ box-sizing:border-box; width:min(125px,100%); max-width:125px; }}
-    .st-key-unsw_identity_row .unsw-logo-plate img {{ display:block; max-width:100%; height:auto; }}
-    .st-key-unsw_identity_row [data-testid="column"]:has(.unsw-logo-plate) {{ flex:0 1 137px; min-width:0; }}
-    .st-key-unsw_identity_row [data-testid="column"]:not(:has(.unsw-logo-plate)) {{ flex:1 1 auto; min-width:0; overflow-wrap:anywhere; }}
-    .st-key-unsw_identity_row .type-resource-identity {{ overflow-wrap:anywhere; }}
-    @media (max-width:700px) {{ .st-key-unsw_identity_row [data-testid="stHorizontalBlock"] {{ flex-direction:column; gap:.65rem; }} .st-key-unsw_identity_row [data-testid="column"] {{ width:100% !important; flex:1 1 100% !important; }} }}
+    .type-resource-identity {{ font-size:clamp(1.25rem, 2.1vw, 1.55rem); line-height:1.2; }}
     .st-key-landing_about_label {{ display:flex; align-items:center; min-height:2.1rem; background:#111827; color:#fff; padding:.35rem .65rem; margin:.15rem 0 .7rem; border-radius:.25rem; }}
     .st-key-landing_about_label p {{ color:#fff !important; font-weight:650; margin:0; }}
     .st-key-unsw_identity_stewardship, .st-key-resource_stewardship {{ border-left:3px solid var(--unsw-active-emphasis); background:rgba(63,97,196,.06); padding:.55rem .65rem .75rem; }}
@@ -54,6 +50,62 @@ def validate_shared_assets(*paths: Path) -> None:
 def logo_plate(image_path: Path, *, width: int = 125, alt: str = "UNSW Sydney", plate_background: str = "#FFFFFF") -> None:
     encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
     st.markdown(f"<div class='unsw-logo-plate' style='display:inline-block;background:{plate_background};padding:6px;border-radius:2px;line-height:0'><img src='data:image/png;base64,{encoded}' alt='{alt}' style='display:block;width:{width}px;height:auto'></div>", unsafe_allow_html=True)
+
+def resource_identity(title: str, logo_path: Path | None = None, *, logo_width: int = 125) -> None:
+    """Render the About identity as one self-contained, responsive HTML component."""
+    title_html = escape(title)
+    logo_html = ""
+    if logo_path:
+        encoded = base64.b64encode(logo_path.read_bytes()).decode("ascii")
+        logo_html = (
+            "<div class='resource-identity__logo'>"
+            f"<img src='data:image/png;base64,{encoded}' alt='UNSW Sydney' "
+            f"style='width:{logo_width}px;max-width:100%;height:auto;display:block'>"
+            "</div>"
+        )
+
+    st.html(
+        f"""
+        <style>
+        .resource-identity-container {{
+            container-type: inline-size;
+            width: 100%;
+        }}
+        .resource-identity {{
+            display: grid;
+            grid-template-columns: max-content minmax(0, 1fr);
+            align-items: center;
+            gap: 1rem;
+        }}
+        .resource-identity__logo {{
+            box-sizing: content-box;
+            width: {logo_width}px;
+            max-width: 100%;
+            padding: 6px;
+            background: #fff;
+            border-radius: 2px;
+            line-height: 0;
+        }}
+        .resource-identity__title {{
+            min-width: 0;
+            margin: 0;
+            overflow-wrap: anywhere;
+        }}
+        @container (max-width: 560px) {{
+            .resource-identity {{
+                grid-template-columns: minmax(0, 1fr);
+            }}
+        }}
+        </style>
+        <div class='resource-identity-container'>
+            <div class='resource-identity' role='group' aria-label='Resource identity'>
+                {logo_html}
+                <h3 class='resource-identity__title type-resource-identity'>{title_html}</h3>
+            </div>
+        </div>
+        """
+    )
+
 
 def sidebar_identity(title: str, logo_path: Path | None = None) -> None:
     with st.container(key="sidebar_brand"):
@@ -78,14 +130,8 @@ def render_resource_context(content: Mapping[str, Any], *, logo_path: Path | Non
     with st.container(width=1080):
         with st.container(key="landing_about_label"):
             st.markdown("About this resource")
-        with st.container(key="unsw_identity_row"):
-            logo_column, title_column = st.columns([0.5, 4.5], gap="small")
-            if logo_path:
-                with logo_column:
-                    logo_plate(logo_path, width=logo_width)
-            with title_column:
-                if content.get("title"):
-                    semantic_heading(content["title"], "resource-identity")
+        if content.get("title"):
+            resource_identity(content["title"], logo_path, logo_width=logo_width)
         if content.get("unsw_stewardship"):
             with st.container(key="unsw_identity_stewardship", border=True):
                 st.markdown(content["unsw_stewardship"])
