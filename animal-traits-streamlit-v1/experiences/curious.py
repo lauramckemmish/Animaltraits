@@ -20,7 +20,6 @@ from charts import (
 from data import search_student_animals, student_facing_data, with_common_class_names
 from models import fit_relationship
 from ui_helpers import (
-    graph_guide,
     data_science_callout,
     page_header,
     response_box,
