@@ -24,7 +24,7 @@ from data import (
     filter_animal_classes,
 )
 from models import fit_relationship
-from ui_helpers import page_header
+from ui_helpers import graph_support, page_header, sample_note, variable_card
 
 TAB_LABELS = ["Start here", "Variables", "One variable", "Two variables", "Three variables"]
 
@@ -99,6 +99,7 @@ def _render_one_variable(data: pd.DataFrame) -> None:
     )
     bins = right.slider("Histogram ranges", min_value=5, max_value=60, value=25, key="playground_one_bins")
     field = TRAIT_OPTIONS[trait_label]
+    variable_card(trait_label, TRAIT_DESCRIPTIONS[field], unit=field.split("(")[-1].rstrip(")"))
     log_x = st.checkbox(
         "Use a logarithmic horizontal axis",
         value=False,
@@ -108,7 +109,7 @@ def _render_one_variable(data: pd.DataFrame) -> None:
 
     fig, count = playground_histogram(data, field, trait_label, bins=bins, log_x=log_x)
     st.plotly_chart(fig, use_container_width=True)
-    st.caption(f"Showing {count:,} records with a recorded value for {trait_label.lower()}.")
+    sample_note(count, len(data))
 
 
 def _render_two_variables(data: pd.DataFrame) -> None:
@@ -131,6 +132,7 @@ def _render_two_variables(data: pd.DataFrame) -> None:
         key="playground_two_y",
     )
     x_field, y_field = TRAIT_OPTIONS[x_label], TRAIT_OPTIONS[y_label]
+    graph_support("Each point represents a record with both selected measurements.", "Look for direction, spread and unusual points.")
 
     scale_left, scale_right = st.columns(2)
     log_x = scale_left.checkbox("Use a logarithmic horizontal axis", value=True, key="playground_two_log_x")
@@ -155,7 +157,7 @@ def _render_two_variables(data: pd.DataFrame) -> None:
         fit=fit,
     )
     st.plotly_chart(fig, use_container_width=True)
-    st.caption(f"Showing {count:,} records with values available for both selected traits.")
+    sample_note(count, len(data))
 
     if show_fit:
         if fit is None:

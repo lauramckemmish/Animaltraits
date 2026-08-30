@@ -7,7 +7,7 @@ import streamlit as st
 from config import EXPERIENCE_CURIOUS
 from experiences.catalog import enabled_experience_names, experience_display_label
 
-LANDING = "Introduction"
+LANDING = "Home"
 
 
 def _enabled_experiences() -> list[str]:
@@ -54,11 +54,9 @@ def render_sidebar_navigation() -> None:
     """Render the persistent student-facing button navigator."""
     enabled = _enabled_experiences()
     current = current_experience()
-    destinations = [(LANDING, "Introduction")]
-    destinations.extend(
-        (name, experience_display_label(name))
-        for name in enabled
-    )
+    st.button("🏠 Start here", type="primary" if current == LANDING else "secondary", disabled=current == LANDING, on_click=go_home, width="stretch")
+    st.markdown("#### Experiences")
+    destinations = [(name, experience_display_label(name)) for name in enabled if name != "Data Exploration Playground"]
     for destination, label in destinations:
         st.button(
             label,
@@ -66,5 +64,8 @@ def render_sidebar_navigation() -> None:
             on_click=open_experience,
             args=(destination,),
             type="primary" if current == destination else "secondary",
-            use_container_width=True,
+            width="stretch",
         )
+    st.markdown("#### Explore")
+    if "Data Exploration Playground" in enabled:
+        st.button("Data Exploration Playground", type="primary" if current == "Data Exploration Playground" else "secondary", disabled=current == "Data Exploration Playground", on_click=open_experience, args=("Data Exploration Playground",), width="stretch")

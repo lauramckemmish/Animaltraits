@@ -1,8 +1,22 @@
 """Project configuration for the Animal Traits data experiences."""
 
-APP_TITLE = "Animal Traits"
+from pathlib import Path
+
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+SIDEBAR_INSTITUTIONAL_LOGO = ASSETS_DIR / "unsw-sydney-logo-portrait.png"
+ABOUT_INSTITUTIONAL_LOGO = ASSETS_DIR / "unsw-sydney-logo-landscape.png"
+SIDEBAR_LANDSCAPE_LOGO = ASSETS_DIR / "unsw-sydney-logo-landscape.png"
+
+SHORT_NAME = "Animal Traits"
+DESCRIPTIVE_NAME = "Animal Traits teaching dataset and data experiences"
+HERO_HOOK = "What can animal traits tell us about intelligence?"
+APP_TITLE = SHORT_NAME
 APP_ICON = "🐘"
 APP_SUBTITLE = "Explore how animal traits vary, compare and scale across species"
+LANDING_ORIENTATION = (
+    "Use real measurements of terrestrial animals to explore how body size, brain size and "
+    "other traits vary across species—and to investigate what the data can and cannot tell us."
+)
 PROJECT_LABEL = "Animal Traits data-learning experiences"
 DEVELOPMENT_NOTE = (
     "Version 1 is being developed one experience at a time. CURIOUS is the current "
@@ -30,3 +44,11 @@ DATASET_SOURCE_NOTE = (
     "automated matching and may contain errors. Citation: Herberstein et al. (2022), "
     "Scientific Data 9, 265. DOI: 10.1038/s41597-022-01364-9."
 )
+
+RESOURCE_ABOUT = {
+    "title": DESCRIPTIVE_NAME,
+    "description": "Animal Traits is a classroom-ready resource for learning with authentic animal-trait data.",
+    "why": "The resource uses a curated copy of the AnimalTraits database to support guided and open-ended investigations while keeping the limits of real scientific data visible.",
+    "development": DEVELOPMENT_NOTE,
+    "feedback": "Project-specific feedback and contributor details are retained for later review rather than inferred here.",
+}
