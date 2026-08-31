@@ -16,6 +16,8 @@ class StreamlitStub:
         self.session_state = {}
         self.buttons = []
         self.expanders = []
+        self.markdowns = []
+        self.captions = []
     def columns(self, *_args, **_kwargs): return [Context(), Context(), Context()]
     def container(self, **_kwargs): return Context()
     def expander(self, label, **_kwargs): self.expanders.append(label); return Context()
@@ -23,8 +25,8 @@ class StreamlitStub:
     def info(self, *_args, **_kwargs): pass
     def success(self, *_args, **_kwargs): pass
     def write(self, *_args, **_kwargs): pass
-    def markdown(self, *_args, **_kwargs): pass
-    def caption(self, *_args, **_kwargs): pass
+    def markdown(self, body, **_kwargs): self.markdowns.append(body)
+    def caption(self, body, **_kwargs): self.captions.append(body)
     def text_area(self, _label, *, key, **_kwargs): return self.session_state.setdefault(key, "")
 
 
@@ -33,15 +35,38 @@ class SharedContractTests(unittest.TestCase):
         ui_helpers.step_buttons(["One", "Two"], "tab", "step", "scroll", step, "test")
         return stub.buttons
 
-    def test_hard_reveal_persists_and_caller_can_withhold_content(self):
+    def test_hard_reveal_persists_and_blocks_continue_until_revealed(self):
         stub = StreamlitStub()
         with patch.object(ui_helpers, "st", stub):
-            revealed = ui_helpers.hard_reveal("Predict", "evidence", reveal_label="Reveal")
-            self.assertFalse(revealed)
-            self.assertNotIn("downstream", "downstream" if revealed else "")
+            self.assertFalse(ui_helpers.hard_reveal("Predict", "evidence", reveal_label="Reveal"))
+            self.assertNotIn("Continue →", self.nav(stub))
             stub.session_state["evidence"] = True
             self.assertTrue(ui_helpers.hard_reveal("Predict", "evidence", reveal_label="Reveal"))
             self.assertTrue(ui_helpers.hard_reveal("Predict", "evidence", reveal_label="Reveal"))
+
+    def test_hard_reveal_leaves_cognitive_choreography_to_the_experience(self):
+        stub = StreamlitStub()
+        with patch.object(ui_helpers, "st", stub):
+            ui_helpers.hard_reveal("Compare the two groups.", "evidence", reveal_label="Reveal")
+            self.assertEqual(stub.markdowns, [])
+            self.assertEqual(stub.captions, [])
+
+            ui_helpers.hard_reveal(
+                "Compare the two groups.",
+                "labelled_evidence",
+                reveal_label="Reveal",
+                pre_reveal_label="Compare first",
+                pre_reveal_guidance="Agree on a comparison before revealing the evidence.",
+            )
+            self.assertIn("Compare first", stub.markdowns[0])
+            self.assertEqual(stub.captions, ["Agree on a comparison before revealing the evidence."])
+
+    def test_think_is_a_non_blocking_labeled_cue(self):
+        stub = StreamlitStub()
+        with patch.object(ui_helpers, "st", stub):
+            ui_helpers.think_prompt("What do you notice?")
+            self.assertIn("Think", stub.markdowns[0])
+            self.assertIn("Continue →", self.nav(stub))
 
     def test_completion_gate_blocks_continue_but_keeps_back(self):
         stub = StreamlitStub()
@@ -54,6 +79,21 @@ class SharedContractTests(unittest.TestCase):
     def test_completing_gate_enables_continue(self):
         stub = StreamlitStub()
         with patch.object(ui_helpers, "st", stub):
+            ui_helpers.completion_gate(True)
+            self.assertIn("Continue →", self.nav(stub))
+
+    def test_multiple_gates_require_all_requirements(self):
+        stub = StreamlitStub()
+        with patch.object(ui_helpers, "st", stub):
+            ui_helpers.completion_gate(False)
+            ui_helpers.completion_gate(False)
+            self.assertNotIn("Continue →", self.nav(stub))
+            stub.buttons.clear()
+            ui_helpers.completion_gate(True)
+            ui_helpers.completion_gate(False)
+            self.assertNotIn("Continue →", self.nav(stub))
+            stub.buttons.clear()
+            ui_helpers.completion_gate(True)
             ui_helpers.completion_gate(True)
             self.assertIn("Continue →", self.nav(stub))
 
