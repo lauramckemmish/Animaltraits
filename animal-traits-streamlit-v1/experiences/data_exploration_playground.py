@@ -109,7 +109,7 @@ def _render_one_variable(data: pd.DataFrame) -> None:
 
     fig, count = playground_histogram(data, field, trait_label, bins=bins, log_x=log_x)
     st.plotly_chart(fig, use_container_width=True)
-    sample_note(count, len(data))
+    sample_note(count, len(data), key="playground_one_sample_note")
 
 
 def _render_two_variables(data: pd.DataFrame) -> None:
@@ -157,7 +157,7 @@ def _render_two_variables(data: pd.DataFrame) -> None:
         fit=fit,
     )
     st.plotly_chart(fig, use_container_width=True)
-    sample_note(count, len(data))
+    sample_note(count, len(data), key="playground_two_sample_note")
 
     if show_fit:
         if fit is None:

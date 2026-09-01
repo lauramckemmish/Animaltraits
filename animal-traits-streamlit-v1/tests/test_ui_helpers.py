@@ -15,11 +15,12 @@ class StreamlitStub:
     def __init__(self):
         self.session_state = {}
         self.buttons = []
+        self.containers = []
         self.expanders = []
         self.markdowns = []
         self.captions = []
     def columns(self, *_args, **_kwargs): return [Context(), Context(), Context()]
-    def container(self, **_kwargs): return Context()
+    def container(self, **kwargs): self.containers.append(kwargs); return Context()
     def expander(self, label, **_kwargs): self.expanders.append(label); return Context()
     def button(self, label, **_kwargs): self.buttons.append(label); return False
     def info(self, *_args, **_kwargs): pass
@@ -116,6 +117,13 @@ class SharedContractTests(unittest.TestCase):
             self.assertNotIn("Continue →", self.nav(stub))
             stub.buttons.clear()
             self.assertIn("Continue →", self.nav(stub))
+
+    def test_sample_note_uses_the_callers_stable_instance_key(self):
+        stub = StreamlitStub()
+        with patch.object(ui_helpers, "st", stub):
+            ui_helpers.sample_note(8, 10, key="playground_two_sample_note")
+
+        self.assertIn({"key": "playground_two_sample_note"}, stub.containers)
 
 
 if __name__ == "__main__":

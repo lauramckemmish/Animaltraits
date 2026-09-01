@@ -124,10 +124,10 @@ def variable_card(field: str, meaning: str, *, unit: str | None = None, scale_no
             st.caption(scale_note)
 
 
-def sample_note(complete: int, total: int, *, label: str = "records") -> None:
+def sample_note(complete: int, total: int, *, label: str = "records", key: str) -> None:
     """Explain how many rows are usable for a displayed analysis."""
     excluded = total - complete
-    with st.container(key="sample_note"):
+    with st.container(key=key):
         st.caption(
             f"**Data used:** {complete:,} of {total:,} {label}. "
             f"{excluded:,} omitted because a required value is missing."
