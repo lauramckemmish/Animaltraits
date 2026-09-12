@@ -876,13 +876,19 @@ def render(data: pd.DataFrame) -> None:
                     "colour": "#2563eb",
                     "symbol": "diamond",
                 }
-                elephant_value_revealed = hard_reveal(
-                    "Compare this out-of-range prediction with separate evidence about an African savanna elephant.",
-                    "curious_elephant_external_value_revealed",
-                    reveal_label="Reveal the external elephant value",
-                    pre_reveal_label="Test the extrapolation",
-                    pre_reveal_guidance="The external comparison value stays hidden until you choose to reveal it.",
-                )
+                trust_committed = trust_judgement != "Choose an answer"
+                reveal_key = "curious_elephant_external_value_revealed"
+                if trust_committed or st.session_state.get(reveal_key, False):
+                    elephant_value_revealed = hard_reveal(
+                        "Compare this out-of-range prediction with separate evidence about an African savanna elephant.",
+                        reveal_key,
+                        reveal_label="Reveal the external elephant value",
+                        pre_reveal_label="Test the extrapolation",
+                        pre_reveal_guidance="The external comparison value stays hidden until you choose to reveal it.",
+                    )
+                else:
+                    elephant_value_revealed = False
+                    st.caption("Make your trust judgement before seeing the comparison evidence.")
                 comparison_points = [prediction_point]
                 if elephant_value_revealed:
                     comparison_points.append(
