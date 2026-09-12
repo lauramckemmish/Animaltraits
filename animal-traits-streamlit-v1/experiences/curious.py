@@ -276,7 +276,7 @@ def render(data: pd.DataFrame) -> None:
     part = max(0, min(part, len(STEP_LABELS) - 1))
     allow_next = True
     page_header(
-        "Animal traits: bodies and brains",
+        "From Mouse to Elephant: Can We Predict Brain Size?",
         subtitle="A CURIOUS data investigation",
         compact=True,
     )

@@ -17,8 +17,8 @@ from config import (
 EXPERIENCES = [
     {
         "name": EXPERIENCE_CURIOUS,
-        "label": "🧠 Brains, bodies and models",
-        "summary": "Use real animal data to explore body size, brain mass and the strengths and limits of models.",
+        "label": "Mouse to Elephant",
+        "summary": "Use real animal data to build a model and test how far you can trust it.",
         "enabled": True,
     },
     {
