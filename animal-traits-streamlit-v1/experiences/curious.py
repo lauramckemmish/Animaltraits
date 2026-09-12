@@ -297,20 +297,9 @@ def render(data: pd.DataFrame) -> None:
         )
         st.header("If you made a mouse the size of an elephant, how big would you expect its brain to be?")
         st.image(MOUSE_TO_ELEPHANT_HERO_PATH, width="stretch")
-        st.write("Before we investigate that question, let’s get a feel for the difference in their sizes.")
-        st.text_area(
-            "Estimate the body mass of a mouse in kilograms.",
-            key="curious_mouse_body_mass_estimate",
-            height=100,
-        )
-        st.text_area(
-            "Estimate the body mass of an elephant in kilograms.",
-            key="curious_elephant_body_mass_estimate",
-            height=100,
-        )
-        st.info(
-            "### 🔎 Start with an estimate.\n\n**Next, explore AnimalTraits to find evidence about animal bodies and brains.**"
-        )
+        st.markdown("### Estimate")
+        st.write("**How heavy do you think a mouse is? How heavy do you think an elephant is?**")
+        st.write("Make rough estimates with your group. Don’t look them up.")
 
     elif part == 1:
         allow_next = False
@@ -610,10 +599,10 @@ def render(data: pd.DataFrame) -> None:
 
         if comparison_ready:
             conclusion_revealed = hard_reveal(
-                "**Talk with your group:** What does the graph show about mammals and reptiles? Which relationship should we use later for a cat or elephant, and why?",
+                "**What does the graph show about mammals and reptiles? Which relationship should we use later for a cat or elephant, and why?**",
                 "curious_mammal_reptile_conclusion_revealed",
                 reveal_label="Reveal the scientific conclusion",
-                pre_reveal_label="Discuss first",
+                pre_reveal_label="Discuss",
                 pre_reveal_guidance="Discuss the graph before revealing the scientific conclusion.",
             )
             if conclusion_revealed:
