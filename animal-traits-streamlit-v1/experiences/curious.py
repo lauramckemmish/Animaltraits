@@ -44,8 +44,8 @@ STEP_LABELS = [
     "Mammal model",
     "Domestic cat",
     "African elephant",
-    "Humans in context",
-    "Cognition close",
+    "Brain size & intelligence",
+    "Data Science",
 ]
 
 SEARCH_DISPLAY_COLUMNS = [
@@ -149,6 +149,121 @@ def _render_measurement_summary(matches: pd.DataFrame) -> None:
             f"None of the {total_count:,} matching records have both body mass and brain mass. "
             f"Body mass is available for {body_count:,}; brain mass is available for {brain_count:,}."
         )
+
+
+def _render_data_science_transfer_prototype() -> None:
+    """Render a low-fidelity visual prototype of a repeated model-thinking process."""
+    st.html(
+        """
+        <style>
+        .transfer-prototype { container-type: inline-size; width: 100%; color: #172033; }
+        .transfer-prototype * { box-sizing: border-box; }
+        .transfer-headings, .transfer-row {
+            display: grid;
+            grid-template-columns: 18fr 20fr 20fr 22fr 20fr;
+            gap: 18px;
+        }
+        .transfer-headings { margin: 0 0 8px; padding: 0 6px; }
+        .transfer-headings div { color: #0f7181; font-size: .68rem; font-weight: 800; letter-spacing: .055em; }
+        .transfer-headings span { display: block; color: #536174; font-size: .68rem; font-weight: 500; letter-spacing: 0; line-height: 1.2; margin-top: 3px; }
+        .transfer-row { position: relative; align-items: stretch; margin: 0; padding: 9px 6px; }
+        .transfer-row--anchor { padding-top: 12px; padding-bottom: 16px; }
+        .transfer-row + .transfer-row { margin-top: 3px; }
+        .transfer-row--anchor + .transfer-row { border-top: 1px solid #b8dbe0; margin-top: 10px; padding-top: 16px; }
+        .transfer-cell { min-width: 0; min-height: 92px; position: relative; padding: 9px 10px; border: 1px solid #d5e1e5; border-radius: 8px; background: #fbfdfe; }
+        .transfer-row--anchor .transfer-cell { min-height: 118px; background: #f8fbfc; }
+        .transfer-cell:not(.transfer-question)::before { content: "→"; color: #1492a3; font-weight: 800; left: -15px; position: absolute; top: calc(50% - .75rem); }
+        .transfer-context { color: #0f7181; font-size: .64rem; font-weight: 800; letter-spacing: .06em; margin-bottom: 4px; }
+        .transfer-cell h4 { font-size: .79rem; line-height: 1.15; margin: 0 0 7px; }
+        .transfer-cell p { color: #405066; font-size: .7rem; line-height: 1.26; margin: 0; }
+        .transfer-question p { color: #172033; font-weight: 650; }
+        .transfer-cue { color: #6d7c8d; font-size: .66rem; letter-spacing: .02em; margin-top: 10px; }
+        .many, .new-case, .comparison, .model-frame { margin-top: 10px; }
+        .many { align-content: center; display: grid; gap: 4px; grid-template-columns: repeat(7, 1fr); height: 30px; max-width: 122px; }
+        .many i { aspect-ratio: 1; background: #63aeba; border-radius: 50%; display: block; opacity: .8; }
+        .many i:nth-child(3n) { background: #d97706; }
+        .many--scatter { background: linear-gradient(to top right, transparent 49%, rgba(217,119,6,.28) 50%, transparent 51%); height: 42px; padding: 2px; }
+        .many--weather i:nth-child(2n) { border-radius: 2px; background: #5691c7; }
+        .many--media i:nth-child(3n) { border-radius: 2px; background: #8a68c8; }
+        .many--text { grid-template-columns: repeat(4, 1fr); height: 38px; max-width: 140px; }
+        .many--text i { aspect-ratio: auto; border-radius: 2px; height: 5px; }
+        .model-frame { align-items: center; background: #f2f8fa; border: 2px solid #167e91; border-radius: 8px; display: flex; height: 51px; justify-content: center; overflow: hidden; padding: 6px; }
+        .transfer-row--anchor .model-frame { height: 65px; }
+        .model-frame::after { color: #167e91; content: "model"; font-size: .6rem; font-weight: 750; letter-spacing: .05em; position: absolute; transform: translateY(25px); }
+        .transfer-row--anchor .model-frame::after { transform: translateY(32px); }
+        .model-brain { background: linear-gradient(to top right, transparent 47%, #1f2937 48%, #1f2937 51%, transparent 52%); height: 42px; position: relative; width: 100%; }
+        .model-brain i { background: #d97706; border-radius: 50%; height: 5px; position: absolute; width: 5px; }
+        .model-brain i:nth-child(1) { left: 8%; top: 76%; } .model-brain i:nth-child(2) { left: 22%; top: 64%; } .model-brain i:nth-child(3) { left: 38%; top: 53%; } .model-brain i:nth-child(4) { left: 54%; top: 39%; } .model-brain i:nth-child(5) { left: 73%; top: 23%; }
+        .model-weather, .model-sport, .model-wildlife, .model-reco, .model-language { display: flex; gap: 5px; height: 28px; width: 100%; }
+        .model-weather i { background: #5793c8; border-radius: 2px; flex: 1; } .model-weather i:nth-child(2) { background: #70b7bd; height: 70%; } .model-weather i:nth-child(3) { background: #8a68c8; height: 45%; } .model-weather i:nth-child(4) { background: #d97706; height: 85%; }
+        .model-sport { align-items: end; } .model-sport i { background: #5793c8; border-radius: 2px; flex: 1; } .model-sport i:nth-child(1) { height: 45%; } .model-sport i:nth-child(2) { height: 85%; } .model-sport i:nth-child(3) { height: 62%; } .model-sport i:nth-child(4) { background: #70b7bd; height: 75%; }
+        .model-wildlife { background: radial-gradient(circle at 20% 60%, #70b7bd 0 3px, transparent 4px), radial-gradient(circle at 70% 35%, #d97706 0 3px, transparent 4px), linear-gradient(135deg, transparent 42%, #5793c8 43% 47%, transparent 48%); }
+        .model-reco { background: repeating-linear-gradient(45deg, #8a68c8 0 3px, #e5dff2 3px 7px), repeating-linear-gradient(-45deg, transparent 0 6px, rgba(15,113,129,.65) 6px 8px); opacity: .9; }
+        .model-language { background: repeating-linear-gradient(90deg, #475569 0 5px, #d9e7ea 5px 8px), repeating-linear-gradient(0deg, transparent 0 5px, rgba(15,113,129,.45) 5px 7px); }
+        .new-case { align-items: center; display: flex; gap: 6px; min-height: 35px; }
+        .new-case i { align-items: center; background: #fff; border: 2px solid #167e91; border-radius: 5px; color: #167e91; display: inline-flex; font-size: .58rem; font-style: normal; height: 28px; justify-content: center; width: 36px; }
+        .new-case b { color: #2563eb; font-size: .7rem; font-weight: 750; }
+        .new-case span { color: #2563eb; font-size: 1rem; }
+        .comparison { align-items: center; display: flex; gap: 5px; min-height: 31px; }
+        .comparison b { color: #2563eb; font-size: 1.05rem; } .comparison i { color: #d9468a; font-size: 1rem; font-style: normal; } .comparison span { border-top: 2px solid #7b8794; display: inline-block; width: 19px; } .comparison span.long { width: 39px; }
+        .transfer-bottom { color: #0f7181; font-size: .82rem; font-weight: 750; margin: 16px 6px 0; text-align: center; }
+        @container (max-width: 900px) { .transfer-headings, .transfer-row { gap: 12px; } .transfer-cell { padding: 8px; } .transfer-cell h4 { font-size: .72rem; } .transfer-cell p { font-size: .65rem; } }
+        @container (max-width: 720px) { .transfer-prototype { overflow-x: auto; } .transfer-headings, .transfer-row { min-width: 780px; } }
+        </style>
+        <div class="transfer-prototype" role="group" aria-label="Six examples of a shared model-thinking process">
+          <div class="transfer-headings">
+            <div>QUESTION<span>What do we want to know?</span></div>
+            <div>DATA TO LEARN FROM<span>What examples do we have?</span></div>
+            <div>BUILD A MODEL<span>What relationship can the model learn?</span></div>
+            <div>NEW CASE → PREDICTION<span>What does the model predict?</span></div>
+            <div>TEST + QUESTION<span>How well does it work? What does it miss?</span></div>
+          </div>
+          <div class="transfer-row transfer-row--anchor">
+            <div class="transfer-cell transfer-question"><div class="transfer-context">ANIMAL BRAINS</div><p>How big should its brain be?</p><div class="transfer-cue">mouse · cat · elephant</div></div>
+            <div class="transfer-cell"><h4>Measured mammals</h4><div class="many many--scatter">""" + "<i></i>" * 21 + """</div></div>
+            <div class="transfer-cell"><h4>Brain–body model</h4><div class="model-frame"><div class="model-brain"><i></i><i></i><i></i><i></i><i></i></div></div></div>
+            <div class="transfer-cell"><h4>New animal → predicted brain mass</h4><div class="new-case"><i>cat</i><span>→</span><b>◆</b><i>elephant</i><span>→</span><b>◆</b></div></div>
+            <div class="transfer-cell"><h4>Compare with new evidence</h4><div class="comparison"><b>◆</b><span></span><i>×</i><b>◆</b><span class="long"></span><i>×</i></div><p>Where does it work? What does it miss?</p></div>
+          </div>
+          <div class="transfer-row">
+            <div class="transfer-cell transfer-question"><div class="transfer-context">WEATHER</div><p>Will it rain tomorrow?</p></div>
+            <div class="transfer-cell"><h4>Past weather observations</h4><div class="many many--weather">""" + "<i></i>" * 21 + """</div></div>
+            <div class="transfer-cell"><h4>Weather model</h4><div class="model-frame"><div class="model-weather"><i></i><i></i><i></i><i></i></div></div></div>
+            <div class="transfer-cell"><h4>Today’s conditions → forecast</h4><div class="new-case"><i>now</i><span>→</span><b>rain?</b></div></div>
+            <div class="transfer-cell"><h4>What actually happened?</h4><p>Were these conditions unusual?</p><div class="comparison"><b>◆</b><span></span><i>?</i></div></div>
+          </div>
+          <div class="transfer-row">
+            <div class="transfer-cell transfer-question"><div class="transfer-context">SPORT</div><p>How might they perform?</p></div>
+            <div class="transfer-cell"><h4>Past performances + conditions</h4><div class="many">""" + "<i></i>" * 21 + """</div></div>
+            <div class="transfer-cell"><h4>Performance model</h4><div class="model-frame"><div class="model-sport"><i></i><i></i><i></i><i></i></div></div></div>
+            <div class="transfer-cell"><h4>Next event → predicted performance</h4><div class="new-case"><i>event</i><span>→</span><b>range</b></div></div>
+            <div class="transfer-cell"><h4>What happened? What changed?</h4><div class="comparison"><b>◆</b><span></span><i>?</i></div></div>
+          </div>
+          <div class="transfer-row">
+            <div class="transfer-cell transfer-question"><div class="transfer-context">WILDLIFE</div><p>Where might we find it?</p></div>
+            <div class="transfer-cell"><h4>Sightings + habitat</h4><div class="many">""" + "<i></i>" * 21 + """</div></div>
+            <div class="transfer-cell"><h4>Habitat model</h4><div class="model-frame"><div class="model-wildlife"></div></div></div>
+            <div class="transfer-cell"><h4>New place → likely habitat</h4><div class="new-case"><i>place</i><span>→</span><b>likely</b></div></div>
+            <div class="transfer-cell"><h4>Go and look</h4><p>Is this place like the ones the model learned from?</p></div>
+          </div>
+          <div class="transfer-row">
+            <div class="transfer-cell transfer-question"><div class="transfer-context">RECOMMENDATIONS</div><p>What might you like next?</p></div>
+            <div class="transfer-cell"><h4>Previous choices</h4><div class="many many--media">""" + "<i></i>" * 21 + """</div></div>
+            <div class="transfer-cell"><h4>Recommendation model</h4><div class="model-frame"><div class="model-reco"></div></div></div>
+            <div class="transfer-cell"><h4>New song or video → prediction</h4><div class="new-case"><i>new</i><span>→</span><b>fit?</b></div></div>
+            <div class="transfer-cell"><h4>Did it fit?</h4><p>What didn’t the model know about you?</p></div>
+          </div>
+          <div class="transfer-row">
+            <div class="transfer-cell transfer-question"><div class="transfer-context">LANGUAGE AI</div><p>What should come next?</p></div>
+            <div class="transfer-cell"><h4>Lots of text examples</h4><div class="many many--text">""" + "<i></i>" * 16 + """</div></div>
+            <div class="transfer-cell"><h4>Language model</h4><div class="model-frame"><div class="model-language"></div></div></div>
+            <div class="transfer-cell"><h4>New prompt → predicted text</h4><div class="new-case"><i>prompt</i><span>→</span><b>text …</b></div></div>
+            <div class="transfer-cell"><h4>Does it make sense?</h4><p>Is it accurate? What needs checking?</p></div>
+          </div>
+          <p class="transfer-bottom">Different questions. Different data. Different models. Same way of thinking.</p>
+        </div>
+        """
+    )
 
 
 def render(data: pd.DataFrame) -> None:
@@ -839,16 +954,22 @@ def render(data: pd.DataFrame) -> None:
     elif part == 8:
         allow_next = False
         teacher_note(
-            "Humans in context",
-            "Interpret the Homo records within the mammal relationship without treating relative brain size as an intelligence score.",
-            "Let students notice where the Homo sapiens records sit. Give the guardrail: relative brain size can be informative without being an intelligence ranking. Avoid language such as 'above the line means smarter.'",
-            "4 min",
+            "Brain size and intelligence",
+            "Prevent two misleading shortcuts: bigger brains or heads mean smarter, and further above a mammal pattern means smarter.",
+            "Keep brain size biologically informative rather than meaningless. Do not turn the elephant–human comparison into a universal intelligence ranking. Keep detailed neuroscience optional, and finish the animal-science story here before the later Data Science transfer screen.",
+            "7 min",
         )
-        st.header("Humans in the mammal pattern")
-        st.write("Now we can return to the Homo records in AnimalTraits.")
-        homo_records = data[
-            data["species"].fillna("").astype(str).str.split().str[0].eq("Homo")
+        st.header("Can brain size tell us how intelligent an animal is?")
+        st.markdown("### Bigger brain = smarter?")
+        external_comparisons = load_external_comparison_animals()
+        elephant_records = external_comparisons[
+            external_comparisons["scientific_name"].eq("Loxodonta africana")
         ]
+        homo_records = data[data["species"].fillna("").astype(str).eq("Homo sapiens")].copy()
+        homo_records["brain size (kg)"] = pd.to_numeric(
+            homo_records["brain size (kg)"], errors="coerce"
+        )
+        usable_homo_records = homo_records[homo_records["brain size (kg)"] > 0]
         class_data = with_common_class_names(data)
         mammal_fit = fit_relationship(
             class_data[class_data["Animal class"].eq("Mammal")],
@@ -857,54 +978,133 @@ def render(data: pd.DataFrame) -> None:
             log_x=True,
             log_y=True,
         )
-        if homo_records.empty or mammal_fit is None:
-            st.warning("The Homo records or mammal model are unavailable for this comparison.")
+        if elephant_records.empty or usable_homo_records.empty or mammal_fit is None:
+            st.warning("The elephant comparison, Homo records or mammal model are unavailable for this discussion.")
         else:
-            st.plotly_chart(
-                body_brain_class_fit_scatter(
-                    data,
-                    highlighted_classes=["Mammal"],
-                    fits={"Mammal": mammal_fit},
-                    highlighted_records=homo_records,
-                    highlighted_label="Homo sapiens records",
-                    highlighted_colour="#7c3aed",
-                    highlighted_line_colour="#4c1d95",
-                    title="Homo among mammals · body mass vs brain mass",
-                ),
-                width="stretch",
-            )
-            st.caption(
-                "Orange circles are AnimalTraits mammal observations; the black line summarises the mammal pattern; "
-                "purple markers show the individual Homo sapiens records."
+            elephant_brain_mass = float(elephant_records.iloc[0]["brain_mass_kg"])
+            homo_brain_median = float(usable_homo_records["brain size (kg)"].median())
+            st.write(
+                f"The separate African savanna elephant comparison has a brain mass of **{elephant_brain_mass:.3f} kg**."
             )
             st.write(
-                "The Homo records sit relatively high in brain mass for their body masses compared with the typical mammal pattern in this dataset."
+                f"AnimalTraits has {len(usable_homo_records):,} usable **Homo sapiens** brain-mass records. "
+                f"Their median is **{homo_brain_median:.2f} kg**; individual records vary."
             )
-            st.info("**Brain size relative to body size is biologically informative, but it is not an intelligence score.**")
-            allow_next = True
+            absolute_brain_choice = st.selectbox(
+                "If brain mass alone were an intelligence score, which would get the higher score?",
+                [
+                    "Choose an answer",
+                    "African savanna elephant",
+                    "Human",
+                    "They would score the same",
+                ],
+                key="curious_absolute_brain_mass_choice",
+            )
+            if absolute_brain_choice == "Choose an answer":
+                st.caption("Use only the proposed brain-mass rule — not a claim about either species' actual intelligence.")
+            else:
+                if absolute_brain_choice == "African savanna elephant":
+                    st.success("Using that proposed rule, the elephant would get the higher score because its brain mass is larger.")
+                else:
+                    st.caption("Test the proposed rule strictly: it would give the higher score to the animal with the larger brain mass.")
+
+                absolute_brain_revealed = hard_reveal(
+                    "You have tested the proposed rule. Are you ready to examine what it leaves out?",
+                    "curious_absolute_brain_mass_revealed",
+                    reveal_label="Reveal why this rule is misleading",
+                    pre_reveal_label="Test the rule",
+                    pre_reveal_guidance="The explanation stays hidden until you commit to an answer.",
+                )
+                if absolute_brain_revealed:
+                    st.success("**That is why brain mass alone is a poor intelligence score.**")
+                    st.write(
+                        "Across mammals, bigger bodies generally come with bigger brains. Brains also process sensory information, coordinate movement and help control the body."
+                    )
+                    st.info("**Absolute brain mass mixes brain biology with body size.**")
+                    st.caption("Head size is not an intelligence test. You cannot look at a person’s head size and tell how intelligent they are.")
+
+                    st.markdown("### What if we account for body size?")
+                    st.plotly_chart(
+                        body_brain_class_fit_scatter(
+                            data,
+                            highlighted_classes=["Mammal"],
+                            fits={"Mammal": mammal_fit},
+                            highlighted_records=homo_records,
+                            highlighted_label="Homo sapiens records",
+                            highlighted_colour="#7c3aed",
+                            highlighted_line_colour="#4c1d95",
+                            title="Homo among mammals · body mass vs brain mass",
+                        ),
+                        width="stretch",
+                    )
+                    st.caption(
+                        "Orange circles are AnimalTraits mammal observations; the black line summarises the mammal pattern; "
+                        "purple markers show the individual Homo sapiens records."
+                    )
+                    st.write(
+                        "The Homo records sit relatively high in brain mass for their body masses compared with the typical mammal pattern in this dataset."
+                    )
+                    relative_brain_choice = st.selectbox(
+                        "Does being further above the mammal pattern make this an intelligence score?",
+                        [
+                            "Choose an answer",
+                            "Yes — further above the line means more intelligent.",
+                            "No — it tells us about relative brain size, not intelligence.",
+                            "Not sure.",
+                        ],
+                        key="curious_relative_brain_mass_choice",
+                    )
+                    if relative_brain_choice == "Choose an answer":
+                        st.caption("Use the graph to distinguish relative brain size from an intelligence ranking.")
+                    else:
+                        if relative_brain_choice == "No — it tells us about relative brain size, not intelligence.":
+                            st.success("Yes — the graph describes relative brain size, not intelligence.")
+                        else:
+                            st.caption("The graph can tell us about relative brain size, but it cannot turn that into an intelligence ranking.")
+
+                        relative_brain_revealed = hard_reveal(
+                            "You have interpreted the mammal pattern. Are you ready to see the limit of that interpretation?",
+                            "curious_relative_brain_mass_revealed",
+                            reveal_label="Reveal the guardrail",
+                            pre_reveal_label="Interpret the pattern",
+                            pre_reveal_guidance="The guardrail stays hidden until you commit to an answer.",
+                        )
+                        if relative_brain_revealed:
+                            st.info("**Brain size relative to body size is biologically informative, but it is not an intelligence score.**")
+
+                            st.markdown("### So what is our model still missing?")
+                            st.write("New Caledonian crows can make and use tools to solve problems.")
+                            st.image(CROW_IMAGE_PATH, width="stretch")
+                            st.caption("New Caledonian crow (*Corvus moneduloides*)")
+                            st.write(
+                                "Our model knows about body mass, brain mass and animal group. It does not know how a brain is organised, what behaviours an animal can learn, or what problems it faces in its environment."
+                            )
+                            with soft_reveal("What else can scientists study?"):
+                                st.write("Brain organisation and neurons; behaviour and problem solving; ecology and evolutionary context.")
+                            st.markdown("### Final takeaway")
+                            st.success("**A useful variable is not the same thing as a complete model.**")
+                            st.write(
+                                "Body and brain size can tell us something useful about animals, but they cannot explain cognition on their own."
+                            )
+                            allow_next = True
 
     elif part == 9:
         teacher_note(
-            "Cognition close",
-            "Use one counterexample to show why a useful biological variable is not a complete explanation of cognition.",
-            "Keep the crow example brief. It is not a second ranking task: use it to ask what body and brain mass leave out. If asked, cognition also depends on brain organisation, ecology and behaviour.",
-            "3 min",
+            "Data Science transfer prototype",
+            "Focus on the repeated process, not the internal algorithms.",
+            "Learners may supply current examples of recommendation systems or language AI. Avoid implying that different systems use identical models; product and platform examples belong in facilitation, not this durable graphic. Keep returning to: what evidence built the model, what happens with a new case, how well did the prediction work, and what might the model miss?",
+            "2–3 min (prototype; do not rebalance the journey yet)",
         )
-        st.header("One variable cannot explain cognition completely")
-        st.write("New Caledonian crows can solve problems and use tools.")
-        st.image(CROW_IMAGE_PATH, width="stretch")
-        st.caption("New Caledonian crow (*Corvus moneduloides*)")
-        st.write(
-            "Their example reminds us that sophisticated cognition can be supported by nervous systems organised differently from our own. "
-            "Brain and body mass alone do not tell the whole story."
-        )
-        st.markdown("### Final takeaway")
-        st.success("**A useful variable is not the same thing as a complete model.**")
-        st.write(
-            "Body mass was useful. Brain mass added information. Animal group mattered. "
-            "The mammal model made useful predictions, and interpolation was more reliable than extrapolation. "
-            "Even relative brain size cannot fully explain intelligence or cognition."
-        )
+        st.header("Same process. Different models.")
+        st.write("The model can change. The questions around it still matter.")
+        _render_data_science_transfer_prototype()
+        with soft_reveal("How does a model “learn”?"):
+            st.write(
+                "A model is built using examples we already have. In machine learning, these examples are often called training data."
+            )
+            st.write("Then the model can be given a new case and asked to make a prediction.")
+            st.write("One useful question is: **How similar is this new case to the examples the model learned from?**")
+            st.write("In the animal model, this was part of the difference between interpolation and extrapolation.")
 
 
 
