@@ -9,7 +9,7 @@ ABOUT_INSTITUTIONAL_LOGO = ASSETS_DIR / "unsw-sydney-logo-landscape.png"
 SIDEBAR_LANDSCAPE_LOGO = ASSETS_DIR / "unsw-sydney-logo-landscape.png"
 
 SHORT_NAME = "Wild Data"
-DESCRIPTIVE_NAME = "Animal Traits teaching dataset and data experiences"
+DESCRIPTIVE_NAME = "Animal Traits Data Science"
 HERO_HOOK = "What can animal traits tell us about intelligence?"
 APP_TITLE = SHORT_NAME
 APP_ICON = "🐘"
