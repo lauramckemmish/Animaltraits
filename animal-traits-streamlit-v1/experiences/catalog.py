@@ -19,6 +19,7 @@ EXPERIENCES = [
         "name": EXPERIENCE_CURIOUS,
         "label": "Mouse to Elephant",
         "summary": "Use real animal data to build a model and test how far you can trust it.",
+        "thumbnail": "mouse_to_elephant_thumbnail.png",
         "enabled": True,
     },
     {

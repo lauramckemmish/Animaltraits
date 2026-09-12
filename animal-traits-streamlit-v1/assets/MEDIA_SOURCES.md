@@ -7,6 +7,7 @@ Retrieved 2026-08-24. Local image copies were downloaded from Wikimedia Commons 
 | `wide_colorful_cartoon_illustration_like_an_educati.png` | Supplied by the user as an AI-generated illustration | User-supplied asset | Licence not specified by supplier | Not specified | None |
 | `curious_welcome_evolution.png` | Supplied by the user as an AI-generated illustration | User-supplied asset | Licence not specified by supplier | Not specified | None |
 | `mouse_to_elephant_hero.png` | Supplied by the user as the approved Mouse to Elephant hero image | User-supplied asset | Licence not specified by supplier | Not specified | None |
+| `mouse_to_elephant_thumbnail.png` | Supplied by the user as the approved Mouse to Elephant landing-card thumbnail | User-supplied asset | Licence not specified by supplier | Not specified | None |
 | `curious_conclusion_evidence.png` | Supplied by the user as an AI-generated illustration | User-supplied asset | Licence not specified by supplier | Not specified | None |
 | `African bush elephant (Loxodonta africana), Masai Mara.jpg` | Wikimedia Commons: same filename | Hobbyfotowiki | CC0 1.0 | No, but credited for provenance | Downloaded 1280px copy |
 | `6(26) Sperm whale.JPG` | Wikimedia Commons: same filename | Marion & Christoph Aistleitner | CC0 1.0 | No, but credited for provenance | Downloaded 1280px copy |
