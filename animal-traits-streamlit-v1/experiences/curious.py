@@ -60,6 +60,7 @@ MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
 CROW_IMAGE_PATH = MEDIA_DIR / "Corvus moneduloides, Sarramea, New Caledonia 1.jpg"
 DATA_SCIENCE_INFOGRAPHIC_PATH = MEDIA_DIR / "Animal_Traits_Data_Science_Transfer_Infographic_v0.11_final_candidate.png"
+MOUSE_TO_ELEPHANT_HERO_PATH = MEDIA_DIR / "mouse_to_elephant_hero.png"
 
 
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
@@ -295,6 +296,7 @@ def render(data: pd.DataFrame) -> None:
             "4 min",
         )
         st.header("If you made a mouse the size of an elephant, how big would you expect its brain to be?")
+        st.image(MOUSE_TO_ELEPHANT_HERO_PATH, width="stretch")
         st.write("Before we investigate that question, let’s get a feel for the difference in their sizes.")
         st.text_area(
             "Estimate the body mass of a mouse in kilograms.",

@@ -15,7 +15,7 @@ def render(data: pd.DataFrame, open_experience) -> None:
         st.write("AnimalTraits brings together real measurements reported in scientific studies of terrestrial animals. We can use these data to explore how animal size varies, compare broad animal groups, and investigate relationships such as body mass and brain size.")
         st.write(config.LANDING_ORIENTATION)
     with hero_visual:
-        st.image(Path(__file__).resolve().parents[1] / "assets" / "curious_welcome_evolution.png", width="stretch")
+        st.image(Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png", width="stretch")
     st.markdown("## Choose an investigation")
     st.write("Follow a guided investigation designed for a classroom or workshop.")
     guided = [item for item in experience_catalog(enabled_only=True) if item["name"] != EXPERIENCE_PLAYGROUND]
