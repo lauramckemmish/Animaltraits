@@ -27,6 +27,7 @@ from models import fit_relationship
 from ui_helpers import (
     completion_gate,
     data_science_callout,
+    graph_support,
     hard_reveal,
     page_header,
     scroll_to_top_if_requested,
@@ -443,8 +444,9 @@ def render(data: pd.DataFrame) -> None:
             body_brain_representative_scatter(orientation),
             use_container_width=True,
         )
-        st.caption(
-            "This scatter plot shows two measurements together. Farther right means greater body mass; higher up means greater brain mass. Can you find Human?"
+        graph_support(
+            "This scatter plot shows two measurements together. Farther right means greater body mass; higher up means greater brain mass.",
+            "Can you find Human?",
         )
 
         if hard_reveal(
@@ -457,7 +459,10 @@ def render(data: pd.DataFrame) -> None:
                 body_brain_scatter(data, log_x=False, log_y=False),
                 use_container_width=True,
             )
-            st.caption("Can you see the small animals clearly? Many are compressed near the bottom-left.")
+            graph_support(
+                "Can you see the small animals clearly?",
+                "Many are compressed near the bottom-left.",
+            )
 
             if hard_reveal(
                 "We had this problem with body mass before. What could we change?",
