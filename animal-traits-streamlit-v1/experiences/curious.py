@@ -25,6 +25,7 @@ from data import (
 )
 from models import fit_relationship
 from ui_helpers import (
+    completion_gate,
     data_science_callout,
     hard_reveal,
     page_header,
@@ -275,7 +276,6 @@ def _render_data_science_transfer_prototype() -> None:
 def render(data: pd.DataFrame) -> None:
     part = int(st.session_state.get("curious_part", 0))
     part = max(0, min(part, len(STEP_LABELS) - 1))
-    allow_next = True
     page_header(
         "From Mouse to Elephant: Can We Predict Brain Size?",
         subtitle="A CURIOUS data investigation",
@@ -302,7 +302,6 @@ def render(data: pd.DataFrame) -> None:
         st.write("Make rough estimates with your group. Don’t look them up.")
 
     elif part == 1:
-        allow_next = False
         teacher_note(
             "Explore the dataset",
             "Use a few searches to discover useful records and the limits of the dataset.",
@@ -351,7 +350,7 @@ def render(data: pd.DataFrame) -> None:
             data_science_callout(
                 "You explored a real scientific dataset and discovered its gaps and limits."
             )
-            allow_next = True
+        completion_gate(attempts >= 3)
 
     elif part == 2:
         teacher_note(
@@ -525,7 +524,6 @@ def render(data: pd.DataFrame) -> None:
                 )
 
     elif part == 4:
-        allow_next = False
         teacher_note(
             "Animal class",
             "Use the Mammal–Reptile comparison to show that body mass is not the only useful information for describing the pattern.",
@@ -596,10 +594,10 @@ def render(data: pd.DataFrame) -> None:
                     "**Scientific conclusion:** Mammals and reptiles do not follow exactly the same brain–body pattern. "
                     "Because cats and elephants are mammals, a mammal-specific relationship is the more appropriate model for them."
                 )
-                allow_next = True
+        completion_gate(comparison_ready)
 
     elif part == 5:
-        allow_next = False
+        model_check_complete = False
         teacher_note(
             "Mammal model",
             "Turn the visible mammal pattern into a model learners can use to make a later prediction.",
@@ -650,12 +648,13 @@ def render(data: pd.DataFrame) -> None:
             )
             if model_check.startswith("A mammal that is about"):
                 st.success("Yes — this is a typical prediction from the mammal model, not an exact rule.")
-                allow_next = True
+                model_check_complete = True
             elif model_check != "Choose an interpretation":
                 st.caption("Look again for the answer that describes a typical pattern rather than an exact rule or a cause.")
+        completion_gate(model_check_complete)
 
     elif part == 6:
-        allow_next = False
+        prediction_ready = False
         teacher_note(
             "Domestic cat interpolation",
             "Use the mammal model for a new animal, then compare the prediction with separate external evidence.",
@@ -775,10 +774,10 @@ def render(data: pd.DataFrame) -> None:
                         data_science_callout(
                             "You used a model to make a prediction, then tested it with new evidence."
                         )
-                        allow_next = True
+        completion_gate(prediction_ready)
 
     elif part == 7:
-        allow_next = False
+        trust_committed = False
         teacher_note(
             "African elephant extrapolation",
             "Use the mammal model beyond the range of data that built it, then compare that prediction with separate external evidence.",
@@ -935,10 +934,11 @@ def render(data: pd.DataFrame) -> None:
                     data_science_callout(
                         "You used a model beyond its data range, then tested that extrapolation with new evidence."
                     )
-                    allow_next = True
+        completion_gate(trust_committed)
 
     elif part == 8:
-        allow_next = False
+        absolute_choice_committed = False
+        relative_choice_committed = False
         teacher_note(
             "Brain size and intelligence",
             "Prevent two misleading shortcuts: bigger brains or heads mean smarter, and further above a mammal pattern means smarter.",
@@ -989,6 +989,7 @@ def render(data: pd.DataFrame) -> None:
             if absolute_brain_choice == "Choose an answer":
                 st.caption("Use only the proposed brain-mass rule — not a claim about either species' actual intelligence.")
             else:
+                absolute_choice_committed = True
                 if absolute_brain_choice == "African savanna elephant":
                     st.success("Using that proposed rule, the elephant would get the higher score because its brain mass is larger.")
                 else:
@@ -1043,6 +1044,7 @@ def render(data: pd.DataFrame) -> None:
                     if relative_brain_choice == "Choose an answer":
                         st.caption("Use the graph to distinguish relative brain size from an intelligence ranking.")
                     else:
+                        relative_choice_committed = True
                         if relative_brain_choice == "No — it tells us about relative brain size, not intelligence.":
                             st.info("The graph describes relative brain size, not intelligence.")
                         else:
@@ -1072,7 +1074,8 @@ def render(data: pd.DataFrame) -> None:
                             st.write(
                                 "Body and brain size can tell us something useful about animals, but they cannot explain cognition on their own."
                             )
-                            allow_next = True
+        completion_gate(absolute_choice_committed)
+        completion_gate(relative_choice_committed)
 
     elif part == 9:
         teacher_note(
@@ -1092,5 +1095,4 @@ def render(data: pd.DataFrame) -> None:
         "curious_scroll_to_top",
         part,
         "curious",
-        allow_next=allow_next,
     )
