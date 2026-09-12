@@ -107,7 +107,7 @@ class SharedContractTests(unittest.TestCase):
             self.assertEqual(stub.expanders, [])
             stub.session_state["teacher_view"] = True
             ui_helpers.teacher_guidance("Stage", "Listen for evidence")
-            self.assertEqual(stub.expanders, ["Teacher guidance: Stage"])
+            self.assertEqual(stub.expanders, ["Facilitator notes: Stage"])
             self.assertEqual(ui_helpers.response_box("Respond", "stage_response"), "An observation")
 
     def test_gate_is_transient_between_stage_renders(self):

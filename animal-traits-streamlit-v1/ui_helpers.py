@@ -16,7 +16,7 @@ def _block_continue() -> None:
 
 
 def page_header(title: str, *, subtitle: str | None = None, teacher_control: bool = True, compact: bool = False) -> None:
-    """Render a page title with an optional Teacher view toggle at top-right."""
+    """Render a page title with an optional Facilitator notes toggle at top-right."""
     if teacher_control:
         title_col, control_col = st.columns([5, 1], vertical_alignment="center")
         with title_col:
@@ -24,7 +24,7 @@ def page_header(title: str, *, subtitle: str | None = None, teacher_control: boo
             if subtitle:
                 st.caption(subtitle)
         with control_col:
-            st.toggle("Teacher view", key="teacher_view")
+            st.toggle("Facilitator notes", key="teacher_view")
     else:
         (st.subheader if compact else st.title)(title)
         if subtitle:
@@ -135,11 +135,11 @@ def sample_note(complete: int, total: int, *, label: str = "records", key: str) 
 
 
 def teacher_guidance(title: str, content: str, *, expanded: bool = False) -> None:
-    """Show brief experience-owned guidance only when Teacher view is enabled."""
+    """Show brief experience-owned Facilitator notes when enabled."""
     if not st.session_state.get("teacher_view", False):
         return
     with st.container(key="teacher_guidance"):
-        with st.expander(f"Teacher guidance: {title}", expanded=expanded):
+        with st.expander(f"Facilitator notes: {title}", expanded=expanded):
             st.markdown(content)
 
 
