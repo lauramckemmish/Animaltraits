@@ -337,9 +337,8 @@ def render(data: pd.DataFrame) -> None:
             animal_matches = search_student_animals(data, animal_query)
             if animal_matches.empty:
                 st.warning(
-                    "**No match found.** AnimalTraits focuses on **terrestrial animals** — animals that live mainly on land, "
-                    "so many marine animals are outside its scope. A no-match can also happen because the spelling is different, "
-                    "the animal is listed under another common or scientific name, the search term is broad, or the species is not included."
+                    "**No match found.** AnimalTraits focuses on **terrestrial animals** — animals that live mainly on land. "
+                    "A no-match can reflect spelling, another name, a broad search or dataset coverage; it does not mean the animal does not exist."
                 )
             else:
                 _render_search_results(animal_matches, SEARCH_DISPLAY_COLUMNS)
@@ -371,7 +370,7 @@ def render(data: pd.DataFrame) -> None:
             "6 min",
         )
         st.header("How can we make sense of such a huge range?")
-        st.write("A **variable** is something that can vary between animals. We will begin with one familiar variable: **body mass**.")
+        st.write("Start with body mass.")
 
         body = _body_mass_values(data)
         if not body.empty:
@@ -423,7 +422,7 @@ def render(data: pd.DataFrame) -> None:
                             st.session_state["curious_body_mass_log_revealed"] = True
                             st.rerun()
                     else:
-                        st.write("Can we display the same data in a way that makes the huge range easier to see?")
+                        st.write("The same measurements are now spaced differently.")
                         st.plotly_chart(
                             histogram(data, "body mass (kg)", bins=25, log_x=True),
                             use_container_width=True,
@@ -447,7 +446,6 @@ def render(data: pd.DataFrame) -> None:
             "7 min",
         )
         st.header("Do bigger animals have bigger brains?")
-        st.write("A scatter plot lets us look at two variables together.")
         orientation = _curious_orientation_animals(data)
         st.markdown("### A few familiar animals")
         st.caption("Which animal is heaviest? Which has the largest brain?")
@@ -464,7 +462,7 @@ def render(data: pd.DataFrame) -> None:
             use_container_width=True,
         )
         st.caption(
-            "Farther right means greater body mass; higher up means greater brain mass. Can you find Human?"
+            "This scatter plot shows two measurements together. Farther right means greater body mass; higher up means greater brain mass. Can you find Human?"
         )
 
         linear_revealed = bool(st.session_state.get("curious_step4_linear_revealed", False))
@@ -504,7 +502,7 @@ def render(data: pd.DataFrame) -> None:
                     )
 
                     st.markdown("### Find an animal on the graph")
-                    st.write("This connects the full graph back to the animals you explored earlier.")
+                    st.write("Find one of the animals you searched for earlier.")
                     history = list(st.session_state.get("curious_exploration_history", []))
                     history_options = [""] + list(dict.fromkeys(history))
                     previous_search = st.selectbox(
@@ -615,8 +613,8 @@ def render(data: pd.DataFrame) -> None:
                 height=120,
             )
             if explanation.strip():
-                st.success(
-                    "Mammals and reptiles do not follow exactly the same brain–body pattern. "
+                st.info(
+                    "**Scientific conclusion:** Mammals and reptiles do not follow exactly the same brain–body pattern. "
                     "Because cats and elephants are mammals, a mammal-specific relationship is the more appropriate model for them."
                 )
                 allow_next = True
@@ -720,7 +718,7 @@ def render(data: pd.DataFrame) -> None:
                     f"**For a {cat_body_mass:.1f} kg cat, the model predicts a brain mass of about {predicted_cat_brain_grams:.1f} g.**"
                 )
                 prediction_choice = st.selectbox(
-                    "Before we compare with new evidence, which prediction should we test?",
+                    "Select the displayed model prediction before comparing it with the external evidence.",
                     [
                         "Choose the model prediction",
                         f"About {predicted_cat_brain_grams:.1f} g",
@@ -741,7 +739,7 @@ def render(data: pd.DataFrame) -> None:
                         "symbol": "diamond",
                     }
                     cat_value_revealed = hard_reveal(
-                        "You have a model prediction. Are you ready to compare it with separate evidence about a real cat?",
+                        "Compare the model prediction with separate evidence about a real cat.",
                         "curious_cat_external_value_revealed",
                         reveal_label="Reveal the external cat value",
                         pre_reveal_label="Test the prediction",
@@ -888,7 +886,7 @@ def render(data: pd.DataFrame) -> None:
                     "symbol": "diamond",
                 }
                 elephant_value_revealed = hard_reveal(
-                    "You have seen an out-of-range model prediction. Are you ready to compare it with separate evidence about an African savanna elephant?",
+                    "Compare this out-of-range prediction with separate evidence about an African savanna elephant.",
                     "curious_elephant_external_value_revealed",
                     reveal_label="Reveal the external elephant value",
                     pre_reveal_label="Test the extrapolation",
@@ -1014,7 +1012,7 @@ def render(data: pd.DataFrame) -> None:
                     st.caption("Test the proposed rule strictly: it would give the higher score to the animal with the larger brain mass.")
 
                 absolute_brain_revealed = hard_reveal(
-                    "You have tested the proposed rule. Are you ready to examine what it leaves out?",
+                    "Examine what this proposed rule leaves out.",
                     "curious_absolute_brain_mass_revealed",
                     reveal_label="Reveal why this rule is misleading",
                     pre_reveal_label="Test the rule",
@@ -1063,12 +1061,12 @@ def render(data: pd.DataFrame) -> None:
                         st.caption("Use the graph to distinguish relative brain size from an intelligence ranking.")
                     else:
                         if relative_brain_choice == "No — it tells us about relative brain size, not intelligence.":
-                            st.success("Yes — the graph describes relative brain size, not intelligence.")
+                            st.info("The graph describes relative brain size, not intelligence.")
                         else:
                             st.caption("The graph can tell us about relative brain size, but it cannot turn that into an intelligence ranking.")
 
                         relative_brain_revealed = hard_reveal(
-                            "You have interpreted the mammal pattern. Are you ready to see the limit of that interpretation?",
+                            "Examine the limit of this interpretation.",
                             "curious_relative_brain_mass_revealed",
                             reveal_label="Reveal the guardrail",
                             pre_reveal_label="Interpret the pattern",

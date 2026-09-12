@@ -92,7 +92,7 @@ def key_idea(text: str, prompt: str | None = None) -> None:
 
 
 def data_science_callout(text: str, supporting_text: str | None = None) -> None:
-    message = f"### 🔎 You just did data science!\n\n**{text}**"
+    message = f"### 🔎 Data note\n\n**{text}**"
     if supporting_text:
         message += f"\n\n{supporting_text}"
     st.info(message)
