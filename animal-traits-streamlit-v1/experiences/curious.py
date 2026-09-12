@@ -609,19 +609,19 @@ def render(data: pd.DataFrame) -> None:
         st.caption("The coloured lines are visual summaries of each group's points. You do not need to calculate anything from them.")
 
         if comparison_ready:
-            explanation = st.text_area(
-                "In your own words, explain what the graph shows about mammals and reptiles. Which relationship should we use later for a cat or elephant, and why?",
-                key="curious_mammal_reptile_model_explanation",
-                height=120,
+            conclusion_revealed = hard_reveal(
+                "**Talk with your group:** What does the graph show about mammals and reptiles? Which relationship should we use later for a cat or elephant, and why?",
+                "curious_mammal_reptile_conclusion_revealed",
+                reveal_label="Reveal the scientific conclusion",
+                pre_reveal_label="Discuss first",
+                pre_reveal_guidance="Discuss the graph before revealing the scientific conclusion.",
             )
-            if explanation.strip():
+            if conclusion_revealed:
                 st.info(
                     "**Scientific conclusion:** Mammals and reptiles do not follow exactly the same brain–body pattern. "
                     "Because cats and elephants are mammals, a mammal-specific relationship is the more appropriate model for them."
                 )
                 allow_next = True
-            else:
-                st.caption("Use the graph to write your explanation before continuing.")
 
     elif part == 5:
         allow_next = False
