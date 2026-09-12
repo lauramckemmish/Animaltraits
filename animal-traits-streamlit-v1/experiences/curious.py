@@ -381,23 +381,19 @@ def render(data: pd.DataFrame) -> None:
                 "That is a lot of zeros. Scientists often use a shorter way to write numbers like this."
             )
 
-            notation_revealed = bool(st.session_state.get("curious_body_mass_notation_revealed", False))
-            if not notation_revealed:
-                allow_next = False
-                if st.button("Show the shorter version", type="primary", key="curious_reveal_body_mass_notation"):
-                    st.session_state["curious_body_mass_notation_revealed"] = True
-                    st.rerun()
-            else:
+            if hard_reveal(
+                "",
+                "curious_body_mass_notation_revealed",
+                reveal_label="Show the shorter version",
+            ):
                 st.markdown(f"**{smallest_scientific} kg**")
                 st.write("**Same number. Different way of writing it.** For example, 10⁻³ = 0.001.")
 
-                linear_revealed = bool(st.session_state.get("curious_body_mass_linear_revealed", False))
-                if not linear_revealed:
-                    allow_next = False
-                    if st.button("Look at all the body-mass measurements", type="primary", key="curious_reveal_body_mass_linear"):
-                        st.session_state["curious_body_mass_linear_revealed"] = True
-                        st.rerun()
-                else:
+                if hard_reveal(
+                    "",
+                    "curious_body_mass_linear_revealed",
+                    reveal_label="Look at all the body-mass measurements",
+                ):
                     st.markdown("### Now let’s look at all the body-mass measurements together.")
                     st.caption("What do you notice? Can you actually see most of the data clearly?")
                     st.plotly_chart(
@@ -405,14 +401,11 @@ def render(data: pd.DataFrame) -> None:
                         use_container_width=True,
                     )
 
-                    log_revealed = bool(st.session_state.get("curious_body_mass_log_revealed", False))
-                    if not log_revealed:
-                        allow_next = False
-                        st.write("Can we display the same data in a way that makes the huge range easier to see?")
-                        if st.button("Try a logarithmic scale", type="primary", key="curious_reveal_body_mass_log"):
-                            st.session_state["curious_body_mass_log_revealed"] = True
-                            st.rerun()
-                    else:
+                    if hard_reveal(
+                        "Can we display the same data in a way that makes the huge range easier to see?",
+                        "curious_body_mass_log_revealed",
+                        reveal_label="Try a logarithmic scale",
+                    ):
                         st.write("The same measurements are now spaced differently.")
                         st.plotly_chart(
                             histogram(data, "body mass (kg)", bins=25, log_x=True),
@@ -427,7 +420,6 @@ def render(data: pd.DataFrame) -> None:
                             "You changed how the data were displayed so a huge range became easier to see.",
                             "Same data. Better view.",
                         )
-                        allow_next = True
 
     elif part == 3:
         teacher_note(
