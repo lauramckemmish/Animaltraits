@@ -161,104 +161,95 @@ def _render_data_science_transfer_prototype() -> None:
         .transfer-headings, .transfer-row {
             display: grid;
             grid-template-columns: 18fr 20fr 20fr 22fr 20fr;
-            gap: 18px;
+            gap: 16px;
         }
         .transfer-headings { margin: 0 0 8px; padding: 0 6px; }
         .transfer-headings div { color: #0f7181; font-size: .68rem; font-weight: 800; letter-spacing: .055em; }
         .transfer-headings span { display: block; color: #536174; font-size: .68rem; font-weight: 500; letter-spacing: 0; line-height: 1.2; margin-top: 3px; }
-        .transfer-row { position: relative; align-items: stretch; margin: 0; padding: 9px 6px; }
-        .transfer-row--anchor { padding-top: 12px; padding-bottom: 16px; }
-        .transfer-row + .transfer-row { margin-top: 3px; }
-        .transfer-row--anchor + .transfer-row { border-top: 1px solid #b8dbe0; margin-top: 10px; padding-top: 16px; }
-        .transfer-cell { min-width: 0; min-height: 92px; position: relative; padding: 9px 10px; border: 1px solid #d5e1e5; border-radius: 8px; background: #fbfdfe; }
-        .transfer-row--anchor .transfer-cell { min-height: 118px; background: #f8fbfc; }
-        .transfer-cell:not(.transfer-question)::before { content: "→"; color: #1492a3; font-weight: 800; left: -15px; position: absolute; top: calc(50% - .75rem); }
+        .transfer-row { position: relative; align-items: stretch; margin: 0; padding: 7px 6px; }
+        .transfer-row--anchor { padding-top: 10px; padding-bottom: 13px; }
+        .transfer-row + .transfer-row { margin-top: 2px; }
+        .transfer-row--anchor + .transfer-row { border-top: 1px solid #b8dbe0; margin-top: 7px; padding-top: 13px; }
+        .transfer-cell { min-width: 0; min-height: 82px; position: relative; padding: 8px 9px; border: 1px solid #d5e1e5; border-radius: 8px; background: #fbfdfe; }
+        .transfer-row--anchor .transfer-cell { min-height: 110px; background: #f8fbfc; }
+        .transfer-cell:not(.transfer-question)::before { content: "→"; color: #1492a3; font-weight: 800; left: -14px; position: absolute; top: calc(50% - .75rem); }
         .transfer-context { color: #0f7181; font-size: .64rem; font-weight: 800; letter-spacing: .06em; margin-bottom: 4px; }
         .transfer-cell h4 { font-size: .79rem; line-height: 1.15; margin: 0 0 7px; }
         .transfer-cell p { color: #405066; font-size: .7rem; line-height: 1.26; margin: 0; }
         .transfer-question p { color: #172033; font-weight: 650; }
-        .transfer-cue { color: #6d7c8d; font-size: .66rem; letter-spacing: .02em; margin-top: 10px; }
-        .many, .new-case, .comparison, .model-frame { margin-top: 10px; }
-        .many { align-content: center; display: grid; gap: 4px; grid-template-columns: repeat(7, 1fr); height: 30px; max-width: 122px; }
+        .transfer-cue { color: #6d7c8d; font-size: .66rem; letter-spacing: .02em; margin-top: 9px; }
+        .many, .prediction-flow, .comparison, .model-frame { margin-top: 9px; }
+        .many { align-content: center; display: grid; gap: 4px; grid-template-columns: repeat(7, 1fr); height: 27px; max-width: 122px; }
         .many i { aspect-ratio: 1; background: #63aeba; border-radius: 50%; display: block; opacity: .8; }
         .many i:nth-child(3n) { background: #d97706; }
-        .many--scatter { background: linear-gradient(to top right, transparent 49%, rgba(217,119,6,.28) 50%, transparent 51%); height: 42px; padding: 2px; }
         .many--weather i:nth-child(2n) { border-radius: 2px; background: #5691c7; }
         .many--media i:nth-child(3n) { border-radius: 2px; background: #8a68c8; }
-        .many--text { grid-template-columns: repeat(4, 1fr); height: 38px; max-width: 140px; }
+        .many--text { grid-template-columns: repeat(4, 1fr); height: 33px; max-width: 140px; }
         .many--text i { aspect-ratio: auto; border-radius: 2px; height: 5px; }
-        .model-frame { align-items: center; background: #f2f8fa; border: 2px solid #167e91; border-radius: 8px; display: flex; height: 51px; justify-content: center; overflow: hidden; padding: 6px; }
-        .transfer-row--anchor .model-frame { height: 65px; }
-        .model-frame::after { color: #167e91; content: "model"; font-size: .6rem; font-weight: 750; letter-spacing: .05em; position: absolute; transform: translateY(25px); }
-        .transfer-row--anchor .model-frame::after { transform: translateY(32px); }
-        .model-brain { background: linear-gradient(to top right, transparent 47%, #1f2937 48%, #1f2937 51%, transparent 52%); height: 42px; position: relative; width: 100%; }
-        .model-brain i { background: #d97706; border-radius: 50%; height: 5px; position: absolute; width: 5px; }
-        .model-brain i:nth-child(1) { left: 8%; top: 76%; } .model-brain i:nth-child(2) { left: 22%; top: 64%; } .model-brain i:nth-child(3) { left: 38%; top: 53%; } .model-brain i:nth-child(4) { left: 54%; top: 39%; } .model-brain i:nth-child(5) { left: 73%; top: 23%; }
-        .model-weather, .model-sport, .model-wildlife, .model-reco, .model-language { display: flex; gap: 5px; height: 28px; width: 100%; }
-        .model-weather i { background: #5793c8; border-radius: 2px; flex: 1; } .model-weather i:nth-child(2) { background: #70b7bd; height: 70%; } .model-weather i:nth-child(3) { background: #8a68c8; height: 45%; } .model-weather i:nth-child(4) { background: #d97706; height: 85%; }
-        .model-sport { align-items: end; } .model-sport i { background: #5793c8; border-radius: 2px; flex: 1; } .model-sport i:nth-child(1) { height: 45%; } .model-sport i:nth-child(2) { height: 85%; } .model-sport i:nth-child(3) { height: 62%; } .model-sport i:nth-child(4) { background: #70b7bd; height: 75%; }
-        .model-wildlife { background: radial-gradient(circle at 20% 60%, #70b7bd 0 3px, transparent 4px), radial-gradient(circle at 70% 35%, #d97706 0 3px, transparent 4px), linear-gradient(135deg, transparent 42%, #5793c8 43% 47%, transparent 48%); }
-        .model-reco { background: repeating-linear-gradient(45deg, #8a68c8 0 3px, #e5dff2 3px 7px), repeating-linear-gradient(-45deg, transparent 0 6px, rgba(15,113,129,.65) 6px 8px); opacity: .9; }
-        .model-language { background: repeating-linear-gradient(90deg, #475569 0 5px, #d9e7ea 5px 8px), repeating-linear-gradient(0deg, transparent 0 5px, rgba(15,113,129,.45) 5px 7px); }
-        .new-case { align-items: center; display: flex; gap: 6px; min-height: 35px; }
-        .new-case i { align-items: center; background: #fff; border: 2px solid #167e91; border-radius: 5px; color: #167e91; display: inline-flex; font-size: .58rem; font-style: normal; height: 28px; justify-content: center; width: 36px; }
-        .new-case b { color: #2563eb; font-size: .7rem; font-weight: 750; }
-        .new-case span { color: #2563eb; font-size: 1rem; }
-        .comparison { align-items: center; display: flex; gap: 5px; min-height: 31px; }
-        .comparison b { color: #2563eb; font-size: 1.05rem; } .comparison i { color: #d9468a; font-size: 1rem; font-style: normal; } .comparison span { border-top: 2px solid #7b8794; display: inline-block; width: 19px; } .comparison span.long { width: 39px; }
-        .transfer-bottom { color: #0f7181; font-size: .82rem; font-weight: 750; margin: 16px 6px 0; text-align: center; }
+        .scatter-mini { height: 43px; position: relative; width: 100%; }
+        .scatter-mini i { background: #d97706; border-radius: 50%; height: 5px; position: absolute; width: 5px; }
+        .scatter-mini i:nth-child(1) { left: 5%; top: 78%; } .scatter-mini i:nth-child(2) { left: 13%; top: 65%; } .scatter-mini i:nth-child(3) { left: 22%; top: 72%; } .scatter-mini i:nth-child(4) { left: 31%; top: 54%; } .scatter-mini i:nth-child(5) { left: 41%; top: 62%; } .scatter-mini i:nth-child(6) { left: 50%; top: 43%; } .scatter-mini i:nth-child(7) { left: 59%; top: 48%; } .scatter-mini i:nth-child(8) { left: 68%; top: 29%; } .scatter-mini i:nth-child(9) { left: 77%; top: 35%; } .scatter-mini i:nth-child(10) { left: 87%; top: 17%; }
+        .model-frame { align-items: center; background: #f2f8fa; border: 2px solid #167e91; border-radius: 8px; display: flex; height: 48px; justify-content: center; overflow: hidden; padding: 5px; }
+        .transfer-row--anchor .model-frame { height: 61px; }
+        .model-frame svg { height: 100%; width: 100%; }
+        .model-brain::before { background: #1f2937; content: ""; height: 2px; left: 3%; position: absolute; top: 59%; transform: rotate(-27deg); transform-origin: left center; width: 105%; }
+        .model-brain { height: 49px; }
+        .model-brain i { height: 5px; width: 5px; }
+        .relationship-line { stroke: #5e7184; stroke-width: 1.5; } .relationship-node { fill: #63aeba; } .relationship-node--accent { fill: #d97706; } .relationship-node--dark { fill: #475569; } .relationship-output { fill: #2563eb; }
+        .prediction-flow { align-items: center; display: flex; gap: 4px; min-height: 35px; white-space: nowrap; }
+        .new-case { align-items: center; background: #fff; border: 2px solid #167e91; border-radius: 5px; color: #167e91; display: inline-flex; font-size: .58rem; font-style: normal; font-weight: 700; height: 28px; justify-content: center; padding: 0 4px; }
+        .mini-model { align-items: center; background: #f2f8fa; border: 2px solid #167e91; border-radius: 5px; display: inline-flex; height: 28px; justify-content: center; padding: 3px; width: 34px; }
+        .mini-model svg { height: 100%; width: 100%; }
+        .prediction-flow > span { color: #1492a3; font-size: .9rem; font-weight: 800; }
+        .prediction-flow b { color: #2563eb; font-size: .68rem; font-weight: 800; }
+        .comparison { align-items: center; display: flex; gap: 5px; min-height: 28px; }
+        .comparison b { color: #2563eb; font-size: 1rem; } .comparison i { color: #d9468a; font-size: .95rem; font-style: normal; } .comparison span { color: #64748b; font-size: .8rem; font-weight: 700; } .comparison em { color: #a16207; font-size: 1rem; font-style: normal; font-weight: 800; }
+        .transfer-bottom { color: #0f7181; font-size: .82rem; font-weight: 750; margin: 13px 6px 0; text-align: center; }
         @container (max-width: 900px) { .transfer-headings, .transfer-row { gap: 12px; } .transfer-cell { padding: 8px; } .transfer-cell h4 { font-size: .72rem; } .transfer-cell p { font-size: .65rem; } }
         @container (max-width: 720px) { .transfer-prototype { overflow-x: auto; } .transfer-headings, .transfer-row { min-width: 780px; } }
         </style>
-        <div class="transfer-prototype" role="group" aria-label="Six examples of a shared model-thinking process">
+        <div class="transfer-prototype" role="group" aria-label="Five examples of a shared model-thinking process">
           <div class="transfer-headings">
             <div>QUESTION<span>What do we want to know?</span></div>
             <div>DATA TO LEARN FROM<span>What examples do we have?</span></div>
-            <div>BUILD A MODEL<span>What relationship can the model learn?</span></div>
+            <div>BUILD A MODEL<span>How can the model use the evidence?</span></div>
             <div>NEW CASE → PREDICTION<span>What does the model predict?</span></div>
             <div>TEST + QUESTION<span>How well does it work? What does it miss?</span></div>
           </div>
           <div class="transfer-row transfer-row--anchor">
             <div class="transfer-cell transfer-question"><div class="transfer-context">ANIMAL BRAINS</div><p>How big should its brain be?</p><div class="transfer-cue">mouse · cat · elephant</div></div>
-            <div class="transfer-cell"><h4>Measured mammals</h4><div class="many many--scatter">""" + "<i></i>" * 21 + """</div></div>
-            <div class="transfer-cell"><h4>Brain–body model</h4><div class="model-frame"><div class="model-brain"><i></i><i></i><i></i><i></i><i></i></div></div></div>
-            <div class="transfer-cell"><h4>New animal → predicted brain mass</h4><div class="new-case"><i>cat</i><span>→</span><b>◆</b><i>elephant</i><span>→</span><b>◆</b></div></div>
-            <div class="transfer-cell"><h4>Compare with new evidence</h4><div class="comparison"><b>◆</b><span></span><i>×</i><b>◆</b><span class="long"></span><i>×</i></div><p>Where does it work? What does it miss?</p></div>
-          </div>
-          <div class="transfer-row">
-            <div class="transfer-cell transfer-question"><div class="transfer-context">WEATHER</div><p>Will it rain tomorrow?</p></div>
-            <div class="transfer-cell"><h4>Past weather observations</h4><div class="many many--weather">""" + "<i></i>" * 21 + """</div></div>
-            <div class="transfer-cell"><h4>Weather model</h4><div class="model-frame"><div class="model-weather"><i></i><i></i><i></i><i></i></div></div></div>
-            <div class="transfer-cell"><h4>Today’s conditions → forecast</h4><div class="new-case"><i>now</i><span>→</span><b>rain?</b></div></div>
-            <div class="transfer-cell"><h4>What actually happened?</h4><p>Were these conditions unusual?</p><div class="comparison"><b>◆</b><span></span><i>?</i></div></div>
+            <div class="transfer-cell"><h4>Measured mammals</h4><div class="scatter-mini">""" + "<i></i>" * 10 + """</div></div>
+            <div class="transfer-cell"><h4>Brain–body model</h4><div class="model-frame"><div class="scatter-mini model-brain">""" + "<i></i>" * 10 + """</div></div></div>
+            <div class="transfer-cell"><h4>New animal → predicted brain mass</h4><div class="prediction-flow"><i class="new-case">cat</i><span>→</span><i class="mini-model"><svg viewBox="0 0 34 20"><path class="relationship-line" d="M2 17 L31 3"/><circle class="relationship-node--accent" cx="9" cy="13" r="2"/><circle class="relationship-node--accent" cx="20" cy="8" r="2"/></svg></i><span>→</span><b>◆</b></div></div>
+            <div class="transfer-cell"><h4>Compare with new evidence</h4><div class="comparison"><b>◆</b><span>↔</span><i>×</i><span>→</span><em>?</em></div><p>Where does it work? What does it miss?</p></div>
           </div>
           <div class="transfer-row">
             <div class="transfer-cell transfer-question"><div class="transfer-context">SPORT</div><p>How might they perform?</p></div>
             <div class="transfer-cell"><h4>Past performances + conditions</h4><div class="many">""" + "<i></i>" * 21 + """</div></div>
-            <div class="transfer-cell"><h4>Performance model</h4><div class="model-frame"><div class="model-sport"><i></i><i></i><i></i><i></i></div></div></div>
-            <div class="transfer-cell"><h4>Next event → predicted performance</h4><div class="new-case"><i>event</i><span>→</span><b>range</b></div></div>
-            <div class="transfer-cell"><h4>What happened? What changed?</h4><div class="comparison"><b>◆</b><span></span><i>?</i></div></div>
+            <div class="transfer-cell"><h4>Performance model</h4><div class="model-frame"><svg viewBox="0 0 120 32"><path class="relationship-line" d="M12 6 L63 16 L108 16 M12 26 L63 16 M35 29 L63 16"/><circle class="relationship-node" cx="12" cy="6" r="4"/><circle class="relationship-node--accent" cx="12" cy="26" r="4"/><circle class="relationship-node" cx="35" cy="29" r="4"/><circle class="relationship-node--dark" cx="63" cy="16" r="5"/><circle class="relationship-output" cx="108" cy="16" r="5"/></svg></div></div>
+            <div class="transfer-cell"><h4>Next event → predicted performance</h4><div class="prediction-flow"><i class="new-case">event</i><span>→</span><i class="mini-model"><svg viewBox="0 0 34 20"><path class="relationship-line" d="M3 4 L17 10 L31 10 M3 16 L17 10"/><circle class="relationship-node" cx="3" cy="4" r="2"/><circle class="relationship-node--dark" cx="17" cy="10" r="2.5"/></svg></i><span>→</span><b>range</b></div></div>
+            <div class="transfer-cell"><h4>What happened? What changed?</h4><div class="comparison"><b>range</b><span>↔</span><i>actual</i><span>→</span><em>?</em></div></div>
           </div>
           <div class="transfer-row">
-            <div class="transfer-cell transfer-question"><div class="transfer-context">WILDLIFE</div><p>Where might we find it?</p></div>
-            <div class="transfer-cell"><h4>Sightings + habitat</h4><div class="many">""" + "<i></i>" * 21 + """</div></div>
-            <div class="transfer-cell"><h4>Habitat model</h4><div class="model-frame"><div class="model-wildlife"></div></div></div>
-            <div class="transfer-cell"><h4>New place → likely habitat</h4><div class="new-case"><i>place</i><span>→</span><b>likely</b></div></div>
-            <div class="transfer-cell"><h4>Go and look</h4><p>Is this place like the ones the model learned from?</p></div>
+            <div class="transfer-cell transfer-question"><div class="transfer-context">WEATHER</div><p>Will it rain tomorrow?</p></div>
+            <div class="transfer-cell"><h4>Past weather observations</h4><div class="many many--weather">""" + "<i></i>" * 21 + """</div></div>
+            <div class="transfer-cell"><h4>Weather model</h4><div class="model-frame"><svg viewBox="0 0 120 32"><path class="relationship-line" d="M8 5 L45 12 L82 17 L112 16 M8 27 L45 12 M25 30 L82 17 M55 30 L82 17 M45 12 L55 30"/><circle class="relationship-node" cx="8" cy="5" r="3.5"/><circle class="relationship-node--accent" cx="8" cy="27" r="3.5"/><circle class="relationship-node" cx="25" cy="30" r="3.5"/><circle class="relationship-node--accent" cx="55" cy="30" r="3.5"/><circle class="relationship-node--dark" cx="45" cy="12" r="4.5"/><circle class="relationship-node--dark" cx="82" cy="17" r="4.5"/><circle class="relationship-output" cx="112" cy="16" r="5"/></svg></div></div>
+            <div class="transfer-cell"><h4>Today’s conditions → forecast</h4><div class="prediction-flow"><i class="new-case">now</i><span>→</span><i class="mini-model"><svg viewBox="0 0 34 20"><path class="relationship-line" d="M3 4 L17 10 L31 10 M3 16 L17 10 M11 19 L17 10"/><circle class="relationship-node" cx="3" cy="4" r="2"/><circle class="relationship-node--accent" cx="3" cy="16" r="2"/><circle class="relationship-node--dark" cx="17" cy="10" r="2.5"/></svg></i><span>→</span><b>forecast</b></div></div>
+            <div class="transfer-cell"><h4>What actually happened?</h4><div class="comparison"><b>forecast</b><span>↔</span><i>weather</i><span>→</span><em>?</em></div><p>Were these conditions unusual?</p></div>
           </div>
           <div class="transfer-row">
             <div class="transfer-cell transfer-question"><div class="transfer-context">RECOMMENDATIONS</div><p>What might you like next?</p></div>
             <div class="transfer-cell"><h4>Previous choices</h4><div class="many many--media">""" + "<i></i>" * 21 + """</div></div>
-            <div class="transfer-cell"><h4>Recommendation model</h4><div class="model-frame"><div class="model-reco"></div></div></div>
-            <div class="transfer-cell"><h4>New song or video → prediction</h4><div class="new-case"><i>new</i><span>→</span><b>fit?</b></div></div>
-            <div class="transfer-cell"><h4>Did it fit?</h4><p>What didn’t the model know about you?</p></div>
+            <div class="transfer-cell"><h4>Recommendation model</h4><div class="model-frame"><svg viewBox="0 0 120 32"><path class="relationship-line" d="M10 8 L36 7 L60 16 L36 26 L10 8 M36 7 L88 8 L108 18 L60 16 L88 8 M36 26 L76 28 L108 18 M60 16 L76 28"/><circle class="relationship-node" cx="10" cy="8" r="3.5"/><circle class="relationship-node--accent" cx="36" cy="7" r="3.5"/><circle class="relationship-node" cx="36" cy="26" r="3.5"/><circle class="relationship-node--dark" cx="60" cy="16" r="4"/><circle class="relationship-node" cx="76" cy="28" r="3.5"/><circle class="relationship-node--accent" cx="88" cy="8" r="3.5"/><circle class="relationship-node--dark" cx="108" cy="18" r="4"/></svg></div></div>
+            <div class="transfer-cell"><h4>New song or video → prediction</h4><div class="prediction-flow"><i class="new-case">new</i><span>→</span><i class="mini-model"><svg viewBox="0 0 34 20"><path class="relationship-line" d="M3 4 L17 10 L31 5 M3 16 L17 10 L31 15"/><circle class="relationship-node" cx="3" cy="4" r="2"/><circle class="relationship-node--dark" cx="17" cy="10" r="2.5"/><circle class="relationship-node" cx="31" cy="5" r="2"/></svg></i><span>→</span><b>might like</b></div></div>
+            <div class="transfer-cell"><h4>Did it fit?</h4><div class="comparison"><b>fit?</b><span>↔</span><i>play / skip</i><span>→</span><em>?</em></div><p>What didn’t the model know about you?</p></div>
           </div>
           <div class="transfer-row">
             <div class="transfer-cell transfer-question"><div class="transfer-context">LANGUAGE AI</div><p>What should come next?</p></div>
             <div class="transfer-cell"><h4>Lots of text examples</h4><div class="many many--text">""" + "<i></i>" * 16 + """</div></div>
-            <div class="transfer-cell"><h4>Language model</h4><div class="model-frame"><div class="model-language"></div></div></div>
-            <div class="transfer-cell"><h4>New prompt → predicted text</h4><div class="new-case"><i>prompt</i><span>→</span><b>text …</b></div></div>
-            <div class="transfer-cell"><h4>Does it make sense?</h4><p>Is it accurate? What needs checking?</p></div>
+            <div class="transfer-cell"><h4>Language model</h4><div class="model-frame"><svg viewBox="0 0 120 32"><path class="relationship-line" d="M5 5 L25 14 L47 5 L70 16 L94 6 L115 16 M5 27 L25 14 L47 27 L70 16 L94 27 L115 16 M25 14 L47 27 M47 5 L70 16 M70 16 L94 27 M47 27 L94 6"/><circle class="relationship-node" cx="5" cy="5" r="2.7"/><circle class="relationship-node--dark" cx="5" cy="27" r="2.7"/><circle class="relationship-node" cx="25" cy="14" r="3"/><circle class="relationship-node--accent" cx="47" cy="5" r="2.7"/><circle class="relationship-node" cx="47" cy="27" r="2.7"/><circle class="relationship-node--dark" cx="70" cy="16" r="3.2"/><circle class="relationship-node" cx="94" cy="6" r="2.7"/><circle class="relationship-node--accent" cx="94" cy="27" r="2.7"/><circle class="relationship-output" cx="115" cy="16" r="4"/></svg></div></div>
+            <div class="transfer-cell"><h4>New prompt → predicted text</h4><div class="prediction-flow"><i class="new-case">prompt</i><span>→</span><i class="mini-model"><svg viewBox="0 0 34 20"><path class="relationship-line" d="M2 4 L12 10 L22 4 L32 10 M2 16 L12 10 L22 16 L32 10 M12 10 L22 16"/><circle class="relationship-node" cx="2" cy="4" r="1.8"/><circle class="relationship-node--dark" cx="12" cy="10" r="2.2"/><circle class="relationship-node" cx="22" cy="4" r="1.8"/></svg></i><span>→</span><b>text …</b></div></div>
+            <div class="transfer-cell"><h4>Does it make sense?</h4><div class="comparison"><b>text</b><span>↔</span><i>evidence</i><span>→</span><em>?</em></div><p>Is it accurate? What needs checking?</p></div>
           </div>
           <p class="transfer-bottom">Different questions. Different data. Different models. Same way of thinking.</p>
         </div>
