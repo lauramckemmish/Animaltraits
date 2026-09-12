@@ -59,6 +59,7 @@ SEARCH_DISPLAY_COLUMNS = [
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
 CROW_IMAGE_PATH = MEDIA_DIR / "Corvus moneduloides, Sarramea, New Caledonia 1.jpg"
+DATA_SCIENCE_INFOGRAPHIC_PATH = MEDIA_DIR / "Animal_Traits_Data_Science_Transfer_Infographic_v0.11_final_candidate.png"
 
 
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
@@ -1094,21 +1095,12 @@ def render(data: pd.DataFrame) -> None:
 
     elif part == 9:
         teacher_note(
-            "Data Science transfer prototype",
+            "Data Science transfer",
             "Focus on the repeated process, not the internal algorithms.",
             "Learners may supply current examples of recommendation systems or language AI. Avoid implying that different systems use identical models; product and platform examples belong in facilitation, not this durable graphic. Keep returning to: what evidence built the model, what happens with a new case, how well did the prediction work, and what might the model miss?",
-            "2–3 min (prototype; do not rebalance the journey yet)",
+            "2–3 min",
         )
-        st.header("Same process. Different models.")
-        st.write("The model can change. The questions around it still matter.")
-        _render_data_science_transfer_prototype()
-        with soft_reveal("How does a model “learn”?"):
-            st.write(
-                "A model is built using examples we already have. In machine learning, these examples are often called training data."
-            )
-            st.write("Then the model can be given a new case and asked to make a prediction.")
-            st.write("One useful question is: **How similar is this new case to the examples the model learned from?**")
-            st.write("In the animal model, this was part of the difference between interpolation and extrapolation.")
+        st.image(DATA_SCIENCE_INFOGRAPHIC_PATH, width="stretch")
 
 
 
