@@ -7,7 +7,7 @@ replace the richer upstream AnimalTraits provenance resource.
 ## Core application dataset
 
 - **Local file:** `data/animal_traits.csv`
-- **Local role:** classroom-ready copy of the AnimalTraits dataset used by the
+- **Local role:** deterministic classroom extract from AnimalTraits used by the
   application for its animal-trait displays, summaries, charts, and models.
 - **Upstream resource recorded by this repository:**
   [AnimalTraits.org](https://animaltraits.org), the
@@ -18,17 +18,58 @@ replace the richer upstream AnimalTraits provenance resource.
 The project configuration describes AnimalTraits as a curated open database of
 terrestrial animal traits, compiled from original peer-reviewed publications,
 with body mass, metabolic rate, and brain size as its core traits. The local
-file is a smaller, classroom-ready selection of useful columns. It is adequate
-for the calculations implemented in this app, but it is not a replacement for
-the upstream resource's record-level source and methodological metadata.
+file is a smaller classroom extract. It is adequate for the calculations
+implemented in this app, but it is not the full AnimalTraits dataset or a
+replacement for the upstream resource's record-level source and methodological
+metadata.
+
+### Pinned source and regeneration
+
+The extract is generated from the AnimalTraits **v1.0.7** release at commit
+`278ddf4e899cb74989e99c6595c1db18a78d13ec`, archived as
+[Zenodo record 6468938](https://zenodo.org/records/6468938), DOI
+[10.5281/zenodo.6468938](https://doi.org/10.5281/zenodo.6468938).
+
+- **Source data file:** `observations.csv`
+- **Source metadata file:** `column-documentation.csv`
+- **Source SHA-256:**
+  `151a77e6e9d6c27878e7c94321b3d686b81088d4845c0a510fcdb0d3a45fb44d`
+- **Extraction script:** `scripts/build_classroom_dataset.py`
+
+The script requires a local copy of the pinned `observations.csv`, verifies its
+SHA-256 before writing, and never fetches data during normal application use.
+To regenerate the checked-in extract after obtaining that archived file:
+
+```bash
+python scripts/build_classroom_dataset.py --source /path/to/observations.csv
+```
+
+The script selects all 3,580 upstream observations and retains only these
+documented mappings:
+
+| Upstream field | Classroom field |
+| --- | --- |
+| `phylum`, `class`, `order`, `family`, `genus`, `species` | Same name |
+| `sex` | `study sample sex` |
+| `sampleSizeValue` | `study sample size` |
+| `body mass` | `body mass (kg)` |
+| `metabolic rate` | `metabolic rate (W)` |
+| `mass-specific metabolic rate` | `mass-specific metabolic rate (W/kg)` |
+| `brain size` | `brain size (kg)` |
+| `brain size - method` | Same name |
+
+No scientific filtering, aggregation, cleaning, unit conversion, or rounding is
+performed. Standardized numeric values and missingness are copied verbatim from
+the pinned source. The previous local extract contained undocumented numeric
+rounding in some non-mammal values; it has been superseded rather than recreated.
 
 ### Current checked-in contents
 
-At the time this document was written, `animal_traits.csv` contains **3,580
-rows**, **2,032 distinct scientific names**, and these **14 columns**:
+`animal_traits.csv` contains **3,580 rows**, **2,032 distinct scientific
+names**, and these **13 columns**:
 
-`phylum`, `class`, `order`, `family`, `genus`, `species`, `common name`,
-`study sample sex`, `study sample size`, `body mass (kg)`,
+`phylum`, `class`, `order`, `family`, `genus`, `species`, `study sample sex`,
+`study sample size`, `body mass (kg)`,
 `metabolic rate (W)`, `mass-specific metabolic rate (W/kg)`,
 `brain size (kg)`, and `brain size - method`.
 
@@ -46,18 +87,17 @@ values.
 ### Known local preparation
 
 `data.load_data` reads the CSV and normalises column-header whitespace. It does
-not alter the stored data values. Later application helpers may coerce fields
-to numeric values, map source classes to learner-facing labels, resolve display
-common names through `data/common_name_mapping.csv`, or select rows suitable
-for a specific chart or model. Those are application-time preparations, not
-changes to this checked-in CSV.
+not alter stored values. Later application helpers may coerce fields to numeric
+values, map source classes to learner-facing labels, resolve display common
+names through `data/common_name_mapping.csv`, or select rows suitable for a
+specific chart or model. Those are application-time preparations, not changes
+to this checked-in CSV.
 
-Repository configuration establishes that this is a reduced classroom copy,
-but the exact upstream snapshot, extraction date, upstream version, and
-procedure used to create the checked-in file are **not currently recorded**.
-No extraction script or manifest was found in this repository. This document
-does not infer transformations beyond the retained columns and the application
-behaviour described above.
+AnimalTraits has no upstream common-name field. The historical local `common
+name` column was not reproducibly sourced and is intentionally omitted from the
+generated extract. `data/common_name_mapping.csv`, together with the
+`Mus musculus` → `House mouse` override in `data.py`, is the single source for
+learner-facing common names.
 
 ## External comparison evidence
 
@@ -80,9 +120,6 @@ bounded science/provenance task.
 
 - The upstream AnimalTraits resource, rather than this local CSV, is the place
   to inspect record-level source citations and richer methodological metadata.
-- The exact local extraction/version history remains unknown until supported
-  provenance is added; do not guess it from the current row count or file
-  history.
 - Comparative-neurobiology support for intelligence/cognition guardrails, and
   direct sourcing for the New Caledonian crow wording, are separate future
   evidence tasks. They are not established by this data-provenance record.
