@@ -21,6 +21,12 @@ streamlit run app.py
 
 Build one experience at a time. See `ARCHITECTURE.md` before making changes.
 
+## Data provenance
+
+The canonical developer-facing record for the checked-in AnimalTraits classroom
+copy and separate cat/elephant comparison evidence is
+[`data/PROVENANCE.md`](data/PROVENANCE.md).
+
 ## Classroom concurrency release readiness
 
 Before release, run a lightweight browser smoke test for **1 → 20 → 30**
