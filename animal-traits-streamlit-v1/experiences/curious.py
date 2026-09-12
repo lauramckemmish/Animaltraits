@@ -448,87 +448,81 @@ def render(data: pd.DataFrame) -> None:
             "This scatter plot shows two measurements together. Farther right means greater body mass; higher up means greater brain mass. Can you find Human?"
         )
 
-        linear_revealed = bool(st.session_state.get("curious_step4_linear_revealed", False))
-        if not linear_revealed:
-            allow_next = False
-            if st.button("Add all the records", type="primary", key="curious_reveal_step4_linear"):
-                st.session_state["curious_step4_linear_revealed"] = True
-                st.rerun()
-        else:
-                st.markdown("### What happens when we add all the records with both measurements?")
+        if hard_reveal(
+            "",
+            "curious_step4_linear_revealed",
+            reveal_label="Add all the records",
+        ):
+            st.markdown("### What happens when we add all the records with both measurements?")
+            st.plotly_chart(
+                body_brain_scatter(data, log_x=False, log_y=False),
+                use_container_width=True,
+            )
+            st.caption("Can you see the small animals clearly? Many are compressed near the bottom-left.")
+
+            if hard_reveal(
+                "We had this problem with body mass before. What could we change?",
+                "curious_step4_log_revealed",
+                reveal_label="Try log scales on both axes",
+            ):
+                st.markdown("### Now look at the full dataset on log–log axes")
                 st.plotly_chart(
-                    body_brain_scatter(data, log_x=False, log_y=False),
+                    body_brain_scatter(data, log_x=True, log_y=True),
                     use_container_width=True,
                 )
-                st.caption("Can you see the small animals clearly? Many are compressed near the bottom-left.")
-                st.write("We had this problem with body mass before. What could we change?")
+                st.write(
+                    "The animals and measurements have not changed — only the spacing of the axes has changed. "
+                    "This makes small and large animals easier to see together."
+                )
+                st.caption("As body mass increases, what seems to happen to brain mass?")
+                st.write(
+                    "Larger animals generally tend to have larger brains, although the points do not all lie in the same place."
+                )
 
-                log_revealed = bool(st.session_state.get("curious_step4_log_revealed", False))
-                if not log_revealed:
-                    allow_next = False
-                    if st.button("Try log scales on both axes", type="primary", key="curious_reveal_step4_log"):
-                        st.session_state["curious_step4_log_revealed"] = True
-                        st.rerun()
-                else:
-                    st.markdown("### Now look at the full dataset on log–log axes")
-                    st.plotly_chart(
-                        body_brain_scatter(data, log_x=True, log_y=True),
-                        use_container_width=True,
-                    )
-                    st.write(
-                        "The animals and measurements have not changed — only the spacing of the axes has changed. "
-                        "This makes small and large animals easier to see together."
-                    )
-                    st.caption("As body mass increases, what seems to happen to brain mass?")
-                    st.write(
-                        "Larger animals generally tend to have larger brains, although the points do not all lie in the same place."
-                    )
-
-                    st.markdown("### Find an animal on the graph")
-                    st.write("Find one of the animals you searched for earlier.")
-                    history = list(st.session_state.get("curious_exploration_history", []))
-                    history_options = [""] + list(dict.fromkeys(history))
-                    previous_search = st.selectbox(
-                        "Use an earlier search (optional)",
-                        options=history_options,
-                        key="curious_step4_previous_search",
-                    )
-                    new_search = st.text_input("Or search for an animal", key="curious_step4_animal_search")
-                    selected_query = new_search.strip() or previous_search.strip()
-                    if selected_query:
-                        selected_matches = search_student_animals(data, selected_query)
-                        if selected_matches.empty:
-                            st.warning(
-                                "No match found. AnimalTraits focuses on terrestrial animals — animals that live mainly on land, "
-                                "so many marine animals are outside its scope. The spelling, name or species coverage can also explain a no-match."
+                st.markdown("### Find an animal on the graph")
+                st.write("Find one of the animals you searched for earlier.")
+                history = list(st.session_state.get("curious_exploration_history", []))
+                history_options = [""] + list(dict.fromkeys(history))
+                previous_search = st.selectbox(
+                    "Use an earlier search (optional)",
+                    options=history_options,
+                    key="curious_step4_previous_search",
+                )
+                new_search = st.text_input("Or search for an animal", key="curious_step4_animal_search")
+                selected_query = new_search.strip() or previous_search.strip()
+                if selected_query:
+                    selected_matches = search_student_animals(data, selected_query)
+                    if selected_matches.empty:
+                        st.warning(
+                            "No match found. AnimalTraits focuses on terrestrial animals — animals that live mainly on land, "
+                            "so many marine animals are outside its scope. The spelling, name or species coverage can also explain a no-match."
+                        )
+                    else:
+                        complete_matches = selected_matches.dropna(subset=["Body mass (kg)", "Brain size (kg)"])
+                        complete_matches = complete_matches[
+                            (complete_matches["Body mass (kg)"] > 0) & (complete_matches["Brain size (kg)"] > 0)
+                        ]
+                        if complete_matches.empty:
+                            st.info(
+                                "We found this animal in the dataset, but it does not have both measurements needed to place it on this graph."
                             )
                         else:
-                            complete_matches = selected_matches.dropna(subset=["Body mass (kg)", "Brain size (kg)"])
-                            complete_matches = complete_matches[
-                                (complete_matches["Body mass (kg)"] > 0) & (complete_matches["Brain size (kg)"] > 0)
-                            ]
-                            if complete_matches.empty:
-                                st.info(
-                                    "We found this animal in the dataset, but it does not have both measurements needed to place it on this graph."
-                                )
-                            else:
-                                st.caption(f"Highlighting {len(complete_matches):,} usable record(s) for {selected_query}.")
-                            st.plotly_chart(
-                                body_brain_highlight_scatter(
-                                    data,
-                                    selected_matches,
-                                    log_x=True,
-                                    log_y=True,
-                                    selected_label=selected_query,
-                                    title=f"Body mass vs brain size · {selected_query}",
-                                ),
-                                use_container_width=True,
-                            )
+                            st.caption(f"Highlighting {len(complete_matches):,} usable record(s) for {selected_query}.")
+                        st.plotly_chart(
+                            body_brain_highlight_scatter(
+                                data,
+                                selected_matches,
+                                log_x=True,
+                                log_y=True,
+                                selected_label=selected_query,
+                                title=f"Body mass vs brain size · {selected_query}",
+                            ),
+                            use_container_width=True,
+                        )
 
-                    data_science_callout(
-                        "You put two measurements together to look for a relationship."
-                    )
-                    allow_next = True
+                data_science_callout(
+                    "You put two measurements together to look for a relationship."
+                )
 
     elif part == 4:
         allow_next = False
