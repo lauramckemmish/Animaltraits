@@ -3,19 +3,18 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 import config
-from config import HERO_HOOK, SHORT_NAME, EXPERIENCE_PLAYGROUND
+from config import SHORT_NAME, EXPERIENCE_PLAYGROUND
 from experiences.catalog import experience_catalog
 from visual_system import render_resource_context
 
 def render(data: pd.DataFrame, open_experience) -> None:
-    st.title(HERO_HOOK)
+    st.title(SHORT_NAME)
     hero_visual, hero_text = st.columns([1, 1], gap="large")
     with hero_visual:
         st.image(Path(__file__).resolve().parents[1] / "assets" / "animal_traits_resource_hero.png", width="stretch")
     with hero_text:
-        st.markdown(f"### {SHORT_NAME}")
-        st.write("AnimalTraits brings together real measurements reported in scientific studies of terrestrial animals. We can use these data to explore how animal size varies, compare broad animal groups, and investigate relationships such as body mass and brain size.")
-        st.write(config.LANDING_ORIENTATION)
+        st.write("Explore real measurements of animals and investigate patterns across species.")
+        st.write("Compare animals and groups, look for relationships between traits, build models, and ask what the data can — and cannot — tell us.")
     st.markdown("## Choose an investigation")
     st.write("Follow a guided investigation designed for a classroom or workshop.")
     guided = [item for item in experience_catalog(enabled_only=True) if item["name"] != EXPERIENCE_PLAYGROUND]
