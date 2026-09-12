@@ -9,7 +9,7 @@ from visual_system import render_resource_context
 
 def render(data: pd.DataFrame, open_experience) -> None:
     st.title(HERO_HOOK)
-    hero_visual, hero_text = st.columns([2, 3], gap="large")
+    hero_visual, hero_text = st.columns([1, 1], gap="large")
     with hero_visual:
         st.image(Path(__file__).resolve().parents[1] / "assets" / "animal_traits_resource_hero.png", width="stretch")
     with hero_text:
@@ -20,7 +20,7 @@ def render(data: pd.DataFrame, open_experience) -> None:
     st.write("Follow a guided investigation designed for a classroom or workshop.")
     guided = [item for item in experience_catalog(enabled_only=True) if item["name"] != EXPERIENCE_PLAYGROUND]
     for index in range(0, len(guided), 2):
-        columns = st.columns(2)
+        columns = st.columns([3, 5] if len(guided) == 1 else 2)
         for column, experience in zip(columns, guided[index:index + 2]):
             with column:
                 with st.container(border=True):
