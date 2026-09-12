@@ -397,6 +397,10 @@ def body_brain_class_fit_scatter(
     fits: dict[str, FitResult] | None = None,
     highlighted_records: pd.DataFrame | None = None,
     highlighted_label: str = "Selected records",
+    highlighted_colour: str = "#d95f02",
+    highlighted_line_colour: str = "#7f2704",
+    comparison_points: list[dict[str, object]] | None = None,
+    model_extensions: list[dict[str, object]] | None = None,
     log_x: bool = True,
     log_y: bool = True,
     show_background: bool = True,
@@ -519,13 +523,55 @@ def body_brain_class_fit_scatter(
                 mode="markers",
                 name=highlighted_label,
                 showlegend=True,
-                marker=dict(size=12, color="#d95f02", line=dict(color="#7f2704", width=1.5)),
+                marker=dict(size=12, color=highlighted_colour, line=dict(color=highlighted_line_colour, width=1.5)),
                 customdata=np.column_stack([common_names.to_numpy(), scientific_names.to_numpy()]),
                 hovertemplate=(
                     "Common name: %{customdata[0]}<br>"
                     "Scientific name: %{customdata[1]}<br>"
                     "Body mass: %{x}<br>Brain mass: %{y}<extra></extra>"
                 ),
+            )
+        )
+
+    for point in comparison_points or []:
+        body_mass = float(point["body_mass_kg"])
+        brain_mass = float(point["brain_mass_kg"])
+        label = str(point["label"])
+        colour = str(point["colour"])
+        symbol = str(point.get("symbol", "circle"))
+        fig.add_trace(
+            go.Scatter(
+                x=[body_mass],
+                y=[brain_mass],
+                mode="markers",
+                name=label,
+                showlegend=True,
+                marker=dict(
+                    size=14,
+                    color=colour,
+                    symbol=symbol,
+                    line=dict(color="#1f2937", width=1.5),
+                ),
+                hovertemplate=(
+                    f"{label}<br>Body mass: %{{x}} kg<br>Brain mass: %{{y}} kg<extra></extra>"
+                ),
+            )
+        )
+
+    for extension in model_extensions or []:
+        fig.add_trace(
+            go.Scatter(
+                x=list(extension["x"]),
+                y=list(extension["y"]),
+                mode="lines",
+                name=str(extension["label"]),
+                showlegend=True,
+                line=dict(
+                    color=str(extension.get("colour", "#1f2937")),
+                    width=3,
+                    dash=str(extension.get("dash", "dash")),
+                ),
+                hoverinfo="skip",
             )
         )
 

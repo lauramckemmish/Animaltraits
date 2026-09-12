@@ -17,26 +17,35 @@ from charts import (
     body_brain_scatter,
     histogram,
 )
-from data import search_student_animals, student_facing_data, with_common_class_names
+from data import (
+    load_external_comparison_animals,
+    search_student_animals,
+    student_facing_data,
+    with_common_class_names,
+)
 from models import fit_relationship
 from ui_helpers import (
     data_science_callout,
+    hard_reveal,
     page_header,
-    response_box,
     scroll_to_top_if_requested,
+    soft_reveal,
     step_buttons,
     step_tabs,
     teacher_note,
 )
 
 STEP_LABELS = [
-    "Welcome",
-    "Human brain",
+    "Start",
     "Explore",
     "Size & scale",
     "Body + brain",
     "Animal groups",
-    "Smartest animal?",
+    "Mammal model",
+    "Domestic cat",
+    "African elephant",
+    "Humans in context",
+    "Cognition close",
 ]
 
 SEARCH_DISPLAY_COLUMNS = [
@@ -47,13 +56,9 @@ SEARCH_DISPLAY_COLUMNS = [
     "Brain size (kg)",
 ]
 
-WELCOME_EVOLUTION_PATH = Path(__file__).resolve().parents[1] / "assets" / "curious_welcome_evolution.png"
-CONCLUSION_EVIDENCE_PATH = Path(__file__).resolve().parents[1] / "assets" / "curious_conclusion_evidence.png"
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
-SPERM_WHALE_IMAGE_PATH = MEDIA_DIR / "6(26) Sperm whale.JPG"
 CROW_IMAGE_PATH = MEDIA_DIR / "Corvus moneduloides, Sarramea, New Caledonia 1.jpg"
-OCTOPUS_IMAGE_PATH = MEDIA_DIR / "Octopus-vulgaris.jpg"
 
 
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
@@ -151,8 +156,8 @@ def render(data: pd.DataFrame) -> None:
     part = max(0, min(part, len(STEP_LABELS) - 1))
     allow_next = True
     page_header(
-        "🧠 Who’s the Smartest Animal?",
-        subtitle="A CURIOUS data investigation of animal brains, bodies and intelligence",
+        "Animal traits: bodies and brains",
+        subtitle="A CURIOUS data investigation",
         compact=True,
     )
     _, selected = step_tabs(STEP_LABELS, "curious_step_selector", part)
@@ -164,74 +169,38 @@ def render(data: pd.DataFrame) -> None:
 
     if part == 0:
         teacher_note(
-            "Welcome",
-            "Use the illustration as a quick provocation, not as a factual model of evolution. Ask what story it appears to tell and whether that story is too simple. The fork is about how tools are used, not whether technology itself is good or bad: tools do not replace curiosity, evidence or thinking. Then move quickly into the animal-intelligence investigation.",
-            "8 min",
+            "Start with scale",
+            "Elicit estimates of two familiar body masses before learners encounter the evidence in AnimalTraits.",
+            "Ask for rough estimates, not look-ups. Keep the focus on body mass; learners meet the evidence in the next step.",
+            "4 min",
         )
-        st.header("Is this story too simple?")
-        st.image(WELCOME_EVOLUTION_PATH, use_container_width=True)
-        st.caption("AI-generated illustration, specially designed for this CURIOUS workshop.")
-        st.write("**What story is this picture telling?**")
-        st.write("**What feels funny — or maybe a bit too simple — about it?**")
-        st.write("**How could we actually figure out whether an animal is intelligent?**")
-        st.write("**What could we measure?**")
+        st.header("If you made a mouse the size of an elephant, how big would you expect its brain to be?")
+        st.write("Before we investigate that question, let’s get a feel for the difference in their sizes.")
+        st.text_area(
+            "Estimate the body mass of a mouse in kilograms.",
+            key="curious_mouse_body_mass_estimate",
+            height=100,
+        )
+        st.text_area(
+            "Estimate the body mass of an elephant in kilograms.",
+            key="curious_elephant_body_mass_estimate",
+            height=100,
+        )
         st.info(
-            "### 🔎 Data science starts with a question.\n\n**What evidence could help us investigate ours?**"
+            "### 🔎 Start with an estimate.\n\n**Next, explore AnimalTraits to find evidence about animal bodies and brains.**"
         )
 
     elif part == 1:
         allow_next = False
         teacher_note(
-            "Human evidence",
-            "Move from ideas about intelligence to a measurable feature by examining real human brain measurements.",
-            "Invite students to estimate first, then ask them to type Human and look for variation in the real records.",
-            "10 min",
-        )
-        st.header("How heavy do you think a human brain is?")
-        response_box("Estimate the mass of a human brain.", "curious_human_brain_estimate")
-        st.write("Let’s check some real measurements.")
-        st.markdown("### Start with Human")
-        st.caption("Type `Human` into the search box.")
-        query = st.text_input(
-            "Search for an animal",
-            key="curious_animal_search",
-        )
-        matches = pd.DataFrame()
-        human_found = False
-        if query.strip():
-            matches = search_student_animals(data, query)
-            if matches.empty:
-                st.warning(
-                    "No matching Human record was found. Try searching for `Human`."
-                )
-            else:
-                _render_search_results(matches, SEARCH_DISPLAY_COLUMNS)
-                if query.strip().casefold() in {"human", "homo sapiens"}:
-                    human_found = True
-                    st.write(
-                        "Was your estimate close? What measurements are available? Are all the Human records identical? "
-                        "Why might scientists have more than one measurement for humans?"
-                    )
-                    data_science_callout(
-                        "You compared a prediction with real measurements — and found that real data vary."
-                    )
-        else:
-            st.caption("Search for Human to reveal the evidence.")
-        if human_found:
-            allow_next = True
-
-    elif part == 2:
-        allow_next = False
-        teacher_note(
             "Explore the dataset",
-            "Use repeated searches to discover both useful records and the limits of the dataset before making a hypothesis.",
-            "Students can choose any animals. Count each new search attempt, whether or not it returns a match, and invite them to compare the result-level measurement completeness.",
-            "12 min",
+            "Use a few searches to discover useful records and the limits of the dataset.",
+            "Students can choose any animals. Include a no-match if one occurs, then invite a quick comparison of measurement completeness.",
+            "6 min",
         )
         st.header("What animals can we find?")
-        st.write("**Try searching for at least three different animals.**")
-        st.caption("Choose animals you’re interested in. Your searches do not all have to succeed.")
-        st.caption("Not sure what to try? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
+        st.write("Try searching for at least three animals you are interested in. A search does not have to succeed.")
+        st.caption("Need an idea? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
         animal_query = st.text_input("Search for an animal", key="curious_exploration_search")
         last_query = st.session_state.get("curious_exploration_last_query", "")
         attempts = int(st.session_state.get("curious_exploration_attempts", 0))
@@ -274,12 +243,12 @@ def render(data: pd.DataFrame) -> None:
             )
             allow_next = True
 
-    elif part == 3:
+    elif part == 2:
         teacher_note(
             "Body mass and scale",
             "Use one familiar variable to introduce range, then create the need for scientific notation and logarithmic scales rather than teaching either idea in isolation.",
-            "This is deliberately a substantial conceptual step, especially for Year 8 students. Do not expect mastery of scientific notation or logarithms. The aim is recognition: scientific notation is a shorter way to write the same extremely small number, and a logarithmic axis is a different way of spacing the same data so values across many powers of ten can be seen. Build the need for each representation first. Start with the largest value in kilograms, then show the smallest value as an ordinary decimal with all its zeros. Once that becomes awkward to read, introduce ×10ⁿ notation as a useful scientific shorthand. Next show the linear histogram and let students change the bin count. When the smaller animals remain compressed and difficult to see, use that failure to motivate the logarithmic reveal. Keep the explanation concrete and visual: students do not need to calculate logarithms. The important idea is that the dataset spans such a huge range that ordinary number-writing and ordinary linear axes become difficult to use.",
-            "15 min",
+            "Do not expect students to calculate logarithms. Build the need first: the tiny value is awkward to write, and a linear graph compresses small animals. Then show scientific notation and log spacing as useful representations of the same data.",
+            "6 min",
         )
         st.header("How can we make sense of such a huge range?")
         st.write("A **variable** is something that can vary between animals. We will begin with one familiar variable: **body mass**.")
@@ -321,16 +290,8 @@ def render(data: pd.DataFrame) -> None:
                 else:
                     st.markdown("### Now let’s look at all the body-mass measurements together.")
                     st.caption("What do you notice? Can you actually see most of the data clearly?")
-                    linear_bins = st.slider(
-                        "Number of bins for the linear histogram",
-                        min_value=5,
-                        max_value=80,
-                        value=25,
-                        step=5,
-                        key="curious_body_mass_bins",
-                    )
                     st.plotly_chart(
-                        histogram(data, "body mass (kg)", bins=linear_bins, log_x=False),
+                        histogram(data, "body mass (kg)", bins=25, log_x=False),
                         use_container_width=True,
                     )
 
@@ -343,16 +304,8 @@ def render(data: pd.DataFrame) -> None:
                             st.rerun()
                     else:
                         st.write("Can we display the same data in a way that makes the huge range easier to see?")
-                        log_bins = st.slider(
-                            "Number of bins for the log histogram",
-                            min_value=5,
-                            max_value=80,
-                            value=25,
-                            step=5,
-                            key="curious_body_mass_log_bins",
-                        )
                         st.plotly_chart(
-                            histogram(data, "body mass (kg)", bins=log_bins, log_x=True),
+                            histogram(data, "body mass (kg)", bins=25, log_x=True),
                             use_container_width=True,
                         )
                         st.write(
@@ -366,12 +319,12 @@ def render(data: pd.DataFrame) -> None:
                         )
                         allow_next = True
 
-    elif part == 4:
+    elif part == 3:
         teacher_note(
             "Two variables",
             "Move from a few familiar records to the full two-variable dataset, then reactivate the log-scale idea from Step 3 to make the full pattern easier to see.",
-            "Keep the pace conversational. Ask students to interpret positions and notice the overall relationship; do not introduce a fitted model here.",
-            "12 min",
+            "Ask students to interpret positions and notice the overall relationship; do not introduce a fitted model here.",
+            "7 min",
         )
         st.header("Do bigger animals have bigger brains?")
         st.write("A scatter plot lets us look at two variables together.")
@@ -386,29 +339,21 @@ def render(data: pd.DataFrame) -> None:
             hide_index=True,
         )
 
-        orientation_revealed = bool(st.session_state.get("curious_step4_orientation_revealed", False))
-        if not orientation_revealed:
+        st.plotly_chart(
+            body_brain_representative_scatter(orientation),
+            use_container_width=True,
+        )
+        st.caption(
+            "Farther right means greater body mass; higher up means greater brain mass. Can you find Human?"
+        )
+
+        linear_revealed = bool(st.session_state.get("curious_step4_linear_revealed", False))
+        if not linear_revealed:
             allow_next = False
-            if st.button("Show the familiar-animal points", type="primary", key="curious_reveal_step4_orientation"):
-                st.session_state["curious_step4_orientation_revealed"] = True
+            if st.button("Add all the records", type="primary", key="curious_reveal_step4_linear"):
+                st.session_state["curious_step4_linear_revealed"] = True
                 st.rerun()
         else:
-            st.plotly_chart(
-                body_brain_representative_scatter(orientation),
-                use_container_width=True,
-            )
-            st.write(
-                "Farther right means greater body mass. Higher up means greater brain mass. "
-                "Each point combines two measurements. Can you find Human? Which animals are farther right? Which are higher?"
-            )
-
-            linear_revealed = bool(st.session_state.get("curious_step4_linear_revealed", False))
-            if not linear_revealed:
-                allow_next = False
-                if st.button("Add all the records", type="primary", key="curious_reveal_step4_linear"):
-                    st.session_state["curious_step4_linear_revealed"] = True
-                    st.rerun()
-            else:
                 st.markdown("### What happens when we add all the records with both measurements?")
                 st.plotly_chart(
                     body_brain_scatter(data, log_x=False, log_y=False),
@@ -484,55 +429,43 @@ def render(data: pd.DataFrame) -> None:
                     )
                     allow_next = True
 
-    elif part == 5:
+    elif part == 4:
         allow_next = False
         teacher_note(
             "Animal class",
-            "Compare highlighted biological groups on the same full-dataset graph, then consider where Homo records sit within the relationship.",
-            "Guide students to compare at least two groups. Mammal and Reptile are the clearest default comparison; if time allows, add Homo. Students can explore other groups if they are interested. Treat the fitted lines only as visual summaries of overlapping point clouds — do not teach regression here. Keep the interpretation descriptive and avoid equating brain mass with intelligence.",
-            "10 min",
+            "Use the Mammal–Reptile comparison to show that body mass is not the only useful information for describing the pattern.",
+            "Ask students to compare Mammal and Reptile at similar body masses. Treat the lines as visual summaries, not regression lessons. The key conclusion is that future cat and elephant predictions should use the mammal relationship.",
+            "5 min",
         )
-        st.header("Does the kind of animal matter too?")
+        st.header("Does animal group change the relationship?")
         st.write(
-            "Body mass explains part of the pattern, but animals with similar body masses do not always have the same brain mass. "
-            "Could the kind of animal matter too?"
+            "Body mass explains a lot of the pattern, but animals with similar body masses do not always have the same brain mass. "
+            "Let’s compare two groups: mammals and reptiles."
         )
-        st.write(
-            "Animals can be grouped into broad biological classes. Mammals, birds and reptiles are some examples represented in this dataset."
-        )
+        st.caption("First, check how much usable body-and-brain data each class has.")
         st.plotly_chart(
             body_brain_class_sample_size_bar(data),
             use_container_width=True,
         )
-        st.write("**Which classes have lots of data? Which have only a few records?**")
+        st.caption("Mammals and reptiles both have enough records for a useful comparison.")
         class_options = sorted(
             with_common_class_names(data)["Animal class"].dropna().unique().tolist()
         )
-        species_series = data["species"].fillna("").astype(str)
-        homo_records = data[species_series.str.split().str[0].eq("Homo")]
-        group_options = class_options + (["Homo"] if not homo_records.empty else [])
         selected_groups = st.multiselect(
-            "Highlight groups",
-            options=group_options,
-            key="curious_step5_highlight_groups",
+            "Compare animal groups",
+            options=class_options,
+            default=["Mammal", "Reptile"],
+            key="curious_step5_compare_groups",
         )
-        explored_groups = set(st.session_state.get("curious_step5_explored_groups", []))
-        explored_groups.update(selected_groups)
-        st.session_state["curious_step5_explored_groups"] = sorted(explored_groups)
 
-        if not selected_groups:
-            st.caption("Choose a group to highlight and see where it sits in the full dataset.")
+        comparison_ready = {"Mammal", "Reptile"}.issubset(selected_groups)
+        if comparison_ready:
+            st.caption("At similar body masses, do the mammal and reptile points occupy the same parts of the graph?")
+            st.caption("You can add other groups after making this comparison.")
         else:
-            st.caption("What part of the overall pattern does this group occupy?")
-        st.caption("A useful comparison is Mammals and Reptiles. Try highlighting them together.")
-        st.caption("If you have time, add Homo and see where those records sit among the mammals.")
-        if len(explored_groups) < 2:
-            st.caption("Try highlighting another group so you can compare them.")
-        else:
-            st.caption("Compare the highlighted groups. Do they occupy the same parts of the graph?")
+            st.caption("Keep Mammal and Reptile selected for the comparison.")
 
-        highlighted_classes = [group for group in selected_groups if group != "Homo"]
-        homo_selected = "Homo" in selected_groups
+        highlighted_classes = selected_groups
         class_data = with_common_class_names(data)
         class_fits = {
             class_name: fit_relationship(
@@ -549,155 +482,431 @@ def render(data: pd.DataFrame) -> None:
                 data,
                 highlighted_classes=highlighted_classes,
                 fits=class_fits,
-                highlighted_records=homo_records if homo_selected else None,
-                highlighted_label="Homo records",
-                title="Highlighted groups · body mass vs brain mass",
+                title="Animal groups · body mass vs brain mass",
             ),
             use_container_width=True,
         )
-        if "Mammal" in selected_groups and "Reptile" in selected_groups:
-            st.caption("For animals with similar body masses, do mammals and reptiles seem to occupy the same parts of the graph?")
-        if homo_selected:
-            st.caption("Mammals and reptiles are animal classes. Homo is a genus within mammals. In this dataset, the Homo records are human (Homo sapiens) records.")
-            st.write(
-                "The Homo records sit relatively high in brain mass for their body mass compared with many other records in this dataset."
+        st.caption("The coloured lines are visual summaries of each group's points. You do not need to calculate anything from them.")
+
+        if comparison_ready:
+            explanation = st.text_area(
+                "In your own words, explain what the graph shows about mammals and reptiles. Which relationship should we use later for a cat or elephant, and why?",
+                key="curious_mammal_reptile_model_explanation",
+                height=120,
             )
-            st.caption(
-                "That is interesting. But does having relatively high brain mass for body size prove that an animal is more intelligent?"
-            )
-        data_science_callout(
-            "You added another piece of information — animal group — to see whether the pattern changed."
+            if explanation.strip():
+                st.success(
+                    "Mammals and reptiles do not follow exactly the same brain–body pattern. "
+                    "Because cats and elephants are mammals, a mammal-specific relationship is the more appropriate model for them."
+                )
+                allow_next = True
+            else:
+                st.caption("Use the graph to write your explanation before continuing.")
+
+    elif part == 5:
+        allow_next = False
+        teacher_note(
+            "Mammal model",
+            "Turn the visible mammal pattern into a model learners can use to make a later prediction.",
+            "Emphasise that the line summarises a typical dataset pattern, not an exact rule or a cause. Ask learners to interpret the 100× statement before continuing.",
+            "5 min",
         )
-        st.markdown("### So… does that mean humans are the smartest animals?")
-        if len(explored_groups) >= 2:
-            allow_next = True
+        st.header("A model for mammals")
+        st.write(
+            "Now let’s focus on the mammals. The line summarises the overall body-mass and brain-mass pattern in the mammal data."
+        )
+        class_data = with_common_class_names(data)
+        mammal_fit = fit_relationship(
+            class_data[class_data["Animal class"].eq("Mammal")],
+            "body mass (kg)",
+            "brain size (kg)",
+            log_x=True,
+            log_y=True,
+        )
+        if mammal_fit is None:
+            st.warning("There are not enough usable mammal records to build this model.")
+        else:
+            st.plotly_chart(
+                body_brain_class_fit_scatter(
+                    data,
+                    highlighted_classes=["Mammal"],
+                    fits={"Mammal": mammal_fit},
+                    title="Mammals · body mass vs brain mass",
+                ),
+                use_container_width=True,
+            )
+            st.caption("The line is a model: a useful summary of the pattern, not an exact rule for every mammal.")
+
+            brain_mass_factor = round(100 ** mammal_fit.slope)
+            st.info(
+                "### A useful model statement\n\n"
+                f"**Among the mammals in our dataset, animals 100× heavier tend to have brains about {brain_mass_factor}× heavier.**"
+            )
+            st.caption("This is a typical pattern, not a cause or an exact rule for every mammal.")
+            model_check = st.selectbox(
+                "What does this model statement mean?",
+                [
+                    "Choose an interpretation",
+                    f"Every mammal that is 100× heavier has a brain exactly {brain_mass_factor}× heavier.",
+                    f"A mammal that is about 100× heavier would typically be expected to have a brain about {brain_mass_factor}× heavier.",
+                    "Body mass causes brain mass to increase by the same amount in every mammal.",
+                ],
+                key="curious_mammal_model_check",
+            )
+            if model_check.startswith("A mammal that is about"):
+                st.success("Yes — this is a typical prediction from the mammal model, not an exact rule.")
+                allow_next = True
+            elif model_check != "Choose an interpretation":
+                st.caption("Look again for the answer that describes a typical pattern rather than an exact rule or a cause.")
 
     elif part == 6:
         allow_next = False
         teacher_note(
-            "Are humans the smartest animals?",
-            "Challenge overinterpretation without replacing it with another simple ranking of animals.",
-            "Reveal the challenges one at a time. Let students react before each reveal. Use the local still images as visual evidence, then return to what evidence supports and what we would investigate next.",
-            "5–7 min",
+            "Domestic cat interpolation",
+            "Use the mammal model for a new animal, then compare the prediction with separate external evidence.",
+            "Have students commit to the model prediction before revealing the separate comparison. Introduce interpolation only after the comparison: the cat's body mass is inside the model's data range.",
+            "4 min",
         )
-        st.header("🧠 Are humans the smartest animals?")
-        st.image(ELEPHANT_IMAGE_PATH, width=320)
-        st.caption("A real animal can challenge a simple ranking.")
-        st.write("**Homo looked pretty impressive in our data.**")
-        st.write("**But before we declare ourselves the winners…**")
-        st.write("**So… have we found the smartest animal?**")
-
-        opening_choice = st.session_state.get("curious_step6_opening_choice")
-        if opening_choice is None:
-            maybe_col, careful_col = st.columns(2)
-            with maybe_col:
-                if st.button("Maybe… 👀", key="curious_step6_maybe"):
-                    st.session_state["curious_step6_opening_choice"] = "Maybe!"
-                    st.rerun()
-            with careful_col:
-                if st.button("Not so fast… 🤔", key="curious_step6_not_so_fast"):
-                    st.session_state["curious_step6_opening_choice"] = "Not so fast…"
-                    st.rerun()
+        st.header("Test the mammal model: domestic cat")
+        st.write("Let’s test our mammal model on a domestic cat.")
+        external_comparisons = load_external_comparison_animals()
+        cat_records = external_comparisons[
+            external_comparisons["scientific_name"].eq("Felis catus")
+        ]
+        if cat_records.empty:
+            st.warning("The external domestic-cat comparison record is unavailable.")
         else:
-            st.write("Let’s test that idea.")
-
-            challenge_one = bool(st.session_state.get("curious_step6_challenge_one", False))
-            if not challenge_one:
-                if st.button("Reveal challenge 1", type="primary", key="curious_step6_reveal_one"):
-                    st.session_state["curious_step6_challenge_one"] = True
-                    st.rerun()
+            cat = cat_records.iloc[0]
+            cat_body_mass = float(cat["body_mass_kg"])
+            cat_brain_mass = float(cat["brain_mass_kg"])
+            class_data = with_common_class_names(data)
+            mammal_fit = fit_relationship(
+                class_data[class_data["Animal class"].eq("Mammal")],
+                "body mass (kg)",
+                "brain size (kg)",
+                log_x=True,
+                log_y=True,
+            )
+            if mammal_fit is None:
+                st.warning("There are not enough usable mammal records to make this prediction.")
             else:
-                st.markdown("### 🐘 Challenge 1 · Biggest brain wins?")
-                st.write("**Humans don’t have the biggest brains.**")
-                st.write(
-                    "A human brain is roughly **1.3 kg**. An African elephant brain is roughly **5 kg**. "
-                    "A sperm whale brain can be around **8 kg**."
+                predicted_cat_brain_mass = (
+                    10 ** mammal_fit.intercept * cat_body_mass ** mammal_fit.slope
                 )
-                st.write("**So absolute brain mass cannot be a simple intelligence score.**")
-                elephant_col, whale_col = st.columns(2)
-                with elephant_col:
-                    st.image(ELEPHANT_IMAGE_PATH, use_container_width=True)
-                    st.caption("African bush elephant")
-                with whale_col:
-                    st.image(SPERM_WHALE_IMAGE_PATH, use_container_width=True)
-                    st.caption("Sperm whale")
-                st.write("And hang on — where were the elephant and sperm whale on our graph?")
-                st.write("**They weren’t there.**")
-                st.write(
-                    "AnimalTraits focuses on **terrestrial animals**, but that does not mean it contains every terrestrial species. "
-                    "The elephant is terrestrial, yet it is absent from this dataset; we do not know from the dataset why it is absent. "
-                    "The sperm whale is absent too because marine animals are outside the dataset’s main scope. "
-                    "**A dataset can only answer questions about what it contains.**"
+                predicted_cat_brain_grams = predicted_cat_brain_mass * 1000
+                st.write(f"The cat’s body mass is about **{cat_body_mass:.1f} kg**.")
+                st.info(
+                    f"### Mammal-model prediction\n\n"
+                    f"**For a {cat_body_mass:.1f} kg cat, the model predicts a brain mass of about {predicted_cat_brain_grams:.1f} g.**"
                 )
-                challenge_two = bool(st.session_state.get("curious_step6_challenge_two", False))
-                if not challenge_two:
-                    if st.button("Reveal challenge 2", type="primary", key="curious_step6_reveal_two"):
-                        st.session_state["curious_step6_challenge_two"] = True
-                        st.rerun()
+                prediction_choice = st.selectbox(
+                    "Before we compare with new evidence, which prediction should we test?",
+                    [
+                        "Choose the model prediction",
+                        f"About {predicted_cat_brain_grams:.1f} g",
+                        "About 2.8 g",
+                        "About 284 g",
+                    ],
+                    key="curious_cat_prediction_choice",
+                )
+                prediction_ready = prediction_choice == f"About {predicted_cat_brain_grams:.1f} g"
+                if not prediction_ready:
+                    st.caption("Use the mammal-model prediction above, then choose it before seeing the comparison value.")
                 else:
-                    st.markdown("### 🐦 Challenge 2 · What about a tiny clever brain?")
-                    st.write("**New Caledonian crows make the story harder again.**")
-                    st.write(
-                        "They can solve problems and use tools, even though their brains are tiny in absolute mass compared with ours. "
-                        "Corvid and parrot brains can also pack very large numbers of neurons into a relatively small brain."
+                    prediction_point = {
+                        "label": "Cat model prediction",
+                        "body_mass_kg": cat_body_mass,
+                        "brain_mass_kg": predicted_cat_brain_mass,
+                        "colour": "#2563eb",
+                        "symbol": "diamond",
+                    }
+                    cat_value_revealed = hard_reveal(
+                        "You have a model prediction. Are you ready to compare it with separate evidence about a real cat?",
+                        "curious_cat_external_value_revealed",
+                        reveal_label="Reveal the external cat value",
+                        pre_reveal_label="Test the prediction",
+                        pre_reveal_guidance="The external comparison value stays hidden until you choose to reveal it.",
                     )
-                    st.write("**So does brain mass alone tell us what a brain can do?**")
-                    st.image(CROW_IMAGE_PATH, use_container_width=True)
-                    st.caption("New Caledonian crow (*Corvus moneduloides*)")
-                    challenge_three = bool(st.session_state.get("curious_step6_challenge_three", False))
-                    if not challenge_three:
-                        if st.button("Reveal challenge 3", type="primary", key="curious_step6_reveal_three"):
-                            st.session_state["curious_step6_challenge_three"] = True
-                            st.rerun()
-                    else:
-                        st.markdown("### 🐙 Challenge 3 · What even counts as a brain?")
-                        st.write("**Octopuses make the story stranger again.**")
-                        st.write(
-                            "Octopuses can learn and adapt when a problem changes. But their nervous system is organised very differently from ours: "
-                            "much of their neural circuitry is distributed through their arms, not only in one central brain."
+                    comparison_points = [prediction_point]
+                    if cat_value_revealed:
+                        comparison_points.append(
+                            {
+                                "label": "External cat comparison",
+                                "body_mass_kg": cat_body_mass,
+                                "brain_mass_kg": cat_brain_mass,
+                                "colour": "#d946ef",
+                                "symbol": "x",
+                            }
                         )
-                        st.write("**If we only weigh the central brain, are we measuring everything that matters?**")
-                        st.image(OCTOPUS_IMAGE_PATH, use_container_width=True)
-                        st.caption("*Octopus vulgaris*")
-                        st.markdown("### So what would we investigate next?")
-                        st.write("**Brain mass gave us one clue.**")
-                        st.write(
-                            "**If we really wanted to investigate animal intelligence, what else could we measure or observe?**"
+                    st.plotly_chart(
+                        body_brain_class_fit_scatter(
+                            data,
+                            highlighted_classes=["Mammal"],
+                            fits={"Mammal": mammal_fit},
+                            comparison_points=comparison_points,
+                            title="Domestic cat · model prediction and external comparison",
+                        ),
+                        width="stretch",
+                    )
+                    st.caption(
+                        "Orange circles are AnimalTraits mammal observations; the black line is the mammal model; "
+                        "the blue diamond is the cat model prediction."
+                    )
+                    if cat_value_revealed:
+                        external_cat_brain_grams = cat_brain_mass * 1000
+                        st.success(
+                            f"**External cat comparison: {external_cat_brain_grams:.1f} g brain mass.**"
                         )
-                        st.caption(
-                            "You might think about problem solving, learning, memory, communication, "
-                            "tool use, social behaviour, or brain structure."
+                        st.write(
+                            f"The model predicts about {predicted_cat_brain_grams:.1f} g, while the separate cat comparison value is {external_cat_brain_grams:.1f} g. "
+                            "The model gets reasonably close, but it does not need to predict every animal exactly."
+                        )
+                        st.caption("The pink × is the external cat comparison value, kept separate from AnimalTraits.")
+                        with soft_reveal("How do we know this?"):
+                            st.write(
+                                "Scientists have measured cats in different studies, so there isn’t one perfect body mass or brain mass for every cat."
+                            )
+                            st.write(
+                                "We’re using a representative value from the Translating Time scientific database: about 4.0 kg body mass and 28.4 g brain mass."
+                            )
+                            st.write(
+                                "This cat value was not part of our original AnimalTraits dataset. We’ve kept it separate so we can test our model using new evidence."
+                            )
+                            st.caption("Source: Translating Time; Workman et al. (2013).")
+                        st.write(
+                            "The cat’s 4.0 kg body mass sits inside the range of mammal body masses used to build our model. "
+                            "Using a model inside the range of data that built it is called **interpolation**."
                         )
                         data_science_callout(
-                            "You found a pattern — and then challenged your own explanation."
+                            "You used a model to make a prediction, then tested it with new evidence."
                         )
-                        st.markdown("## 🔎 Look what you just did.")
-                        st.write(
-                            "**Question → real data → explore → visualise → compare → find patterns → challenge the story**"
-                        )
-                        st.write("**That’s data science.**")
-                        st.markdown("# Is this story too simple?")
-                        st.image(CONCLUSION_EVIDENCE_PATH, use_container_width=True)
-                        st.caption("AI-generated illustration, specially designed for this CURIOUS workshop.")
-                        st.write("At the start, we looked at a neat story about evolution and intelligence.")
-                        st.write("Our data helped us build a better story.")
-                        st.write("**But even that story has limits.**")
-                        st.success(
-                            "**Good science is not about finding the neatest story.** "
-                            "It is about asking what the evidence supports, what it does not support, "
-                            "and what we would investigate next."
-                        )
-
-                        with st.expander("Sources and media credits"):
-                            st.markdown(
-                                "Crow video: Taylor A, Medina F, Holzhaider J, Hearne L, Hunt G & Gray R, "
-                                "PLOS ONE (2010), DOI 10.1371/journal.pone.0009345.s001, CC BY 2.5.  \n"
-                                "Octopus video: Richter J, Hochner B & Kuba M, PLOS ONE (2016), "
-                                "DOI 10.1371/journal.pone.0152048.s004, CC BY 4.0.  \n"
-                                "The elephant, sperm whale, crow and octopus stills are CC0 Wikimedia Commons sources. "
-                                "See `assets/MEDIA_SOURCES.md` for complete local filenames, source pages, and retrieval details."
-                            )
                         allow_next = True
+
+    elif part == 7:
+        allow_next = False
+        teacher_note(
+            "African elephant extrapolation",
+            "Use the mammal model beyond the range of data that built it, then compare that prediction with separate external evidence.",
+            "Return briefly to the opening question. The model remains useful, but its prediction is less certain because the elephant is beyond the mammal data range. Introduce extrapolation after students confront that limitation, then reveal the separate comparison.",
+            "6 min",
+        )
+        st.header("Returning to the elephant")
+        st.write("Now let’s return to the elephant from our starting question.")
+        external_comparisons = load_external_comparison_animals()
+        elephant_records = external_comparisons[
+            external_comparisons["scientific_name"].eq("Loxodonta africana")
+        ]
+        if elephant_records.empty:
+            st.warning("The external African savanna elephant comparison record is unavailable.")
+        else:
+            elephant = elephant_records.iloc[0]
+            elephant_body_mass = float(elephant["body_mass_kg"])
+            elephant_brain_mass = float(elephant["brain_mass_kg"])
+            class_data = with_common_class_names(data)
+            mammal_data = class_data[class_data["Animal class"].eq("Mammal")].copy()
+            for column in ["body mass (kg)", "brain size (kg)"]:
+                mammal_data[column] = pd.to_numeric(mammal_data[column], errors="coerce")
+            mammal_data = mammal_data.dropna(subset=["body mass (kg)", "brain size (kg)"])
+            mammal_data = mammal_data[
+                (mammal_data["body mass (kg)"] > 0)
+                & (mammal_data["brain size (kg)"] > 0)
+            ]
+            mammal_fit = fit_relationship(
+                mammal_data,
+                "body mass (kg)",
+                "brain size (kg)",
+                log_x=True,
+                log_y=True,
+            )
+            if mammal_fit is None or mammal_data.empty:
+                st.warning("There are not enough usable mammal records to make this prediction.")
+            else:
+                mammal_body_mass_max = float(mammal_data["body mass (kg)"].max())
+                predicted_elephant_brain_mass = (
+                    10 ** mammal_fit.intercept * elephant_body_mass ** mammal_fit.slope
+                )
+                predicted_at_mammal_max = (
+                    10 ** mammal_fit.intercept * mammal_body_mass_max ** mammal_fit.slope
+                )
+                st.write(
+                    f"The African savanna elephant comparison has a body mass of about **{elephant_body_mass:,.0f} kg**."
+                )
+                st.info(
+                    f"The largest body mass in the mammal data used to build this model is **{mammal_body_mass_max:,.0f} kg**. "
+                    f"At {elephant_body_mass:,.0f} kg, the elephant sits well beyond that range."
+                )
+                trust_judgement = st.selectbox(
+                    "Would you trust this prediction as much as the cat prediction?",
+                    [
+                        "Choose an answer",
+                        "Yes — just as much, because both animals are mammals.",
+                        "Less — the elephant is outside the body-mass range used to build the model.",
+                        "Not at all — models cannot predict new animals.",
+                    ],
+                    key="curious_elephant_trust_judgement",
+                )
+                if trust_judgement == "Less — the elephant is outside the body-mass range used to build the model.":
+                    st.success(
+                        "Yes — the mammal model is useful, but this prediction is less certain because it reaches far beyond the evidence used to build it."
+                    )
+                elif trust_judgement != "Choose an answer":
+                    st.caption("Think about whether the elephant's body mass is inside or outside the data range used to build the model.")
+
+                st.info(
+                    f"### Mammal-model prediction\n\n"
+                    f"**For a {elephant_body_mass:,.0f} kg elephant, the model predicts a brain mass of about {predicted_elephant_brain_mass:.1f} kg.**"
+                )
+                st.write(
+                    "The elephant is outside the range of body masses used to build our mammal model. "
+                    "Using a model beyond the range of the data that built it is called **extrapolation**."
+                )
+                prediction_point = {
+                    "label": "Elephant model prediction",
+                    "body_mass_kg": elephant_body_mass,
+                    "brain_mass_kg": predicted_elephant_brain_mass,
+                    "colour": "#2563eb",
+                    "symbol": "diamond",
+                }
+                elephant_value_revealed = hard_reveal(
+                    "You have seen an out-of-range model prediction. Are you ready to compare it with separate evidence about an African savanna elephant?",
+                    "curious_elephant_external_value_revealed",
+                    reveal_label="Reveal the external elephant value",
+                    pre_reveal_label="Test the extrapolation",
+                    pre_reveal_guidance="The external comparison value stays hidden until you choose to reveal it.",
+                )
+                comparison_points = [prediction_point]
+                if elephant_value_revealed:
+                    comparison_points.append(
+                        {
+                            "label": "External elephant comparison",
+                            "body_mass_kg": elephant_body_mass,
+                            "brain_mass_kg": elephant_brain_mass,
+                            "colour": "#d946ef",
+                            "symbol": "x",
+                        }
+                    )
+                st.plotly_chart(
+                    body_brain_class_fit_scatter(
+                        data,
+                        highlighted_classes=["Mammal"],
+                        fits={"Mammal": mammal_fit},
+                        comparison_points=comparison_points,
+                        model_extensions=[
+                            {
+                                "label": "Model extended beyond mammal data",
+                                "x": [mammal_body_mass_max, elephant_body_mass],
+                                "y": [predicted_at_mammal_max, predicted_elephant_brain_mass],
+                                "colour": "#1f2937",
+                                "dash": "dash",
+                            }
+                        ],
+                        title="African elephant · model prediction and external comparison",
+                    ),
+                    width="stretch",
+                )
+                st.caption(
+                    "Orange circles are AnimalTraits mammal observations; the solid black line is the mammal model within its data range; "
+                    "the dashed black line extends that model beyond the data range; the blue diamond is the elephant model prediction."
+                )
+                if elephant_value_revealed:
+                    st.success(
+                        f"**External elephant comparison: {elephant_brain_mass:.3f} kg brain mass.**"
+                    )
+                    st.write(
+                        f"The model predicts about {predicted_elephant_brain_mass:.1f} kg, while this published elephant comparison is about {elephant_brain_mass:.3f} kg. "
+                        "The prediction is much further away than it was for the cat."
+                    )
+                    st.write(
+                        "The mammal relationship is still useful, but predictions become less certain when we use the model far beyond the data that built it."
+                    )
+                    st.caption("The pink × is the external elephant comparison value, kept separate from AnimalTraits.")
+                    with soft_reveal("How do we know this?"):
+                        st.write(
+                            "Individual elephants vary, so these numbers are not the exact body and brain mass of every African savanna elephant."
+                        )
+                        st.write(
+                            "We’re using a published comparison from a scientific study: about 5,550 kg body mass and 4.871 kg brain mass."
+                        )
+                        st.write(
+                            "This elephant was not part of our original AnimalTraits dataset. We’ve kept it separate so we can test our model using new evidence."
+                        )
+                        st.caption("Source: Benoit et al. (2019).")
+                    data_science_callout(
+                        "You used a model beyond its data range, then tested that extrapolation with new evidence."
+                    )
+                    allow_next = True
+
+    elif part == 8:
+        allow_next = False
+        teacher_note(
+            "Humans in context",
+            "Interpret the Homo records within the mammal relationship without treating relative brain size as an intelligence score.",
+            "Let students notice where the Homo sapiens records sit. Give the guardrail: relative brain size can be informative without being an intelligence ranking. Avoid language such as 'above the line means smarter.'",
+            "4 min",
+        )
+        st.header("Humans in the mammal pattern")
+        st.write("Now we can return to the Homo records in AnimalTraits.")
+        homo_records = data[
+            data["species"].fillna("").astype(str).str.split().str[0].eq("Homo")
+        ]
+        class_data = with_common_class_names(data)
+        mammal_fit = fit_relationship(
+            class_data[class_data["Animal class"].eq("Mammal")],
+            "body mass (kg)",
+            "brain size (kg)",
+            log_x=True,
+            log_y=True,
+        )
+        if homo_records.empty or mammal_fit is None:
+            st.warning("The Homo records or mammal model are unavailable for this comparison.")
+        else:
+            st.plotly_chart(
+                body_brain_class_fit_scatter(
+                    data,
+                    highlighted_classes=["Mammal"],
+                    fits={"Mammal": mammal_fit},
+                    highlighted_records=homo_records,
+                    highlighted_label="Homo sapiens records",
+                    highlighted_colour="#7c3aed",
+                    highlighted_line_colour="#4c1d95",
+                    title="Homo among mammals · body mass vs brain mass",
+                ),
+                width="stretch",
+            )
+            st.caption(
+                "Orange circles are AnimalTraits mammal observations; the black line summarises the mammal pattern; "
+                "purple markers show the individual Homo sapiens records."
+            )
+            st.write(
+                "The Homo records sit relatively high in brain mass for their body masses compared with the typical mammal pattern in this dataset."
+            )
+            st.info("**Brain size relative to body size is biologically informative, but it is not an intelligence score.**")
+            allow_next = True
+
+    elif part == 9:
+        teacher_note(
+            "Cognition close",
+            "Use one counterexample to show why a useful biological variable is not a complete explanation of cognition.",
+            "Keep the crow example brief. It is not a second ranking task: use it to ask what body and brain mass leave out. If asked, cognition also depends on brain organisation, ecology and behaviour.",
+            "3 min",
+        )
+        st.header("One variable cannot explain cognition completely")
+        st.write("New Caledonian crows can solve problems and use tools.")
+        st.image(CROW_IMAGE_PATH, width="stretch")
+        st.caption("New Caledonian crow (*Corvus moneduloides*)")
+        st.write(
+            "Their example reminds us that sophisticated cognition can be supported by nervous systems organised differently from our own. "
+            "Brain and body mass alone do not tell the whole story."
+        )
+        st.markdown("### Final takeaway")
+        st.success("**A useful variable is not the same thing as a complete model.**")
+        st.write(
+            "Body mass was useful. Brain mass added information. Animal group mattered. "
+            "The mammal model made useful predictions, and interpolation was more reliable than extrapolation. "
+            "Even relative brain size cannot fully explain intelligence or cognition."
+        )
+
+
 
     step_buttons(
         STEP_LABELS,

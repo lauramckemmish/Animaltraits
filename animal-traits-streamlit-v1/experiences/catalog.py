@@ -17,8 +17,8 @@ from config import (
 EXPERIENCES = [
     {
         "name": EXPERIENCE_CURIOUS,
-        "label": "🧠 Who’s the Smartest Animal?",
-        "summary": "Use real animal data to investigate brains, body size and the surprisingly difficult question of animal intelligence.",
+        "label": "🧠 Brains, bodies and models",
+        "summary": "Use real animal data to explore body size, brain mass and the strengths and limits of models.",
         "enabled": True,
     },
     {

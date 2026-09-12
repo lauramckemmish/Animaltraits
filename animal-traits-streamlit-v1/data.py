@@ -13,6 +13,25 @@ import streamlit as st
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_DATA_PATH = APP_DIR / "data" / "animal_traits.csv"
 COMMON_NAME_MAPPING_PATH = APP_DIR / "data" / "common_name_mapping.csv"
+EXTERNAL_COMPARISON_ANIMALS_PATH = APP_DIR / "data" / "external_comparison_animals.csv"
+
+# Small, auditable corrections for source-dataset common names known to be wrong.
+# Scientific names remain the canonical identity throughout the application.
+COMMON_NAME_OVERRIDES = {
+    "Mus musculus": "House mouse",
+}
+
+EXTERNAL_COMPARISON_ANIMAL_FIELDS = [
+    "common_name",
+    "scientific_name",
+    "body_mass_kg",
+    "brain_mass_kg",
+    "comparison_role",
+    "source_reference",
+    "source_type",
+    "provenance_note",
+    "source_verification_status",
+]
 
 CLASS_LABELS = {
     "Amphibia": "Amphibian",
@@ -60,6 +79,26 @@ def load_data(path: str | Path = DEFAULT_DATA_PATH) -> pd.DataFrame:
     return data
 
 
+@st.cache_data
+def load_external_comparison_animals(
+    path: str | Path = EXTERNAL_COMPARISON_ANIMALS_PATH,
+) -> pd.DataFrame:
+    """Load externally sourced comparison records kept separate from AnimalTraits."""
+    comparisons = pd.read_csv(path, keep_default_na=False)
+    missing_fields = set(EXTERNAL_COMPARISON_ANIMAL_FIELDS).difference(comparisons.columns)
+    if missing_fields:
+        raise ValueError(
+            "External comparison data is missing required fields: "
+            f"{', '.join(sorted(missing_fields))}."
+        )
+    comparisons = comparisons[EXTERNAL_COMPARISON_ANIMAL_FIELDS].copy()
+    for field in ["body_mass_kg", "brain_mass_kg"]:
+        comparisons[field] = pd.to_numeric(comparisons[field], errors="raise")
+    if (comparisons[["body_mass_kg", "brain_mass_kg"]] <= 0).any().any():
+        raise ValueError("External comparison masses must be positive.")
+    return comparisons
+
+
 def column_profile(data: pd.DataFrame) -> dict[str, list[str]]:
     numeric = data.select_dtypes(include="number").columns.tolist()
     categorical = [column for column in data.columns if column not in numeric]
@@ -69,6 +108,7 @@ def column_profile(data: pd.DataFrame) -> dict[str, list[str]]:
 def with_common_class_names(data: pd.DataFrame) -> pd.DataFrame:
     prepared = data.copy()
     prepared["Animal class"] = prepared["class"].map(CLASS_LABELS)
+    prepared["common name"] = resolve_common_names(prepared["species"])
     return prepared
 
 
@@ -78,22 +118,21 @@ def load_common_name_mapping(path: str | Path = COMMON_NAME_MAPPING_PATH) -> pd.
     return mapping.set_index("scientific_name", drop=False)
 
 
+def resolve_common_names(scientific_names: pd.Series) -> pd.Series:
+    """Resolve display names with audited overrides, mapping values, then scientific names."""
+    normalized_names = scientific_names.fillna("").astype(str).str.strip()
+    mapping = load_common_name_mapping()
+    mapped_names = normalized_names.map(mapping["common_name"])
+    mapped_names = mapped_names.where(mapped_names.notna() & mapped_names.ne(""), normalized_names)
+    return normalized_names.map(COMMON_NAME_OVERRIDES).fillna(mapped_names)
+
+
 def student_facing_data(data: pd.DataFrame) -> pd.DataFrame:
     """Return the small, student-facing view while preserving raw source data elsewhere."""
-    mapping = load_common_name_mapping()
     prepared = data.copy()
     prepared["Scientific name"] = prepared["species"].fillna("").astype(str).str.strip()
     prepared["Animal class"] = prepared["class"].map(CLASS_LABELS)
-    prepared = prepared.join(
-        mapping[["common_name", "match_status"]].rename(
-            columns={"common_name": "_resolved_common_name", "match_status": "_common_name_status"}
-        ),
-        on="Scientific name",
-    )
-    prepared["Common name"] = prepared["_resolved_common_name"].where(
-        prepared["_resolved_common_name"].notna() & prepared["_resolved_common_name"].ne(""),
-        prepared["Scientific name"],
-    )
+    prepared["Common name"] = resolve_common_names(prepared["Scientific name"])
     prepared["Body mass (kg)"] = pd.to_numeric(prepared["body mass (kg)"], errors="coerce")
     prepared["Brain size (kg)"] = pd.to_numeric(prepared["brain size (kg)"], errors="coerce")
     prepared["Metabolic rate (W)"] = pd.to_numeric(prepared["metabolic rate (W)"], errors="coerce")
