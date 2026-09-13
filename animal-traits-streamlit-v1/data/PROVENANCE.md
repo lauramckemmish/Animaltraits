@@ -73,10 +73,10 @@ names**, and these **13 columns**:
 `metabolic rate (W)`, `mass-specific metabolic rate (W/kg)`,
 `brain size (kg)`, and `brain size - method`.
 
-The application treats rows as records, not as one canonical value per species.
-Some species have multiple rows (413 species currently do). This is why an
-application view may use all suitable records for a chart or model, or a
-per-species median for a familiar-animal orientation view.
+The pinned file remains an **observation-level** extract. Some species have
+multiple rows (413 species currently do), and those rows remain available as
+the source/provenance layer. They are not overwritten or presented as if they
+were a single canonical value per species.
 
 The current file has 724 rows without a body-mass value, 1,219 rows without a
 brain-size value, and 1,639 rows with both values present. Body–brain charts
@@ -98,6 +98,30 @@ name` column was not reproducibly sourced and is intentionally omitted from the
 generated extract. `data/common_name_mapping.csv`, together with the
 `Mus musculus` → `House mouse` override in `data.py`, is the single source for
 learner-facing common names.
+
+## CURIOUS species-level analytical data
+
+For CURIOUS's cross-species classroom investigation, the selected analytical
+unit is one species rather than one underlying AnimalTraits observation. This
+is a local analytical decision for that investigation, not a claim that this is
+the only scientifically valid way to analyse AnimalTraits.
+
+The transformation in `data.species_traits_from_observations` follows the
+AnimalTraits authors' documented `SpeciesTraitsFromObservations` procedure in
+[`R/AT-functions.R` at the pinned release](https://github.com/animaltraits/animaltraits.github.io/blob/278ddf4e899cb74989e99c6595c1db18a78d13ec/R/AT-functions.R): it expands each
+observation by its recorded sample size, combines sexes, excludes
+morphospecies (`sp.`/`spp.`), and takes a mean independently for each available
+trait. CURIOUS uses that function's documented `groupOnSpeciesOnly` option so
+each scientific name contributes exactly one analytical row even if source rows
+have inconsistent higher taxonomic labels. Missing traits remain missing; no
+trait value is created without source evidence.
+
+The derived frame is created at application runtime from the pinned
+observation-level CSV and is not checked in as a replacement dataset. In the
+current pinned extract it contains **1,943 species-level rows**. CURIOUS uses
+this derived data for its open exploration, body/brain graphs, animal-group
+comparison, mammal model, and cat and elephant predictions. The pinned CSV
+continues to be the source for provenance and record-level evidence.
 
 ## External comparison evidence
 

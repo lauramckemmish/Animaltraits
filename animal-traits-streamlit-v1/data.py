@@ -71,12 +71,86 @@ TRAIT_DESCRIPTIONS = {
 
 CORE_TRAITS = list(TRAIT_OPTIONS.values())
 
+# AnimalTraits' ``SpeciesTraitsFromObservations`` procedure expands
+# observations by sample size, excludes morphospecies, ignores sex while
+# grouping, and calculates an arithmetic mean for each trait.  CURIOUS uses
+# its documented ``groupOnSpeciesOnly`` option: one scientific name is one
+# analytical unit even where source rows disagree on a higher taxonomic rank.
+_SPECIES_METADATA_COLUMNS = ["phylum", "class", "order", "family", "genus"]
+_SPECIES_GROUP_COLUMNS = ["species"]
+
 
 @st.cache_data
 def load_data(path: str | Path = DEFAULT_DATA_PATH) -> pd.DataFrame:
     data = pd.read_csv(path)
     data.columns = data.columns.str.strip().str.replace("\u00a0", " ", regex=True)
     return data
+
+
+def species_traits_from_observations(data: pd.DataFrame) -> pd.DataFrame:
+    """Derive AnimalTraits-style species traits from observation-level data.
+
+    This is the local equivalent of AnimalTraits'
+    ``SpeciesTraitsFromObservations`` with its documented species-only grouping
+    setting: observations are weighted by documented study sample size, sexes
+    are combined, and morphospecies (for example, ``Lycosa sp.``) are excluded.
+    Each trait is averaged independently over its available source
+    observations, preserving missing values when a species has no evidence for
+    that trait.
+
+    The returned frame is an analytical transformation.  It never replaces the
+    pinned observation-level source returned by :func:`load_data`.
+    """
+    required = set(
+        _SPECIES_METADATA_COLUMNS
+        + _SPECIES_GROUP_COLUMNS
+        + ["study sample size", *CORE_TRAITS]
+    )
+    missing_columns = required.difference(data.columns)
+    if missing_columns:
+        raise ValueError(
+            "AnimalTraits data is missing fields required for species aggregation: "
+            f"{', '.join(sorted(missing_columns))}."
+        )
+
+    observations = data.copy()
+    species = observations["species"].fillna("").astype(str).str.strip()
+    # The upstream function checks ``specificEpithet`` for sp., spp., and numbered
+    # variants.  The classroom extract retains the complete species name, so the
+    # final taxonomic component is the equivalent available field.
+    specific_epithet = species.str.split().str[-1].fillna("")
+    morphospecies = specific_epithet.str.match(r"^sp\.?[0-9\s]*$|^spp\..*$", case=False)
+    observations = observations.loc[~morphospecies].copy()
+
+    weights = pd.to_numeric(observations["study sample size"], errors="coerce")
+    if weights.isna().any() or (weights < 1).any() or (weights % 1 != 0).any():
+        raise ValueError("AnimalTraits study sample sizes must be positive whole numbers.")
+    observations["_sample_weight"] = weights.astype(float)
+
+    for trait in CORE_TRAITS:
+        observations[trait] = pd.to_numeric(observations[trait], errors="coerce")
+
+    grouped = observations.groupby(_SPECIES_GROUP_COLUMNS, dropna=False, sort=False)
+    metadata = grouped[_SPECIES_METADATA_COLUMNS].first().reset_index()
+    result = grouped.size().rename("_source_observation_count").reset_index().merge(
+        metadata, on=_SPECIES_GROUP_COLUMNS, how="left", validate="one_to_one"
+    )
+    for trait in CORE_TRAITS:
+        available = observations.dropna(subset=[trait])
+        weighted = (
+            available.assign(_weighted_trait=available[trait] * available["_sample_weight"])
+            .groupby(_SPECIES_GROUP_COLUMNS, dropna=False, sort=False)
+            .agg(_weighted_sum=("_weighted_trait", "sum"), _weight=("_sample_weight", "sum"))
+            .reset_index()
+        )
+        weighted[trait] = weighted["_weighted_sum"] / weighted["_weight"]
+        result = result.merge(
+            weighted[_SPECIES_GROUP_COLUMNS + [trait]],
+            on=_SPECIES_GROUP_COLUMNS,
+            how="left",
+            validate="one_to_one",
+        )
+    return result
 
 
 @st.cache_data

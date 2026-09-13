@@ -20,6 +20,7 @@ from charts import (
 from data import (
     load_external_comparison_animals,
     search_student_animals,
+    species_traits_from_observations,
     student_facing_data,
     with_common_class_names,
 )
@@ -71,7 +72,7 @@ def _body_mass_values(data: pd.DataFrame) -> pd.Series:
 
 
 def _curious_orientation_animals(data: pd.DataFrame) -> pd.DataFrame:
-    """Return verified median records for a few familiar orientation animals."""
+    """Return a few familiar animals from CURIOUS's species-level dataset."""
     candidates = [
         ("Human", "Homo sapiens"),
         ("Eastern Grey Kangaroo", "Macropus giganteus"),
@@ -79,22 +80,20 @@ def _curious_orientation_animals(data: pd.DataFrame) -> pd.DataFrame:
         ("Domestic Dog", "Canis familiaris"),
         ("Hazel Dormouse", "Muscardinus avellanarius"),
     ]
-    usable = data.copy()
-    for column in ["body mass (kg)", "brain size (kg)"]:
-        usable[column] = pd.to_numeric(usable[column], errors="coerce")
-    usable = usable.dropna(subset=["species", "body mass (kg)", "brain size (kg)"])
+    usable = data.dropna(subset=["species", "body mass (kg)", "brain size (kg)"])
     usable = usable[(usable["body mass (kg)"] > 0) & (usable["brain size (kg)"] > 0)]
     records = []
     for label, species in candidates:
-        species_records = usable[usable["species"].eq(species)]
-        if species_records.empty:
+        species_record = usable[usable["species"].eq(species)]
+        if species_record.empty:
             continue
+        record = species_record.iloc[0]
         records.append(
             {
                 "Animal": label,
                 "Scientific name": species,
-                "body mass (kg)": species_records["body mass (kg)"].median(),
-                "brain size (kg)": species_records["brain size (kg)"].median(),
+                "body mass (kg)": record["body mass (kg)"],
+                "brain size (kg)": record["brain size (kg)"],
             }
         )
     return pd.DataFrame(records)
@@ -129,7 +128,7 @@ def _scientific_notation(value: float, significant_figures: int = 3) -> str:
 
 
 def _render_search_results(matches: pd.DataFrame, display_columns: list[str]) -> None:
-    st.success(f"Found {len(matches):,} matching record(s).")
+    st.success(f"Found {len(matches):,} matching species.")
     display_matches = matches[display_columns].rename(columns={"Brain size (kg)": "Brain mass (kg)"})
     st.dataframe(display_matches.head(25), use_container_width=True, hide_index=True)
     if len(matches) > 25:
@@ -275,6 +274,10 @@ def _render_data_science_transfer_prototype() -> None:
 
 
 def render(data: pd.DataFrame) -> None:
+    # CURIOUS's cross-species evidence uses one author-defined trait value per
+    # species.  ``data`` remains the pinned observation-level source supplied by
+    # the app shell; this derived frame is local to the investigation.
+    curious_data = species_traits_from_observations(data)
     part = int(st.session_state.get("curious_part", 0))
     part = max(0, min(part, len(STEP_LABELS) - 1))
     page_header(
@@ -325,7 +328,7 @@ def render(data: pd.DataFrame) -> None:
         st.caption(f"Searches tried: {attempts} of 3")
 
         if animal_query.strip():
-            animal_matches = search_student_animals(data, animal_query)
+            animal_matches = search_student_animals(curious_data, animal_query)
             if animal_matches.empty:
                 st.warning(
                     "**No match found.** AnimalTraits focuses on **terrestrial animals** — animals that live mainly on land. "
@@ -337,7 +340,7 @@ def render(data: pd.DataFrame) -> None:
                 st.caption("Try another animal when you’re ready.")
 
         if attempts >= 3:
-            student_data = student_facing_data(data)
+            student_data = student_facing_data(curious_data)
             distinct_species = student_data["Scientific name"].replace("", pd.NA).nunique(dropna=True)
             missing_measurements = int(
                 student_data[["Body mass (kg)", "Brain size (kg)"]].isna().any(axis=1).sum()
@@ -345,8 +348,8 @@ def render(data: pd.DataFrame) -> None:
             st.markdown("### What have we learned about this dataset?")
             st.info(
                 f"AnimalTraits focuses on terrestrial animals and does not contain every animal. "
-                f"It has {len(data):,} total records from {distinct_species:,} distinct species. "
-                f"Some species have multiple records, and {missing_measurements:,} records are missing a body-mass or brain-mass measurement."
+                f"This investigation uses {len(curious_data):,} species-level records from {distinct_species:,} distinct species. "
+                f"Some species are missing a body-mass or brain-mass value."
             )
             data_science_callout(
                 "You explored a real scientific dataset and discovered its gaps and limits."
@@ -363,7 +366,7 @@ def render(data: pd.DataFrame) -> None:
         st.header("How can we make sense of such a huge range?")
         st.write("Start with body mass.")
 
-        body = _body_mass_values(data)
+        body = _body_mass_values(curious_data)
         if not body.empty:
             largest_value = body.max()
             smallest_value = body.min()
@@ -397,7 +400,7 @@ def render(data: pd.DataFrame) -> None:
                     st.markdown("### Now let’s look at all the body-mass measurements together.")
                     st.caption("What do you notice? Can you actually see most of the data clearly?")
                     st.plotly_chart(
-                        histogram(data, "body mass (kg)", bins=25, log_x=False),
+                        histogram(curious_data, "body mass (kg)", bins=25, log_x=False),
                         use_container_width=True,
                     )
 
@@ -408,7 +411,7 @@ def render(data: pd.DataFrame) -> None:
                     ):
                         st.write("The same measurements are now spaced differently.")
                         st.plotly_chart(
-                            histogram(data, "body mass (kg)", bins=25, log_x=True),
+                            histogram(curious_data, "body mass (kg)", bins=25, log_x=True),
                             use_container_width=True,
                         )
                         st.write(
@@ -429,7 +432,7 @@ def render(data: pd.DataFrame) -> None:
             "7 min",
         )
         st.header("Do bigger animals have bigger brains?")
-        orientation = _curious_orientation_animals(data)
+        orientation = _curious_orientation_animals(curious_data)
         st.markdown("### A few familiar animals")
         st.caption("Which animal is heaviest? Which has the largest brain?")
         st.dataframe(
@@ -452,11 +455,11 @@ def render(data: pd.DataFrame) -> None:
         if hard_reveal(
             "",
             "curious_step4_linear_revealed",
-            reveal_label="Add all the records",
+            reveal_label="Add all the species",
         ):
-            st.markdown("### What happens when we add all the records with both measurements?")
+            st.markdown("### What happens when we add all the species with both measurements?")
             st.plotly_chart(
-                body_brain_scatter(data, log_x=False, log_y=False),
+                body_brain_scatter(curious_data, log_x=False, log_y=False),
                 use_container_width=True,
             )
             graph_support(
@@ -471,7 +474,7 @@ def render(data: pd.DataFrame) -> None:
             ):
                 st.markdown("### Now look at the full dataset on log–log axes")
                 st.plotly_chart(
-                    body_brain_scatter(data, log_x=True, log_y=True),
+                    body_brain_scatter(curious_data, log_x=True, log_y=True),
                     use_container_width=True,
                 )
                 st.write(
@@ -495,7 +498,7 @@ def render(data: pd.DataFrame) -> None:
                 new_search = st.text_input("Or search for an animal", key="curious_step4_animal_search")
                 selected_query = new_search.strip() or previous_search.strip()
                 if selected_query:
-                    selected_matches = search_student_animals(data, selected_query)
+                    selected_matches = search_student_animals(curious_data, selected_query)
                     if selected_matches.empty:
                         st.warning(
                             "No match found. AnimalTraits focuses on terrestrial animals — animals that live mainly on land, "
@@ -511,10 +514,10 @@ def render(data: pd.DataFrame) -> None:
                                 "We found this animal in the dataset, but it does not have both measurements needed to place it on this graph."
                             )
                         else:
-                            st.caption(f"Highlighting {len(complete_matches):,} usable record(s) for {selected_query}.")
+                            st.caption(f"Highlighting {len(complete_matches):,} usable species for {selected_query}.")
                         st.plotly_chart(
                             body_brain_highlight_scatter(
-                                data,
+                                curious_data,
                                 selected_matches,
                                 log_x=True,
                                 log_y=True,
@@ -542,12 +545,12 @@ def render(data: pd.DataFrame) -> None:
         )
         st.caption("First, check how much usable body-and-brain data each class has.")
         st.plotly_chart(
-            body_brain_class_sample_size_bar(data),
+            body_brain_class_sample_size_bar(curious_data, title="Usable body-and-brain species by animal class"),
             use_container_width=True,
         )
         st.caption("Mammals and reptiles both have enough records for a useful comparison.")
         class_options = sorted(
-            with_common_class_names(data)["Animal class"].dropna().unique().tolist()
+            with_common_class_names(curious_data)["Animal class"].dropna().unique().tolist()
         )
         selected_groups = st.multiselect(
             "Compare animal groups",
@@ -564,7 +567,7 @@ def render(data: pd.DataFrame) -> None:
             st.caption("Keep Mammal and Reptile selected for the comparison.")
 
         highlighted_classes = selected_groups
-        class_data = with_common_class_names(data)
+        class_data = with_common_class_names(curious_data)
         class_fits = {
             class_name: fit_relationship(
                 class_data[class_data["Animal class"].eq(class_name)],
@@ -577,7 +580,7 @@ def render(data: pd.DataFrame) -> None:
         }
         st.plotly_chart(
             body_brain_class_fit_scatter(
-                data,
+                curious_data,
                 highlighted_classes=highlighted_classes,
                 fits=class_fits,
                 title="Animal groups · body mass vs brain mass",
@@ -613,7 +616,7 @@ def render(data: pd.DataFrame) -> None:
         st.write(
             "Now let’s focus on the mammals. The line summarises the overall body-mass and brain-mass pattern in the mammal data."
         )
-        class_data = with_common_class_names(data)
+        class_data = with_common_class_names(curious_data)
         mammal_fit = fit_relationship(
             class_data[class_data["Animal class"].eq("Mammal")],
             "body mass (kg)",
@@ -626,7 +629,7 @@ def render(data: pd.DataFrame) -> None:
         else:
             st.plotly_chart(
                 body_brain_class_fit_scatter(
-                    data,
+                    curious_data,
                     highlighted_classes=["Mammal"],
                     fits={"Mammal": mammal_fit},
                     title="Mammals · body mass vs brain mass",
@@ -678,7 +681,7 @@ def render(data: pd.DataFrame) -> None:
             cat = cat_records.iloc[0]
             cat_body_mass = float(cat["body_mass_kg"])
             cat_brain_mass = float(cat["brain_mass_kg"])
-            class_data = with_common_class_names(data)
+            class_data = with_common_class_names(curious_data)
             mammal_fit = fit_relationship(
                 class_data[class_data["Animal class"].eq("Mammal")],
                 "body mass (kg)",
@@ -739,7 +742,7 @@ def render(data: pd.DataFrame) -> None:
                         )
                     st.plotly_chart(
                         body_brain_class_fit_scatter(
-                            data,
+                            curious_data,
                             highlighted_classes=["Mammal"],
                             fits={"Mammal": mammal_fit},
                             comparison_points=comparison_points,
@@ -748,7 +751,7 @@ def render(data: pd.DataFrame) -> None:
                         width="stretch",
                     )
                     st.caption(
-                        "Orange circles are AnimalTraits mammal observations; the black line is the mammal model; "
+                        "Orange circles are derived AnimalTraits mammal species; the black line is the mammal model; "
                         "the blue diamond is the cat model prediction."
                     )
                     if cat_value_revealed:
@@ -801,7 +804,7 @@ def render(data: pd.DataFrame) -> None:
             elephant = elephant_records.iloc[0]
             elephant_body_mass = float(elephant["body_mass_kg"])
             elephant_brain_mass = float(elephant["brain_mass_kg"])
-            class_data = with_common_class_names(data)
+            class_data = with_common_class_names(curious_data)
             mammal_data = class_data[class_data["Animal class"].eq("Mammal")].copy()
             for column in ["body mass (kg)", "brain size (kg)"]:
                 mammal_data[column] = pd.to_numeric(mammal_data[column], errors="coerce")
@@ -892,7 +895,7 @@ def render(data: pd.DataFrame) -> None:
                     )
                 st.plotly_chart(
                     body_brain_class_fit_scatter(
-                        data,
+                        curious_data,
                         highlighted_classes=["Mammal"],
                         fits={"Mammal": mammal_fit},
                         comparison_points=comparison_points,
@@ -910,7 +913,7 @@ def render(data: pd.DataFrame) -> None:
                     width="stretch",
                 )
                 st.caption(
-                    "Orange circles are AnimalTraits mammal observations; the solid black line is the mammal model within its data range; "
+                    "Orange circles are derived AnimalTraits mammal species; the solid black line is the mammal model within its data range; "
                     "the dashed black line extends that model beyond the data range; the blue diamond is the elephant model prediction."
                 )
                 if elephant_value_revealed:
@@ -956,12 +959,12 @@ def render(data: pd.DataFrame) -> None:
         elephant_records = external_comparisons[
             external_comparisons["scientific_name"].eq("Loxodonta africana")
         ]
-        homo_records = data[data["species"].fillna("").astype(str).eq("Homo sapiens")].copy()
+        homo_records = curious_data[curious_data["species"].fillna("").astype(str).eq("Homo sapiens")].copy()
         homo_records["brain size (kg)"] = pd.to_numeric(
             homo_records["brain size (kg)"], errors="coerce"
         )
         usable_homo_records = homo_records[homo_records["brain size (kg)"] > 0]
-        class_data = with_common_class_names(data)
+        class_data = with_common_class_names(curious_data)
         mammal_fit = fit_relationship(
             class_data[class_data["Animal class"].eq("Mammal")],
             "body mass (kg)",
@@ -978,8 +981,8 @@ def render(data: pd.DataFrame) -> None:
                 f"The separate African savanna elephant comparison has a brain mass of **{elephant_brain_mass:.3f} kg**."
             )
             st.write(
-                f"AnimalTraits has {len(usable_homo_records):,} usable **Homo sapiens** brain-mass records. "
-                f"Their median is **{homo_brain_median:.2f} kg**; individual records vary."
+                f"The derived AnimalTraits species-level value for **Homo sapiens** is "
+                f"**{homo_brain_median:.2f} kg**."
             )
             absolute_brain_choice = st.selectbox(
                 "If brain mass alone were an intelligence score, which would get the higher score?",
@@ -1018,7 +1021,7 @@ def render(data: pd.DataFrame) -> None:
                     st.markdown("### What if we account for body size?")
                     st.plotly_chart(
                         body_brain_class_fit_scatter(
-                            data,
+                            curious_data,
                             highlighted_classes=["Mammal"],
                             fits={"Mammal": mammal_fit},
                             highlighted_records=homo_records,
@@ -1030,8 +1033,8 @@ def render(data: pd.DataFrame) -> None:
                         width="stretch",
                     )
                     st.caption(
-                        "Orange circles are AnimalTraits mammal observations; the black line summarises the mammal pattern; "
-                        "purple markers show the individual Homo sapiens records."
+                        "Orange circles are AnimalTraits mammal species; the black line summarises the mammal pattern; "
+                        "the purple marker shows Homo sapiens."
                     )
                     st.write(
                         "The Homo records sit relatively high in brain mass for their body masses compared with the typical mammal pattern in this dataset."

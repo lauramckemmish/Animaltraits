@@ -263,8 +263,7 @@ def body_brain_highlight_scatter(
     """Plot all body/brain records with selected records highlighted.
 
     ``selected_data`` is supplied by the calling experience; this helper does not
-    perform search or filtering. Selected rows remain at record level, so repeated
-    measurements and their variation are preserved in the highlighted trace.
+    perform search or filtering. Its analytical unit is determined by the caller.
     """
     x_field = "body mass (kg)"
     y_field = "brain size (kg)"
