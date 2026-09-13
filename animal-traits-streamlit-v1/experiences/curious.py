@@ -70,6 +70,8 @@ CURIOUS_GROUP_CLASSES = {
     ],
 }
 CURIOUS_TREND_MINIMUM_SPECIES = 10
+CURIOUS_SAVED_SPECIES_KEY = "curious_saved_species"
+CURIOUS_SAVED_SPECIES_LIMIT = 2
 
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
@@ -136,6 +138,72 @@ def _curious_orientation_animals(data: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
+def _eligible_species_to_save(matches: pd.DataFrame) -> pd.DataFrame:
+    """Return exact search results that can later appear on a body/brain graph."""
+    eligible = matches.copy()
+    scientific_names = eligible["Scientific name"].fillna("").astype(str).str.strip()
+    body_mass = pd.to_numeric(eligible["Body mass (kg)"], errors="coerce")
+    brain_mass = pd.to_numeric(eligible["Brain size (kg)"], errors="coerce")
+    eligible = eligible[
+        scientific_names.ne("")
+        & body_mass.gt(0)
+        & brain_mass.gt(0)
+    ].copy()
+    eligible["Scientific name"] = eligible["Scientific name"].astype(str).str.strip()
+    return eligible.drop_duplicates(subset=["Scientific name"])
+
+
+def _saved_species_after_adding(saved_species: list[str], scientific_name: str) -> tuple[list[str], str]:
+    """Add one stable identity without replacing or duplicating saved species."""
+    species = scientific_name.strip()
+    if not species:
+        return saved_species, "invalid"
+    if species in saved_species:
+        return saved_species, "duplicate"
+    if len(saved_species) >= CURIOUS_SAVED_SPECIES_LIMIT:
+        return saved_species, "full"
+    return [*saved_species, species], "saved"
+
+
+def _saved_species_after_removing(saved_species: list[str], scientific_name: str) -> list[str]:
+    """Remove one saved identity while preserving the order of the others."""
+    return [species for species in saved_species if species != scientific_name]
+
+
+def _saved_species_from_session() -> list[str]:
+    """Return the bounded, ordered identity list used by the Explore controls."""
+    saved = st.session_state.setdefault(CURIOUS_SAVED_SPECIES_KEY, [])
+    if not isinstance(saved, list):
+        st.session_state[CURIOUS_SAVED_SPECIES_KEY] = []
+        return []
+    cleaned = []
+    for species in saved:
+        if isinstance(species, str) and species.strip() and species.strip() not in cleaned:
+            cleaned.append(species.strip())
+    cleaned = cleaned[:CURIOUS_SAVED_SPECIES_LIMIT]
+    if cleaned != saved:
+        st.session_state[CURIOUS_SAVED_SPECIES_KEY] = cleaned
+    return cleaned
+
+
+def _save_species_for_later(scientific_name: str) -> None:
+    saved, _ = _saved_species_after_adding(_saved_species_from_session(), scientific_name)
+    st.session_state[CURIOUS_SAVED_SPECIES_KEY] = saved
+
+
+def _remove_saved_species(scientific_name: str) -> None:
+    st.session_state[CURIOUS_SAVED_SPECIES_KEY] = _saved_species_after_removing(
+        _saved_species_from_session(), scientific_name
+    )
+
+
+def _saved_species_labels(data: pd.DataFrame, saved_species: list[str]) -> list[tuple[str, str]]:
+    """Resolve saved identities to current learner-facing names for the Explore summary."""
+    student_data = student_facing_data(data)
+    names = student_data.set_index("Scientific name")["Common name"].to_dict()
+    return [(species, names.get(species) or species) for species in saved_species]
+
+
 def _plain_decimal(value: float) -> str:
     """Format a number without computer-style e notation."""
     decimal = format(Decimal(str(value)), "f")
@@ -189,6 +257,75 @@ def _render_measurement_summary(matches: pd.DataFrame) -> None:
             f"None of the {total_count:,} matching species have both body mass and brain mass. "
             f"Body mass is available for {body_count:,}; brain mass is available for {brain_count:,}."
         )
+
+
+def _render_saved_species_summary(data: pd.DataFrame) -> None:
+    """Show the optional, persistent Explore selections and their removal actions."""
+    saved_species = _saved_species_from_session()
+    if not saved_species:
+        return
+
+    saved_labels = _saved_species_labels(data, saved_species)
+    st.caption(
+        f"**Saved for later ({len(saved_labels)} of {CURIOUS_SAVED_SPECIES_LIMIT}):** "
+        + ", ".join(label for _, label in saved_labels)
+    )
+    st.caption("These animals will reappear on a later body-and-brain graph.")
+    for scientific_name, label in saved_labels:
+        st.button(
+            f"Remove {label}",
+            type="secondary",
+            key=f"curious_remove_saved_species_{scientific_name}",
+            on_click=_remove_saved_species,
+            args=(scientific_name,),
+        )
+
+
+def _render_save_species_control(matches: pd.DataFrame) -> None:
+    """Offer optional, exact-species saving after a successful Explore result."""
+    eligible = _eligible_species_to_save(matches)
+    if eligible.empty:
+        return
+
+    saved_species = _saved_species_from_session()
+    if len(saved_species) >= CURIOUS_SAVED_SPECIES_LIMIT:
+        st.caption("You have saved two animals. Remove one to choose another.")
+        return
+
+    eligible = eligible[~eligible["Scientific name"].isin(saved_species)]
+    if eligible.empty:
+        st.caption("This eligible species is already saved for later.")
+        return
+
+    labels = {
+        row["Scientific name"]: f"{row['Common name'] or row['Scientific name']} — {row['Scientific name']}"
+        for _, row in eligible.iterrows()
+    }
+    if len(eligible) == 1:
+        scientific_name = eligible.iloc[0]["Scientific name"]
+        common_name = eligible.iloc[0]["Common name"] or scientific_name
+        st.button(
+            f"Keep {common_name} for later",
+            type="secondary",
+            key=f"curious_keep_saved_species_{scientific_name}",
+            on_click=_save_species_for_later,
+            args=(scientific_name,),
+        )
+        return
+
+    scientific_name = st.selectbox(
+        "Choose a species to keep for later",
+        options=list(labels),
+        format_func=labels.get,
+        key="curious_exploration_saved_species_choice",
+    )
+    st.button(
+        "Keep for later",
+        type="secondary",
+        key="curious_keep_selected_species",
+        on_click=_save_species_for_later,
+        args=(scientific_name,),
+    )
 
 
 def _render_data_science_transfer_prototype() -> None:
@@ -366,6 +503,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             history.append(animal_query.strip())
             st.session_state["curious_exploration_history"] = history
         st.caption(f"Searches tried: {attempts} of 3")
+        _render_saved_species_summary(curious_data)
 
         if animal_query.strip():
             animal_matches = search_student_animals(curious_data, animal_query)
@@ -377,6 +515,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             else:
                 _render_search_results(animal_matches, SEARCH_DISPLAY_COLUMNS)
                 _render_measurement_summary(animal_matches)
+                _render_save_species_control(animal_matches)
                 with soft_reveal("Where did this data come from?"):
                     st.write(
                         "AnimalTraits is a curated scientific database that brings together original measurements "
