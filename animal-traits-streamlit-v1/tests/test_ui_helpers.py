@@ -85,6 +85,25 @@ class SharedContractTests(unittest.TestCase):
             self.assertIn("← Back", buttons)
             self.assertNotIn("Continue →", buttons)
 
+    def test_terminal_action_is_rendered_on_final_step(self):
+        stub = StreamlitStub()
+        terminal = lambda: None
+        with patch.object(ui_helpers, "st", stub):
+            ui_helpers.step_buttons(
+                ["One", "Two"], "tab", "step", "scroll", 1, "test",
+                terminal_action=terminal, terminal_label="Back to experiences",
+            )
+        self.assertEqual(stub.buttons, ["← Back", "Back to experiences"])
+
+    def test_terminal_action_requires_a_label(self):
+        stub = StreamlitStub()
+        with patch.object(ui_helpers, "st", stub):
+            with self.assertRaisesRegex(ValueError, "terminal_label"):
+                ui_helpers.step_buttons(
+                    ["One", "Two"], "tab", "step", "scroll", 1, "test",
+                    terminal_action=lambda: None,
+                )
+
     def test_completing_gate_enables_continue(self):
         stub = StreamlitStub()
         with patch.object(ui_helpers, "st", stub):

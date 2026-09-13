@@ -33,7 +33,7 @@ with st.sidebar:
 if current == router.LANDING:
     landing.render(data, router.open_experience)
 elif current == EXPERIENCE_CURIOUS:
-    curious.render(data)
+    curious.render(data, router.go_home)
 elif current == EXPERIENCE_YEAR8:
     year8.render(data)
 elif current == EXPERIENCE_YEAR10:

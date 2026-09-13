@@ -313,7 +313,7 @@ def _render_data_science_transfer_prototype() -> None:
     )
 
 
-def render(data: pd.DataFrame) -> None:
+def render(data: pd.DataFrame, terminal_action) -> None:
     # CURIOUS's cross-species evidence uses one author-defined trait value per
     # species.  ``data`` remains the pinned observation-level source supplied by
     # the app shell; this derived frame is local to the investigation.
@@ -1217,4 +1217,6 @@ def render(data: pd.DataFrame) -> None:
         "curious_scroll_to_top",
         part,
         "curious",
+        terminal_action=terminal_action,
+        terminal_label="Back to experiences",
     )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from collections.abc import Iterator
 from contextlib import contextmanager
 from html import escape
@@ -47,7 +48,21 @@ def step_tabs(labels: list[str], key: str, current_step: int):
     return tabs, labels.index(st.session_state.get(key, labels[current_step]))
 
 
-def step_buttons(labels: list[str], tab_key: str, step_key: str, scroll_key: str, step: int, button_prefix: str, allow_next: bool = True) -> None:
+def step_buttons(
+    labels: list[str],
+    tab_key: str,
+    step_key: str,
+    scroll_key: str,
+    step: int,
+    button_prefix: str,
+    *,
+    terminal_action: Callable[[], None] | None = None,
+    terminal_label: str | None = None,
+) -> None:
+    """Render staged navigation, with an optional final-step action."""
+    if terminal_action is not None and terminal_label is None:
+        raise ValueError("terminal_label is required when terminal_action is supplied")
+
     continue_blocked = st.session_state.pop(_CONTINUE_BLOCKED_KEY, False)
     back, _, next_step = st.columns([1, 4, 1])
     with back:
@@ -60,7 +75,7 @@ def step_buttons(labels: list[str], tab_key: str, step_key: str, scroll_key: str
                 args=(tab_key, labels, step_key, scroll_key, step - 1),
             )
     with next_step:
-        if allow_next and not continue_blocked and step < len(labels) - 1:
+        if not continue_blocked and step < len(labels) - 1:
             st.button(
                 "Continue →",
                 type="primary",
@@ -68,6 +83,14 @@ def step_buttons(labels: list[str], tab_key: str, step_key: str, scroll_key: str
                 key=f"{button_prefix}_continue",
                 on_click=select_tab_step,
                 args=(tab_key, labels, step_key, scroll_key, step + 1),
+            )
+        elif step == len(labels) - 1 and terminal_action is not None:
+            st.button(
+                terminal_label,
+                type="primary",
+                use_container_width=True,
+                key=f"{button_prefix}_terminal",
+                on_click=terminal_action,
             )
 
 
