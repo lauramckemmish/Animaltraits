@@ -116,17 +116,19 @@ def test_saved_species_can_grow_without_a_capacity_limit_and_deduplicate():
     assert result == "duplicate"
 
 
-def test_saved_body_brain_species_returns_current_values_in_save_order():
+def test_saved_body_brain_species_returns_all_current_values_in_save_order():
     data = species_traits_from_observations(load_data())
 
     resolved = _curious_saved_body_brain_species(
-        data, ["Corvus brachyrhynchos", "Canis familiaris"]
+        data, ["Corvus brachyrhynchos", "Canis familiaris", "Homo sapiens"]
     )
 
-    assert resolved["Scientific name"].tolist() == ["Corvus brachyrhynchos", "Canis familiaris"]
-    assert resolved["Common name"].tolist() == ["American Crow", "Canis familiaris"]
-    assert resolved["body mass (kg)"].tolist() == [0.337, 21.117058823529412]
-    assert resolved["brain size (kg)"].tolist() == [0.0093, 0.08946176470588235]
+    assert resolved["Scientific name"].tolist() == [
+        "Corvus brachyrhynchos", "Canis familiaris", "Homo sapiens"
+    ]
+    assert resolved["Common name"].tolist() == ["American Crow", "Canis familiaris", "Human"]
+    assert resolved["body mass (kg)"].tolist() == [0.337, 21.117058823529412, 61.54285720930232]
+    assert resolved["brain size (kg)"].tolist() == [0.0093, 0.08946176470588235, 1.3191924489795916]
 
 
 def test_saved_body_brain_species_handles_empty_duplicate_unknown_and_unusable_identities():
@@ -179,6 +181,28 @@ def test_representative_chart_adds_hoverable_trace_for_saved_species():
     assert figure.data[1].showlegend is None
     assert figure.data[1].customdata.tolist() == [["American Crow", "Corvus brachyrhynchos"]]
     assert figure.layout.showlegend is True
+
+
+def test_representative_chart_keeps_all_saved_species_in_one_hoverable_trace():
+    anchors = pd.DataFrame(
+        [{"Animal": "Human", "Scientific name": "Homo sapiens", "body mass (kg)": 60, "brain size (kg)": 1.3}]
+    )
+    saved = pd.DataFrame(
+        [
+            {"Common name": "American Crow", "Scientific name": "Corvus brachyrhynchos", "body mass (kg)": 0.337, "brain size (kg)": 0.0093},
+            {"Common name": "Dog", "Scientific name": "Canis familiaris", "body mass (kg)": 21.1, "brain size (kg)": 0.089},
+            {"Common name": "Hazel Dormouse", "Scientific name": "Muscardinus avellanarius", "body mass (kg)": 0.023, "brain size (kg)": 0.0017},
+        ]
+    )
+
+    figure = body_brain_representative_scatter(anchors, learner_selected_data=saved)
+
+    assert figure.data[1].customdata[:, 1].tolist() == [
+        "Corvus brachyrhynchos", "Canis familiaris", "Muscardinus avellanarius"
+    ]
+    assert figure.data[1].x.tolist() == [0.337, 21.1, 0.023]
+    assert figure.layout.xaxis.type == "linear"
+    assert figure.layout.yaxis.type == "linear"
 
 
 def test_representative_chart_marks_overlap_without_duplicate_filled_point():
