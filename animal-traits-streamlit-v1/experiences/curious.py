@@ -819,10 +819,12 @@ def render(data: pd.DataFrame) -> None:
                 )
                 predicted_cat_brain_grams = predicted_cat_brain_mass * 1000
                 st.write(f"The cat’s body mass is about **{cat_body_mass:.1f} kg**.")
-                st.info(
-                    f"### Mammal-model prediction\n\n"
-                    f"**Our model predicts {predicted_cat_brain_grams:.1f} g for a {cat_body_mass:.1f} kg cat.**"
-                )
+                cat_value_revealed = st.session_state.get("curious_cat_external_value_revealed", False)
+                if not cat_value_revealed:
+                    st.info(
+                        f"### Mammal-model prediction\n\n"
+                        f"**Our model predicts {predicted_cat_brain_grams:.1f} g for a {cat_body_mass:.1f} kg cat.**"
+                    )
                 prediction_choice = st.selectbox(
                     "Select the displayed model prediction before comparing it with the external evidence.",
                     [
@@ -878,11 +880,12 @@ def render(data: pd.DataFrame) -> None:
                     )
                     if cat_value_revealed:
                         external_cat_brain_grams = cat_brain_mass * 1000
-                        st.success(
-                            f"**Measured value found for a domestic cat: {external_cat_brain_grams:.1f} g brain mass.**"
+                        st.info(
+                            "### Model prediction and separate measured value\n\n"
+                            f"**Our model predicts {predicted_cat_brain_grams:.1f} g for a {cat_body_mass:.1f} kg cat.**\n\n"
+                            f"**The measured value we found for a domestic cat is {external_cat_brain_grams:.1f} g.**"
                         )
                         st.write(
-                            f"Our model predicts {predicted_cat_brain_grams:.1f} g. The measured value we found for a domestic cat is {external_cat_brain_grams:.1f} g. "
                             "That’s close — but a model prediction doesn’t have to match a measurement exactly."
                         )
                         st.caption("The pink × is the external cat comparison value, kept separate from AnimalTraits.")
@@ -974,10 +977,12 @@ def render(data: pd.DataFrame) -> None:
                 elif trust_judgement != "Choose an answer":
                     st.caption("Think about whether the elephant's body mass is inside or outside the data range used to build the model.")
 
-                st.info(
-                    f"### Mammal-model prediction\n\n"
-                    f"**For a {elephant_body_mass:,.0f} kg elephant, the model predicts a brain mass of about {predicted_elephant_brain_mass:.1f} kg.**"
-                )
+                elephant_value_revealed = st.session_state.get("curious_elephant_external_value_revealed", False)
+                if not elephant_value_revealed:
+                    st.info(
+                        f"### Mammal-model prediction\n\n"
+                        f"**For a {elephant_body_mass:,.0f} kg elephant, the model predicts a brain mass of about {predicted_elephant_brain_mass:.1f} kg.**"
+                    )
                 st.write(
                     "The elephant is outside the range of body masses used to build our mammal model. "
                     "Using a model beyond the range of the data that built it is called **extrapolation**."
@@ -1037,11 +1042,12 @@ def render(data: pd.DataFrame) -> None:
                     "the dashed black line extends that model beyond the data range; the blue diamond is the elephant model prediction."
                 )
                 if elephant_value_revealed:
-                    st.success(
-                        f"**External elephant comparison: {elephant_brain_mass:.3f} kg brain mass.**"
+                    st.info(
+                        "### Mammal-model prediction and external comparison\n\n"
+                        f"**For a {elephant_body_mass:,.0f} kg elephant, the model predicts a brain mass of about {predicted_elephant_brain_mass:.1f} kg.**\n\n"
+                        f"**The separate external elephant comparison is {elephant_brain_mass:.3f} kg brain mass.**"
                     )
                     st.write(
-                        f"The model predicts about {predicted_elephant_brain_mass:.1f} kg, while this published elephant comparison is about {elephant_brain_mass:.3f} kg. "
                         "The prediction is much further away than it was for the cat."
                     )
                     st.write(
@@ -1129,11 +1135,12 @@ def render(data: pd.DataFrame) -> None:
                     pre_reveal_guidance="The explanation stays hidden until you commit to an answer.",
                 )
                 if absolute_brain_revealed:
-                    st.success("**That is why brain mass alone is a poor intelligence score.**")
+                    st.info(
+                        "**Brain mass alone is a poor intelligence score because absolute brain mass mixes brain biology with body size.**"
+                    )
                     st.write(
                         "Across mammals, bigger bodies generally come with bigger brains. Brains also process sensory information, coordinate movement and help control the body."
                     )
-                    st.info("**Absolute brain mass mixes brain biology with body size.**")
                     st.caption("Head size is not an intelligence test. You cannot look at a person’s head size and tell how intelligent they are.")
 
                     st.markdown("### What if we account for body size?")
@@ -1171,7 +1178,7 @@ def render(data: pd.DataFrame) -> None:
                     else:
                         relative_choice_committed = True
                         if relative_brain_choice == "No — it tells us about relative brain size, not intelligence.":
-                            st.info("The graph describes relative brain size, not intelligence.")
+                            st.success("Yes — the graph describes relative brain size, not intelligence.")
                         else:
                             st.caption("The graph can tell us about relative brain size, but it cannot turn that into an intelligence ranking.")
 
@@ -1196,7 +1203,7 @@ def render(data: pd.DataFrame) -> None:
                             with soft_reveal("What else can scientists study?"):
                                 st.write("Brain organisation and neurons; behaviour and problem solving; ecology and evolutionary context.")
                             st.markdown("### Final takeaway")
-                            st.success("**A useful variable is not the same thing as a complete model.**")
+                            st.markdown("**A useful variable is not the same thing as a complete model.**")
                             st.write(
                                 "Body and brain size can tell us something useful about animals, but they cannot explain cognition on their own."
                             )
