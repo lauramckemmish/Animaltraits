@@ -642,74 +642,63 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 ),
                 use_container_width=True,
             )
-            conclusion_revealed = hard_reveal(
-                "**What does the graph show about mammals and reptiles? Which relationship should we use later for a cat or elephant, and why?**",
-                "curious_mammal_reptile_conclusion_revealed",
-                reveal_label="Reveal the scientific conclusion",
-                pre_reveal_label="Discuss",
-                pre_reveal_guidance="Discuss the graph before revealing the scientific conclusion.",
+            st.markdown(
+                "**What does the graph show about mammals and reptiles? Which relationship should we use later for a cat or elephant, and why?**"
             )
-            if conclusion_revealed:
+            with soft_reveal("Check your explanation"):
                 st.info(
                     "**Scientific conclusion:** Mammals and reptiles do not follow exactly the same brain–body pattern. "
                     "Because cats and elephants are mammals, a mammal-specific relationship is the more appropriate model for them."
                 )
-                other_groups_revealed = hard_reveal(
-                    "Explore how other animal groups appear in this dataset.",
-                    "curious_other_animal_groups_revealed",
-                    reveal_label="Explore other groups",
-                    pre_reveal_label="Use the comparison",
-                    pre_reveal_guidance="Use the mammal–reptile comparison before exploring other groups.",
+            with soft_reveal("Explore other groups"):
+                selected_groups = st.multiselect(
+                    "Choose animal groups to inspect",
+                    options=list(CURIOUS_GROUP_CLASSES),
+                    default=["Mammal"],
+                    key="curious_step5_explore_groups",
                 )
-                if other_groups_revealed:
-                    selected_groups = st.multiselect(
-                        "Choose animal groups to inspect",
-                        options=list(CURIOUS_GROUP_CLASSES),
-                        default=["Mammal"],
-                        key="curious_step5_explore_groups",
+                selected_group_data = {
+                    name: learner_groups[name]
+                    for name in selected_groups
+                }
+                selected_group_fits = {
+                    name: fit_relationship(
+                        group_data,
+                        "body mass (kg)",
+                        "brain size (kg)",
+                        log_x=True,
+                        log_y=True,
                     )
-                    selected_group_data = {
-                        name: learner_groups[name]
-                        for name in selected_groups
-                    }
-                    selected_group_fits = {
-                        name: fit_relationship(
-                            group_data,
-                            "body mass (kg)",
-                            "brain size (kg)",
-                            log_x=True,
-                            log_y=True,
-                        )
-                        for name, group_data in selected_group_data.items()
-                        if _curious_group_has_trend(name, group_data)
-                    }
-                    if selected_group_data:
-                        st.plotly_chart(
-                            body_brain_group_fit_scatter(
-                                curious_data,
-                                groups=selected_group_data,
-                                fits=selected_group_fits,
-                                title="Explore animal groups · body mass vs brain mass",
-                            ),
-                            use_container_width=True,
-                        )
-                    else:
-                        st.info("Choose an animal group to inspect its species points.")
-                    if "Other invertebrates" in selected_groups:
-                        st.info(
-                            "This category combines several different invertebrate groups, so we show the species points but don't fit them with one group trend."
-                        )
-                    groups_without_trends = [
-                        name
-                        for name, group_data in selected_group_data.items()
-                        if not _curious_group_has_trend(name, group_data)
-                        and name != "Other invertebrates"
-                    ]
-                    if groups_without_trends:
-                        st.caption(
-                            "There is not enough evidence here to draw a useful trend for "
-                            f"{', '.join(groups_without_trends)}."
-                        )
+                    for name, group_data in selected_group_data.items()
+                    if _curious_group_has_trend(name, group_data)
+                }
+                if selected_group_data:
+                    st.plotly_chart(
+                        body_brain_group_fit_scatter(
+                            curious_data,
+                            groups=selected_group_data,
+                            fits=selected_group_fits,
+                            title="Explore animal groups · body mass vs brain mass",
+                        ),
+                        use_container_width=True,
+                    )
+                else:
+                    st.info("Choose an animal group to inspect its species points.")
+                if "Other invertebrates" in selected_groups:
+                    st.info(
+                        "This category combines several different invertebrate groups, so we show the species points but don't fit them with one group trend."
+                    )
+                groups_without_trends = [
+                    name
+                    for name, group_data in selected_group_data.items()
+                    if not _curious_group_has_trend(name, group_data)
+                    and name != "Other invertebrates"
+                ]
+                if groups_without_trends:
+                    st.caption(
+                        "There is not enough evidence here to draw a useful trend for "
+                        f"{', '.join(groups_without_trends)}."
+                    )
         completion_gate(comparison_revealed)
 
     elif part == 4:
