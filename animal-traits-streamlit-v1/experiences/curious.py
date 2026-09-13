@@ -71,7 +71,8 @@ CURIOUS_GROUP_CLASSES = {
 }
 CURIOUS_TREND_MINIMUM_SPECIES = 10
 CURIOUS_SAVED_SPECIES_KEY = "curious_saved_species"
-CURIOUS_SAVED_SPECIES_LIMIT = 2
+# Keep the existing Body + brain display bounded until its later continuity step.
+CURIOUS_BODY_BRAIN_DISPLAY_LIMIT = 2
 CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY = "curious_exploration_eligible_species"
 
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
@@ -149,7 +150,7 @@ def _curious_saved_body_brain_species(data: pd.DataFrame, saved_species: list[st
     for species in saved_species:
         if isinstance(species, str) and species.strip() and species.strip() not in saved_order:
             saved_order.append(species.strip())
-    saved_order = saved_order[:CURIOUS_SAVED_SPECIES_LIMIT]
+    saved_order = saved_order[:CURIOUS_BODY_BRAIN_DISPLAY_LIMIT]
 
     columns = ["Common name", "Scientific name", "body mass (kg)", "brain size (kg)"]
     if not saved_order:
@@ -221,8 +222,6 @@ def _saved_species_after_adding(saved_species: list[str], scientific_name: str) 
         return saved_species, "invalid"
     if species in saved_species:
         return saved_species, "duplicate"
-    if len(saved_species) >= CURIOUS_SAVED_SPECIES_LIMIT:
-        return saved_species, "full"
     return [*saved_species, species], "saved"
 
 
@@ -241,7 +240,6 @@ def _saved_species_from_session() -> list[str]:
     for species in saved:
         if isinstance(species, str) and species.strip() and species.strip() not in cleaned:
             cleaned.append(species.strip())
-    cleaned = cleaned[:CURIOUS_SAVED_SPECIES_LIMIT]
     if cleaned != saved:
         st.session_state[CURIOUS_SAVED_SPECIES_KEY] = cleaned
     return cleaned
@@ -349,7 +347,7 @@ def _render_saved_species_summary(data: pd.DataFrame) -> None:
 
     saved_labels = _species_labels(data, saved_species)
     st.caption(
-        f"**Saved for later ({len(saved_labels)} of {CURIOUS_SAVED_SPECIES_LIMIT}):** "
+        "**Saved for later:** "
         + ", ".join(label for _, label in saved_labels)
     )
     st.caption("These animals will reappear on a later body-and-brain graph.")
@@ -374,10 +372,6 @@ def _render_post_exploration_save_species_control(data: pd.DataFrame) -> None:
         st.caption(
             "None of the animals you found have both body-mass and brain-mass values for the later graph."
         )
-        return
-
-    if len(saved_species) >= CURIOUS_SAVED_SPECIES_LIMIT:
-        st.caption("You have saved two animals. Remove one to choose another.")
         return
 
     available_species = [

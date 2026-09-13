@@ -7,7 +7,6 @@ import pandas as pd
 from charts import body_brain_representative_scatter
 from data import load_data, species_traits_from_observations
 from experiences.curious import (
-    CURIOUS_SAVED_SPECIES_LIMIT,
     _curious_saved_body_brain_species,
     _encountered_species_after_adding,
     _eligible_species_to_save,
@@ -81,7 +80,7 @@ def test_encountered_species_ignores_successful_results_without_paired_values():
     assert _encountered_species_after_adding(["Canis familiaris"], matches) == ["Canis familiaris"]
 
 
-def test_saved_species_are_ordered_bounded_and_not_duplicated():
+def test_saved_species_are_ordered_and_not_duplicated():
     saved, result = _saved_species_after_adding([], "Canis familiaris")
     assert (saved, result) == (["Canis familiaris"], "saved")
 
@@ -90,10 +89,11 @@ def test_saved_species_are_ordered_bounded_and_not_duplicated():
 
     saved, result = _saved_species_after_adding(saved, "Corvus brachyrhynchos")
     assert (saved, result) == (["Canis familiaris", "Corvus brachyrhynchos"], "saved")
-    assert len(saved) == CURIOUS_SAVED_SPECIES_LIMIT
-
     saved, result = _saved_species_after_adding(saved, "Homo sapiens")
-    assert (saved, result) == (["Canis familiaris", "Corvus brachyrhynchos"], "full")
+    assert (saved, result) == (
+        ["Canis familiaris", "Corvus brachyrhynchos", "Homo sapiens"],
+        "saved",
+    )
 
 
 def test_removing_saved_species_frees_a_slot_for_a_replacement():
@@ -103,6 +103,17 @@ def test_removing_saved_species_frees_a_slot_for_a_replacement():
     saved, result = _saved_species_after_adding(saved, "Homo sapiens")
 
     assert (saved, result) == (["Corvus brachyrhynchos", "Homo sapiens"], "saved")
+
+
+def test_saved_species_can_grow_without_a_capacity_limit_and_deduplicate():
+    saved = []
+    for species in ["Canis familiaris", "Corvus brachyrhynchos", "Homo sapiens"]:
+        saved, result = _saved_species_after_adding(saved, species)
+        assert result == "saved"
+
+    saved, result = _saved_species_after_adding(saved, "Canis familiaris")
+    assert saved == ["Canis familiaris", "Corvus brachyrhynchos", "Homo sapiens"]
+    assert result == "duplicate"
 
 
 def test_saved_body_brain_species_returns_current_values_in_save_order():
