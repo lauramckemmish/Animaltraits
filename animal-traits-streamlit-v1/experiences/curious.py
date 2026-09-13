@@ -601,7 +601,6 @@ def render(data: pd.DataFrame) -> None:
             log_x=True,
             log_y=True,
         )
-        st.caption(f"{len(usable_species):,} species have both a positive body-mass and brain-mass value.")
         st.plotly_chart(
             body_brain_group_fit_scatter(
                 curious_data,
@@ -636,7 +635,6 @@ def render(data: pd.DataFrame) -> None:
                 for name, group_data in comparison_groups.items()
                 if _curious_group_has_trend(name, group_data)
             }
-            st.caption("Mammal: 501 species · Reptile: 37 species")
             st.plotly_chart(
                 body_brain_group_fit_scatter(
                     curious_data,
@@ -692,12 +690,6 @@ def render(data: pd.DataFrame) -> None:
                         if _curious_group_has_trend(name, group_data)
                     }
                     if selected_group_data:
-                        st.caption(
-                            " · ".join(
-                                f"{name}: {len(group_data):,} species"
-                                for name, group_data in selected_group_data.items()
-                            )
-                        )
                         st.plotly_chart(
                             body_brain_group_fit_scatter(
                                 curious_data,

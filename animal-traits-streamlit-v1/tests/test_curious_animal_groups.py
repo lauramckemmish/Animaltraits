@@ -51,10 +51,10 @@ def test_group_chart_keeps_reference_hideable_and_other_invertebrates_points_onl
         reference_fit=all_fit,
     )
     assert [trace.name for trace in comparison.data] == [
-        "All animals reference",
-        "Mammal",
+        "All animals reference (1,196 species)",
+        "Mammal (501 species)",
         "Mammal trend",
-        "Reptile",
+        "Reptile (37 species)",
         "Reptile trend",
     ]
     assert comparison.data[0].line.dash == "dot"
@@ -65,4 +65,4 @@ def test_group_chart_keeps_reference_hideable_and_other_invertebrates_points_onl
         groups={"Other invertebrates": groups["Other invertebrates"]},
         fits={},
     )
-    assert [trace.name for trace in other_invertebrates.data] == ["Other invertebrates"]
+    assert [trace.name for trace in other_invertebrates.data] == ["Other invertebrates (9 species)"]
