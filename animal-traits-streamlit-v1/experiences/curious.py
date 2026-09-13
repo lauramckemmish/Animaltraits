@@ -11,8 +11,8 @@ import streamlit as st
 
 from charts import (
     body_brain_class_fit_scatter,
+    body_brain_group_fit_scatter,
     body_brain_highlight_scatter,
-    body_brain_class_sample_size_bar,
     body_brain_representative_scatter,
     body_brain_scatter,
     histogram,
@@ -59,6 +59,22 @@ SEARCH_DISPLAY_COLUMNS = [
     "Brain size (kg)",
 ]
 
+CURIOUS_GROUP_CLASSES = {
+    "Mammal": ["Mammal"],
+    "Bird": ["Bird"],
+    "Reptile": ["Reptile"],
+    "Amphibian": ["Amphibian"],
+    "Insect": ["Insect"],
+    "Other invertebrates": [
+        "Arachnid",
+        "Centipede",
+        "Crustacean",
+        "Segmented worm",
+        "Snail / slug",
+    ],
+}
+CURIOUS_TREND_MINIMUM_SPECIES = 10
+
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
 CROW_IMAGE_PATH = MEDIA_DIR / "Corvus moneduloides, Sarramea, New Caledonia 1.jpg"
@@ -69,6 +85,31 @@ MOUSE_TO_ELEPHANT_HERO_PATH = MEDIA_DIR / "mouse_to_elephant_hero.png"
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
     values = pd.to_numeric(data["body mass (kg)"], errors="coerce").dropna()
     return values[values > 0]
+
+
+def _curious_usable_body_brain_species(data: pd.DataFrame) -> pd.DataFrame:
+    """Return CURIOUS's positive paired species-level body/brain data."""
+    usable = with_common_class_names(data)
+    for column in ["body mass (kg)", "brain size (kg)"]:
+        usable[column] = pd.to_numeric(usable[column], errors="coerce")
+    return usable[
+        usable["Animal class"].notna()
+        & (usable["body mass (kg)"] > 0)
+        & (usable["brain size (kg)"] > 0)
+    ].copy()
+
+
+def _curious_animal_groups(usable_species: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Return CURIOUS-local learner groups from species-level data."""
+    return {
+        group_name: usable_species[usable_species["Animal class"].isin(class_names)].copy()
+        for group_name, class_names in CURIOUS_GROUP_CLASSES.items()
+    }
+
+
+def _curious_group_has_trend(group_name: str, group_data: pd.DataFrame) -> bool:
+    """Apply CURIOUS's evidence rule without fitting mixed invertebrates."""
+    return group_name != "Other invertebrates" and len(group_data) >= CURIOUS_TREND_MINIMUM_SPECIES
 
 
 def _curious_orientation_animals(data: pd.DataFrame) -> pd.DataFrame:
@@ -534,62 +575,73 @@ def render(data: pd.DataFrame) -> None:
     elif part == 4:
         teacher_note(
             "Animal class",
-            "Use the Mammal–Reptile comparison to show that body mass is not the only useful information for describing the pattern.",
-            "Ask students to compare Mammal and Reptile at similar body masses. Treat the lines as visual summaries, not regression lessons. The key conclusion is that future cat and elephant predictions should use the mammal relationship.",
+            "Begin with the broad animal pattern, then reveal Mammal and Reptile evidence so learners can see that one relationship does not describe every group equally well.",
+            "Ask students to compare Mammal and Reptile at similar body masses. Treat the lines as visual summaries, not regression lessons. The key conclusion is that future cat and elephant predictions should use mammal evidence.",
             "5 min",
         )
         st.header("Does animal group change the relationship?")
         st.write(
-            "Body mass explains a lot of the pattern, but animals with similar body masses do not always have the same brain mass. "
-            "Let’s compare two groups: mammals and reptiles."
+            "First, look at the broad relationship across all the animal species with both values."
         )
-        st.caption("First, check how much usable body-and-brain data each class has.")
+        usable_species = _curious_usable_body_brain_species(curious_data)
+        learner_groups = _curious_animal_groups(usable_species)
+        all_animals_fit = fit_relationship(
+            usable_species,
+            "body mass (kg)",
+            "brain size (kg)",
+            log_x=True,
+            log_y=True,
+        )
+        st.caption(f"{len(usable_species):,} species have both a positive body-mass and brain-mass value.")
         st.plotly_chart(
-            body_brain_class_sample_size_bar(curious_data, title="Usable body-and-brain species by animal class"),
-            use_container_width=True,
-        )
-        st.caption("Mammals (501 species) and reptiles (37 species) both have enough data for a useful comparison.")
-        class_options = sorted(
-            with_common_class_names(curious_data)["Animal class"].dropna().unique().tolist()
-        )
-        selected_groups = st.multiselect(
-            "Compare animal groups",
-            options=class_options,
-            default=["Mammal", "Reptile"],
-            key="curious_step5_compare_groups",
-        )
-
-        comparison_ready = {"Mammal", "Reptile"}.issubset(selected_groups)
-        if comparison_ready:
-            st.caption("At similar body masses, do the mammal and reptile points occupy the same parts of the graph?")
-            st.caption("You can add other groups after making this comparison.")
-        else:
-            st.caption("Keep Mammal and Reptile selected for the comparison.")
-
-        highlighted_classes = selected_groups
-        class_data = with_common_class_names(curious_data)
-        class_fits = {
-            class_name: fit_relationship(
-                class_data[class_data["Animal class"].eq(class_name)],
-                "body mass (kg)",
-                "brain size (kg)",
-                log_x=True,
-                log_y=True,
-            )
-            for class_name in highlighted_classes
-        }
-        st.plotly_chart(
-            body_brain_class_fit_scatter(
+            body_brain_group_fit_scatter(
                 curious_data,
-                highlighted_classes=highlighted_classes,
-                fits=class_fits,
-                title="Animal groups · body mass vs brain mass",
+                groups={"All animals": usable_species},
+                fits={"All animals": all_animals_fit} if all_animals_fit is not None else {},
+                title="All animals · body mass vs brain mass",
             ),
             use_container_width=True,
         )
-        st.caption("The coloured lines are visual summaries of each group's points. You do not need to calculate anything from them.")
+        st.caption("The line is a broad reference pattern. Next, test whether it describes different animal groups in the same way.")
 
-        if comparison_ready:
+        comparison_revealed = hard_reveal(
+            "Compare mammal and reptile evidence with the broad all-animal reference.",
+            "curious_mammal_reptile_comparison_revealed",
+            reveal_label="Compare mammals and reptiles",
+            pre_reveal_label="Look for the broad pattern",
+            pre_reveal_guidance="Discuss the broad pattern before comparing groups.",
+        )
+        if comparison_revealed:
+            comparison_groups = {
+                name: learner_groups[name]
+                for name in ["Mammal", "Reptile"]
+            }
+            comparison_fits = {
+                name: fit_relationship(
+                    group_data,
+                    "body mass (kg)",
+                    "brain size (kg)",
+                    log_x=True,
+                    log_y=True,
+                )
+                for name, group_data in comparison_groups.items()
+                if _curious_group_has_trend(name, group_data)
+            }
+            st.caption("Mammal: 501 species · Reptile: 37 species")
+            st.plotly_chart(
+                body_brain_group_fit_scatter(
+                    curious_data,
+                    groups=comparison_groups,
+                    fits=comparison_fits,
+                    reference_fit=all_animals_fit,
+                    title="Mammals and reptiles · body mass vs brain mass",
+                ),
+                use_container_width=True,
+            )
+            st.caption(
+                "The dotted all-animal reference is there for comparison. You can hide it with the graph legend. "
+                "The solid lines summarise the mammal and reptile points."
+            )
             conclusion_revealed = hard_reveal(
                 "**What does the graph show about mammals and reptiles? Which relationship should we use later for a cat or elephant, and why?**",
                 "curious_mammal_reptile_conclusion_revealed",
@@ -602,7 +654,69 @@ def render(data: pd.DataFrame) -> None:
                     "**Scientific conclusion:** Mammals and reptiles do not follow exactly the same brain–body pattern. "
                     "Because cats and elephants are mammals, a mammal-specific relationship is the more appropriate model for them."
                 )
-        completion_gate(comparison_ready)
+                other_groups_revealed = hard_reveal(
+                    "Explore how other animal groups appear in this dataset.",
+                    "curious_other_animal_groups_revealed",
+                    reveal_label="Explore other groups",
+                    pre_reveal_label="Use the comparison",
+                    pre_reveal_guidance="Use the mammal–reptile comparison before exploring other groups.",
+                )
+                if other_groups_revealed:
+                    selected_groups = st.multiselect(
+                        "Choose animal groups to inspect",
+                        options=list(CURIOUS_GROUP_CLASSES),
+                        default=["Mammal"],
+                        key="curious_step5_explore_groups",
+                    )
+                    selected_group_data = {
+                        name: learner_groups[name]
+                        for name in selected_groups
+                    }
+                    selected_group_fits = {
+                        name: fit_relationship(
+                            group_data,
+                            "body mass (kg)",
+                            "brain size (kg)",
+                            log_x=True,
+                            log_y=True,
+                        )
+                        for name, group_data in selected_group_data.items()
+                        if _curious_group_has_trend(name, group_data)
+                    }
+                    if selected_group_data:
+                        st.caption(
+                            " · ".join(
+                                f"{name}: {len(group_data):,} species"
+                                for name, group_data in selected_group_data.items()
+                            )
+                        )
+                        st.plotly_chart(
+                            body_brain_group_fit_scatter(
+                                curious_data,
+                                groups=selected_group_data,
+                                fits=selected_group_fits,
+                                title="Explore animal groups · body mass vs brain mass",
+                            ),
+                            use_container_width=True,
+                        )
+                    else:
+                        st.info("Choose an animal group to inspect its species points.")
+                    if "Other invertebrates" in selected_groups:
+                        st.info(
+                            "This category combines several different invertebrate groups, so we show the species points but don't fit them with one group trend."
+                        )
+                    groups_without_trends = [
+                        name
+                        for name, group_data in selected_group_data.items()
+                        if not _curious_group_has_trend(name, group_data)
+                        and name != "Other invertebrates"
+                    ]
+                    if groups_without_trends:
+                        st.caption(
+                            "There is not enough evidence here to draw a useful trend for "
+                            f"{', '.join(groups_without_trends)}."
+                        )
+        completion_gate(comparison_revealed)
 
     elif part == 5:
         model_check_complete = False

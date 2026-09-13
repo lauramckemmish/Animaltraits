@@ -603,6 +603,97 @@ def body_brain_class_fit_scatter(
     return fig
 
 
+def body_brain_group_fit_scatter(
+    data: pd.DataFrame,
+    *,
+    groups: dict[str, pd.DataFrame],
+    fits: dict[str, FitResult] | None = None,
+    reference_fit: FitResult | None = None,
+    reference_label: str = "All animals reference",
+    title: str = "Body mass vs brain mass",
+):
+    """Plot CURIOUS-selected groups with optional fitted and reference trends.
+
+    Group construction and trend eligibility belong to the calling experience.
+    This helper only renders the supplied species-level points and models.
+    """
+    x_field = "body mass (kg)"
+    y_field = "brain size (kg)"
+    context = with_common_class_names(data).copy()
+    for column in [x_field, y_field]:
+        context[column] = pd.to_numeric(context[column], errors="coerce")
+    context = context.dropna(subset=[x_field, y_field])
+    context = context[(context[x_field] > 0) & (context[y_field] > 0)]
+
+    fig = go.Figure()
+    if reference_fit is not None:
+        fig.add_trace(
+            go.Scatter(
+                x=reference_fit.x_line,
+                y=reference_fit.y_line,
+                mode="lines",
+                name=reference_label,
+                showlegend=True,
+                line=dict(color="rgba(75, 85, 99, 0.72)", width=2, dash="dot"),
+                hoverinfo="skip",
+            )
+        )
+
+    palette = px.colors.qualitative.Plotly
+    for index, (group_name, group_data) in enumerate(groups.items()):
+        plot_data = with_common_class_names(group_data).copy()
+        for column in [x_field, y_field]:
+            plot_data[column] = pd.to_numeric(plot_data[column], errors="coerce")
+        plot_data = plot_data.dropna(subset=[x_field, y_field])
+        plot_data = plot_data[(plot_data[x_field] > 0) & (plot_data[y_field] > 0)]
+        if plot_data.empty:
+            continue
+
+        common_names = plot_data.get("common name", pd.Series("", index=plot_data.index)).fillna("")
+        species = plot_data.get("species", pd.Series("", index=plot_data.index)).fillna("")
+        fig.add_trace(
+            go.Scatter(
+                x=plot_data[x_field],
+                y=plot_data[y_field],
+                mode="markers",
+                name=group_name,
+                legendgroup=group_name,
+                marker=dict(size=8, color=palette[index % len(palette)], opacity=0.52),
+                customdata=np.column_stack([common_names.astype(str), species.astype(str)]),
+                hovertemplate=(
+                    "Common name: %{customdata[0]}<br>"
+                    "Scientific name: %{customdata[1]}<br>"
+                    "Body mass: %{x}<br>Brain mass: %{y}<extra></extra>"
+                ),
+            )
+        )
+        fit = (fits or {}).get(group_name)
+        if fit is not None:
+            fig.add_trace(
+                go.Scatter(
+                    x=fit.x_line,
+                    y=fit.y_line,
+                    mode="lines",
+                    name=f"{group_name} trend",
+                    showlegend=False,
+                    legendgroup=group_name,
+                    line=dict(color="#1f2937", width=4),
+                    hoverinfo="skip",
+                )
+            )
+
+    fig.update_layout(
+        title=title,
+        xaxis_title="Body mass (kg)",
+        yaxis_title="Brain size (kg)",
+        legend_title="Animal groups",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, title=None),
+    )
+    _apply_scientific_log_axis(fig, "x", context[x_field], "Body mass (kg)")
+    _apply_scientific_log_axis(fig, "y", context[y_field], "Brain size (kg)")
+    return fig
+
+
 # -----------------------------------------------------------------------------
 # Data Exploration Playground charts. Unchanged by the CURIOUS refinement.
 # -----------------------------------------------------------------------------
