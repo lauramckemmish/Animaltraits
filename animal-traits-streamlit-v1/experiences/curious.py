@@ -75,6 +75,13 @@ CURIOUS_SAVED_SPECIES_KEY = "curious_saved_species"
 CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY = "curious_exploration_eligible_species"
 CURIOUS_SELECTION_COMPLETE_KEY = "curious_exploration_selection_complete"
 CURIOUS_FIND_MORE_KEY = "curious_exploration_find_more"
+CURIOUS_COLLECTION_CANDIDATES_KEY = "curious_exploration_collection_candidates"
+CURIOUS_COLLECTION_DEFAULTS_APPLIED_KEY = "curious_exploration_collection_defaults_applied"
+
+# Interaction limits for the Find your animals collection tray.
+CURIOUS_COLLECTION_MAX_CANDIDATES = 12
+CURIOUS_COLLECTION_INITIAL_SELECTION = 4
+CURIOUS_COLLECTION_MAX_SELECTION = 8
 
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
@@ -296,6 +303,78 @@ def _encountered_species_from_session() -> list[str]:
     return cleaned
 
 
+def _collection_candidates_from_session() -> list[str]:
+    """Return the bounded, ordered species currently shown in the collection tray."""
+    candidates = st.session_state.setdefault(CURIOUS_COLLECTION_CANDIDATES_KEY, [])
+    if not isinstance(candidates, list):
+        st.session_state[CURIOUS_COLLECTION_CANDIDATES_KEY] = []
+        return []
+    cleaned = []
+    for species in candidates:
+        if (
+            isinstance(species, str)
+            and species.strip()
+            and species.strip() not in cleaned
+            and len(cleaned) < CURIOUS_COLLECTION_MAX_CANDIDATES
+        ):
+            cleaned.append(species.strip())
+    if cleaned != candidates:
+        st.session_state[CURIOUS_COLLECTION_CANDIDATES_KEY] = cleaned
+    return cleaned
+
+
+def _collection_selected_species(candidates: list[str]) -> list[str]:
+    """Keep the in-progress collection valid for the displayed candidate tray."""
+    selected = [species for species in _saved_species_from_session() if species in candidates]
+    selected = selected[:CURIOUS_COLLECTION_MAX_SELECTION]
+    if selected != _saved_species_from_session():
+        st.session_state[CURIOUS_SAVED_SPECIES_KEY] = selected
+    return selected
+
+
+def _initialise_collection_candidates() -> list[str]:
+    """Create the first bounded collection tray after the required searches."""
+    if CURIOUS_COLLECTION_CANDIDATES_KEY not in st.session_state:
+        candidates = _encountered_species_from_session()[:CURIOUS_COLLECTION_MAX_CANDIDATES]
+        st.session_state[CURIOUS_COLLECTION_CANDIDATES_KEY] = candidates
+        existing_selection = [
+            species for species in _saved_species_from_session() if species in candidates
+        ][:CURIOUS_COLLECTION_MAX_SELECTION]
+        if not existing_selection:
+            existing_selection = candidates[:CURIOUS_COLLECTION_INITIAL_SELECTION]
+        st.session_state[CURIOUS_SAVED_SPECIES_KEY] = existing_selection
+        st.session_state[CURIOUS_COLLECTION_DEFAULTS_APPLIED_KEY] = bool(candidates)
+    candidates = _collection_candidates_from_session()
+    _collection_selected_species(candidates)
+    return candidates
+
+
+def _add_collection_candidates(matches: pd.DataFrame) -> None:
+    """Add a bounded, first-seen set of eligible search results to the active tray."""
+    candidates = _collection_candidates_from_session()
+    for scientific_name in _eligible_species_to_save(matches)["Scientific name"]:
+        if len(candidates) >= CURIOUS_COLLECTION_MAX_CANDIDATES:
+            break
+        if scientific_name not in candidates:
+            candidates.append(scientific_name)
+    st.session_state[CURIOUS_COLLECTION_CANDIDATES_KEY] = candidates
+    if candidates and not st.session_state.get(CURIOUS_COLLECTION_DEFAULTS_APPLIED_KEY, False):
+        st.session_state[CURIOUS_SAVED_SPECIES_KEY] = candidates[:CURIOUS_COLLECTION_INITIAL_SELECTION]
+        st.session_state[CURIOUS_COLLECTION_DEFAULTS_APPLIED_KEY] = True
+
+
+def _toggle_collection_species(scientific_name: str) -> None:
+    """Toggle one candidate while keeping a small, ordered learner collection."""
+    candidates = _collection_candidates_from_session()
+    selected = _collection_selected_species(candidates)
+    if scientific_name in selected:
+        st.session_state[CURIOUS_SAVED_SPECIES_KEY] = [
+            species for species in selected if species != scientific_name
+        ]
+    elif scientific_name in candidates and len(selected) < CURIOUS_COLLECTION_MAX_SELECTION:
+        st.session_state[CURIOUS_SAVED_SPECIES_KEY] = [*selected, scientific_name]
+
+
 def _record_encountered_eligible_species(matches: pd.DataFrame) -> None:
     st.session_state[CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY] = _encountered_species_after_adding(
         _encountered_species_from_session(), matches
@@ -314,12 +393,26 @@ def _remove_saved_species(scientific_name: str) -> None:
 
 
 def _start_finding_more_animals() -> None:
+    candidates = _collection_candidates_from_session()
+    selected = _collection_selected_species(candidates)
+    # A new search makes room by retaining deliberate selections only.
+    st.session_state[CURIOUS_COLLECTION_CANDIDATES_KEY] = selected
+    st.session_state[CURIOUS_SAVED_SPECIES_KEY] = selected
     st.session_state[CURIOUS_FIND_MORE_KEY] = True
+    st.session_state["curious_exploration_search"] = ""
+    st.session_state["curious_exploration_last_query"] = ""
 
 
 def _finish_choosing_animals() -> None:
+    candidates = _collection_candidates_from_session()
+    st.session_state[CURIOUS_SAVED_SPECIES_KEY] = _collection_selected_species(candidates)
     st.session_state[CURIOUS_SELECTION_COMPLETE_KEY] = True
     st.session_state[CURIOUS_FIND_MORE_KEY] = False
+
+
+def _move_on_without_choosing_animals() -> None:
+    st.session_state[CURIOUS_SAVED_SPECIES_KEY] = []
+    _finish_choosing_animals()
 
 
 def _species_labels(data: pd.DataFrame, species_names: list[str]) -> list[tuple[str, str]]:
@@ -384,65 +477,30 @@ def _render_measurement_summary(matches: pd.DataFrame) -> None:
         )
 
 
-def _render_saved_species_summary(data: pd.DataFrame) -> None:
-    """Show the optional, persistent Explore selections and their removal actions."""
-    saved_species = _saved_species_from_session()
-    if not saved_species:
-        return
-
-    saved_labels = _species_labels(data, saved_species)
-    st.caption(
-        "**Saved for later:** "
-        + ", ".join(label for _, label in saved_labels)
-    )
-    st.caption("These animals will reappear on a later body-and-brain graph.")
-    for scientific_name, label in saved_labels:
-        st.button(
-            f"Remove {label}",
-            type="secondary",
-            key=f"curious_remove_saved_species_{scientific_name}",
-            on_click=_remove_saved_species,
-            args=(scientific_name,),
-        )
-
-
-def _render_post_exploration_save_species_control(data: pd.DataFrame) -> bool:
-    """Offer optional exact-species selection after the three-search exploration."""
-    st.markdown("### Keep animals for later")
-    saved_species = _saved_species_from_session()
-    encountered_species = _encountered_species_from_session()
-    _render_saved_species_summary(data)
-
-    if not encountered_species:
-        st.caption(
-            "None of the animals you found have both body-mass and brain-mass values for the later graph."
-        )
+def _render_collection_tray(data: pd.DataFrame) -> bool:
+    """Render the direct, bounded animal collection controls after initial searching."""
+    candidates = _initialise_collection_candidates()
+    if not candidates:
         return False
 
-    available_species = [
-        species for species in encountered_species if species not in saved_species
-    ]
-    if not available_species:
-        st.caption("The eligible animals you found are already saved for later.")
-        return True
+    selected = _collection_selected_species(candidates)
+    labels = dict(_species_labels(data, candidates))
+    st.markdown("### Choose animals to keep following")
+    st.write("Pick the animals you want to take with you into the next graphs.")
+    st.caption(f"Choose up to {CURIOUS_COLLECTION_MAX_SELECTION} animals.")
 
-    labels = {
-        scientific_name: f"{common_name} — {scientific_name}"
-        for scientific_name, common_name in _species_labels(data, available_species)
-    }
-    scientific_name = st.selectbox(
-        "Choose a species to keep for later",
-        options=available_species,
-        format_func=labels.get,
-        key="curious_post_exploration_saved_species_choice",
-    )
-    st.button(
-        "Keep for later",
-        type="secondary",
-        key="curious_keep_selected_species",
-        on_click=_save_species_for_later,
-        args=(scientific_name,),
-    )
+    columns = st.columns(3)
+    for index, scientific_name in enumerate(candidates):
+        is_selected = scientific_name in selected
+        label = labels.get(scientific_name) or scientific_name
+        columns[index % len(columns)].button(
+            f"{'✓ ' if is_selected else ''}{label} — {scientific_name}",
+            type="primary" if is_selected else "secondary",
+            key=f"curious_collection_candidate_{scientific_name}",
+            disabled=not is_selected and len(selected) >= CURIOUS_COLLECTION_MAX_SELECTION,
+            on_click=_toggle_collection_species,
+            args=(scientific_name,),
+        )
     return True
 
 
@@ -611,13 +669,16 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         attempts = int(st.session_state.get("curious_exploration_attempts", 0))
         selection_complete = bool(st.session_state.get(CURIOUS_SELECTION_COMPLETE_KEY, False))
         finding_more = bool(st.session_state.get(CURIOUS_FIND_MORE_KEY, False))
-        searching = attempts < 3 or (not selection_complete and finding_more)
+        initial_search = attempts < 3
+        searching = initial_search or (not selection_complete and finding_more)
 
-        if attempts < 3:
+        if initial_search:
             st.write("Try searching for at least three animals you are interested in. A search does not have to succeed.")
             st.caption("Need an idea? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
 
         if searching:
+            if attempts >= 3:
+                st.markdown("### Find another animal")
             animal_query = st.text_input("Search for an animal", key="curious_exploration_search")
             last_query = st.session_state.get("curious_exploration_last_query", "")
             new_search = animal_query.strip() and animal_query.strip() != last_query
@@ -628,7 +689,8 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 history = list(st.session_state.get("curious_exploration_history", []))
                 history.append(animal_query.strip())
                 st.session_state["curious_exploration_history"] = history
-            st.caption(f"Searches tried: {min(attempts, 3)} of 3")
+            if initial_search:
+                st.caption(f"Searches tried: {min(attempts, 3)} of 3")
 
             if animal_query.strip():
                 animal_matches = search_student_animals(curious_data, animal_query)
@@ -642,6 +704,8 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     _render_measurement_summary(animal_matches)
                     if new_search:
                         _record_encountered_eligible_species(animal_matches)
+                        if finding_more:
+                            _add_collection_candidates(animal_matches)
                     with soft_reveal("Where did this data come from?"):
                         st.write(
                             "AnimalTraits is a curated scientific database that brings together original measurements "
@@ -667,20 +731,56 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 finding_more = False
 
         if attempts >= 3 and not selection_complete and not finding_more:
-            has_candidates = _render_post_exploration_save_species_control(curious_data)
-            find_more_column, finish_column = st.columns(2)
-            find_more_column.button(
-                "Find more animals",
-                type="secondary",
-                key="curious_find_more_animals",
-                on_click=_start_finding_more_animals,
-            )
-            finish_column.button(
-                "Keep these animals" if has_candidates else "Move on without choosing animals",
-                type="primary",
-                key="curious_finish_choosing_animals",
-                on_click=_finish_choosing_animals,
-            )
+            has_candidates = _render_collection_tray(curious_data)
+            if has_candidates:
+                selected = _collection_selected_species(_collection_candidates_from_session())
+                st.markdown("#### Want to look for another animal?")
+                find_more_note, find_more_action = st.columns([2, 1])
+                if selected:
+                    find_more_note.write(
+                        "We’ll keep the animals you’ve selected and clear the rest to make room."
+                    )
+                else:
+                    find_more_note.write(
+                        "You haven’t selected any animals to keep. Searching again will clear this set."
+                    )
+                find_more_action.button(
+                    "Find another animal",
+                    type="secondary",
+                    key="curious_find_more_animals",
+                    on_click=_start_finding_more_animals,
+                )
+                if selected:
+                    st.button(
+                        "Keep these animals",
+                        type="primary",
+                        key="curious_finish_choosing_animals",
+                        on_click=_finish_choosing_animals,
+                    )
+                else:
+                    st.button(
+                        "Move on without choosing animals",
+                        type="primary",
+                        key="curious_move_on_without_animals",
+                        on_click=_move_on_without_choosing_animals,
+                    )
+            else:
+                st.write(
+                    "None of the animals you found so far have the measurements we need for the later graphs."
+                )
+                find_more_column, move_on_column = st.columns(2)
+                find_more_column.button(
+                    "Find another animal",
+                    type="secondary",
+                    key="curious_find_more_animals",
+                    on_click=_start_finding_more_animals,
+                )
+                move_on_column.button(
+                    "Move on without choosing animals",
+                    type="primary",
+                    key="curious_move_on_without_animals",
+                    on_click=_move_on_without_choosing_animals,
+                )
 
         if attempts >= 3 and selection_complete:
             student_data = student_facing_data(curious_data)
