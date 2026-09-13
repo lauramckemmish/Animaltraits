@@ -610,7 +610,7 @@ def render(data: pd.DataFrame) -> None:
             ),
             use_container_width=True,
         )
-        st.caption("The line is a broad reference pattern. Next, test whether it describes different animal groups in the same way.")
+        st.caption("Next, test whether the broad pattern describes different animal groups in the same way.")
 
         comparison_revealed = hard_reveal(
             "Compare mammal and reptile evidence with the broad all-animal reference.",
@@ -644,9 +644,6 @@ def render(data: pd.DataFrame) -> None:
                     title="Mammals and reptiles · body mass vs brain mass",
                 ),
                 use_container_width=True,
-            )
-            st.caption(
-                "The dotted line is the all-animal reference; the solid lines summarise the mammal and reptile points."
             )
             conclusion_revealed = hard_reveal(
                 "**What does the graph show about mammals and reptiles? Which relationship should we use later for a cat or elephant, and why?**",
