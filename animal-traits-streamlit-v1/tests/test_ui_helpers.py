@@ -18,6 +18,7 @@ class StreamlitStub:
         self.buttons = []
         self.containers = []
         self.expanders = []
+        self.expander_kwargs = []
         self.markdowns = []
         self.captions = []
         self.images = []
@@ -28,7 +29,7 @@ class StreamlitStub:
         count = len(args[0]) if args and isinstance(args[0], list) else (args[0] if args else 3)
         return [Context() for _ in range(count)]
     def container(self, **kwargs): self.containers.append(kwargs); return Context()
-    def expander(self, label, **_kwargs): self.expanders.append(label); return Context()
+    def expander(self, label, **kwargs): self.expanders.append(label); self.expander_kwargs.append(kwargs); return Context()
     def button(self, label, **_kwargs): self.buttons.append(label); return False
     def info(self, *_args, **_kwargs): pass
     def success(self, *_args, **_kwargs): pass
@@ -70,12 +71,39 @@ class SharedContractTests(unittest.TestCase):
             self.assertIn("Compare first", stub.markdowns[0])
             self.assertEqual(stub.captions, ["Agree on a comparison before revealing the evidence."])
 
-    def test_think_is_a_non_blocking_labeled_cue(self):
+    def test_semantic_prompts_name_the_cognitive_job_without_gating(self):
+        stub = StreamlitStub()
+        prompts = (
+            (ui_helpers.notice_prompt, "Notice"),
+            (ui_helpers.compare_prompt, "Compare"),
+            (ui_helpers.predict_prompt, "Predict"),
+            (ui_helpers.explain_prompt, "Explain"),
+            (ui_helpers.conclude_prompt, "Conclude"),
+            (ui_helpers.revise_prompt, "Revise"),
+            (ui_helpers.recall_prompt, "Recall"),
+        )
+        with patch.object(ui_helpers, "st", stub):
+            for render_prompt, label in prompts:
+                render_prompt(f"{label} this evidence.")
+            self.assertIn("Continue →", self.nav(stub))
+
+        self.assertEqual(len(stub.markdowns), len(prompts))
+        for (_, label), markdown in zip(prompts, stub.markdowns):
+            self.assertIn(label, markdown)
+        self.assertEqual(
+            stub.writes[: len(prompts)],
+            [f"{label} this evidence." for _, label in prompts],
+        )
+
+    def test_self_check_is_collapsed_and_never_blocks_continue(self):
         stub = StreamlitStub()
         with patch.object(ui_helpers, "st", stub):
-            ui_helpers.think_prompt("What do you notice?")
-            self.assertIn("Think", stub.markdowns[0])
+            with ui_helpers.self_check("Check your reading"):
+                stub.write("Compare this with your own observation.")
             self.assertIn("Continue →", self.nav(stub))
+
+        self.assertEqual(stub.expanders, ["Self-check: Check your reading"])
+        self.assertEqual(stub.expander_kwargs, [{"expanded": False}])
 
     def test_completion_gate_blocks_continue_but_keeps_back(self):
         stub = StreamlitStub()

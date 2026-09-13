@@ -49,6 +49,11 @@ def apply_visual_system() -> None:
     [data-testid="stTabs"] [role="tab"][aria-selected="true"] p, [data-testid="stTabs"] [role="tab"][data-selected="true"] p {{ color:inherit; font-weight:650; }}
     [data-testid="stAlert"] {{ border-left:3px solid var(--unsw-information); background:rgba(63,97,196,.08); }}
     [data-testid="stExpander"] {{ border-left:3px solid var(--unsw-exploration); }}
+    .st-key-notice_prompt, .st-key-compare_prompt, .st-key-predict_prompt, .st-key-explain_prompt, .st-key-conclude_prompt, .st-key-revise_prompt, .st-key-recall_prompt {{ border-left:2px solid #111827; padding:.1rem 0 .1rem .65rem; margin:.5rem 0 .7rem; }}
+    .st-key-notice_prompt .cognitive-prompt__label, .st-key-compare_prompt .cognitive-prompt__label, .st-key-predict_prompt .cognitive-prompt__label, .st-key-explain_prompt .cognitive-prompt__label, .st-key-conclude_prompt .cognitive-prompt__label, .st-key-revise_prompt .cognitive-prompt__label, .st-key-recall_prompt .cognitive-prompt__label, [class*="st-key-hard_reveal_"] .hard-reveal__label {{ display:block; font-size:.72rem; font-weight:700; letter-spacing:.08em; line-height:1.2; text-transform:uppercase; }}
+    .st-key-notice_prompt [data-testid="stMarkdownContainer"] p, .st-key-compare_prompt [data-testid="stMarkdownContainer"] p, .st-key-predict_prompt [data-testid="stMarkdownContainer"] p, .st-key-explain_prompt [data-testid="stMarkdownContainer"] p, .st-key-conclude_prompt [data-testid="stMarkdownContainer"] p, .st-key-revise_prompt [data-testid="stMarkdownContainer"] p, .st-key-recall_prompt [data-testid="stMarkdownContainer"] p, [class*="st-key-hard_reveal_"] [data-testid="stMarkdownContainer"] p {{ margin-bottom:.2rem; }}
+    [class*="st-key-hard_reveal_"] {{ border-left:2px solid var(--unsw-information); padding:.1rem 0 .1rem .65rem; margin:.65rem 0 .8rem; }}
+    [class*="st-key-hard_reveal_"] .hard-reveal__label {{ color:var(--unsw-information); }}
     .type-major-section {{ font-size:clamp(1.35rem, 2.2vw, 1.65rem); line-height:1.2; }}
     .type-subsection {{ font-size:1.25rem; line-height:1.25; }}
     .type-resource-identity {{ font-size:clamp(1.25rem, 2.1vw, 1.55rem); line-height:1.2; }}
