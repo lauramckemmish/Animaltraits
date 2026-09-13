@@ -18,9 +18,14 @@ def semantic_heading(text: str, role: str) -> None:
 
 def apply_visual_system() -> None:
     st.markdown(f"""<style>
-    :root {{ --unsw-brand:{SEMANTIC_TOKENS['brand']}; --unsw-active-emphasis:{SEMANTIC_TOKENS['active_emphasis']}; --unsw-information:{SEMANTIC_TOKENS['information']}; --unsw-exploration:{SEMANTIC_TOKENS['exploration']}; }}
+    :root {{ --unsw-brand:{SEMANTIC_TOKENS['brand']}; --unsw-active-emphasis:{SEMANTIC_TOKENS['active_emphasis']}; --unsw-information:{SEMANTIC_TOKENS['information']}; --unsw-exploration:{SEMANTIC_TOKENS['exploration']}; --unsw-secondary-accent:{SEMANTIC_TOKENS['secondary_accent']}; }}
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{ gap:.35rem; }}
     [data-testid="stSidebar"] {{ border-right:1px solid rgba(255,220,0,.35); }}
+    [class*="st-key-media_text_"] [data-testid="stHorizontalBlock"] {{ align-items:center; }}
+    @media (max-width:700px) {{
+        [class*="st-key-media_text_"] [data-testid="stHorizontalBlock"] {{ flex-direction:column; gap:.65rem; }}
+        [class*="st-key-media_text_"] [data-testid="column"] {{ width:100% !important; flex:1 1 100% !important; }}
+    }}
     [data-testid="stSidebar"] .st-key-sidebar_brand {{ background:var(--unsw-brand); color:#000; padding:.65rem .7rem .6rem; margin:-.15rem -.35rem .6rem; border-radius:0 0 .3rem .3rem; }}
     [data-testid="stSidebar"] .st-key-sidebar_brand h3 {{ color:#000 !important; }}
     /* The sidebar identity plate is intentionally compact; config supplies the landscape mark. */
@@ -30,8 +35,18 @@ def apply_visual_system() -> None:
     [data-testid="stSidebar"] .st-key-sidebar_data_source [data-testid="stVerticalBlock"] {{ gap:.12rem; }}
     [data-testid="stSidebar"] .st-key-sidebar_data_source p, [data-testid="stSidebar"] .st-key-sidebar_data_source [data-testid="stCaptionContainer"] {{ color:#fff !important; }}
     [data-testid="stSidebar"] [data-testid="stButton"] > button {{ width:100%; min-height:2rem; padding:.2rem .45rem; font-size:.88rem; }}
-    [data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"] {{ background:rgba(255,220,0,.10); border-color:transparent; border-left:4px solid var(--unsw-active-emphasis); color:inherit; }}
-    [data-testid="stButton"] > button:focus-visible, [data-testid="stTabs"] [role="tab"]:focus-visible {{ outline:3px solid currentColor; outline-offset:2px; box-shadow:0 0 0 5px var(--unsw-brand); }}
+    [data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"] {{ background:rgba(255,220,0,.10); border-color:transparent; border-left:4px solid var(--unsw-active-emphasis); color:inherit; padding-left:calc(.45rem - 2px); }}
+    [data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"]:hover {{ background:rgba(255,220,0,.16); border-color:transparent; border-left-color:var(--unsw-active-emphasis); color:inherit; }}
+    [data-testid="stButton"] > button[kind="primary"], [data-testid="stFormSubmitButton"] > button[kind="primary"], [data-testid="stBaseButton-primary"], [data-testid="stBaseButton-primaryFormSubmit"] {{ background:transparent; border:2px solid var(--unsw-active-emphasis); color:inherit; font-weight:650; }}
+    [data-testid="stButton"] > button[kind="primary"]:hover, [data-testid="stFormSubmitButton"] > button[kind="primary"]:hover, [data-testid="stBaseButton-primary"]:hover, [data-testid="stBaseButton-primaryFormSubmit"]:hover {{ background:rgba(255,220,0,.10); border-color:var(--unsw-active-emphasis); color:inherit; }}
+    [data-testid="stButton"] > button[kind="secondary"] {{ background:rgba(63,97,196,.08); border-color:rgba(63,97,196,.65); }}
+    [data-testid="stButton"] > button:focus-visible, [data-testid="stFormSubmitButton"] > button:focus-visible, [data-testid="stBaseButton-primary"]:focus-visible, [data-testid="stBaseButton-primaryFormSubmit"]:focus-visible, [data-testid="stTabs"] button:focus-visible, [data-testid="stTabs"] [role="tab"]:focus-visible {{ outline:3px solid currentColor; outline-offset:2px; box-shadow:0 0 0 5px var(--unsw-brand); }}
+    [data-testid="stTabs"] [role="tablist"] {{ gap:.25rem; flex-wrap:wrap; border-bottom:0; }}
+    [data-testid="stTabs"] [data-testid="stTab"] hr {{ display:none; }}
+    [data-testid="stTabs"] [role="tab"] {{ min-height:2rem; padding:.3rem .55rem; background:transparent; border:1px solid transparent; border-radius:.3rem; color:inherit; }}
+    [data-testid="stTabs"] [role="tab"]:hover {{ background:rgba(255,220,0,.08); }}
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"], [data-testid="stTabs"] [role="tab"][data-selected="true"] {{ background:transparent; border:1px solid transparent; border-left:4px solid var(--unsw-active-emphasis); padding-left:calc(.55rem - 3px); }}
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"] p, [data-testid="stTabs"] [role="tab"][data-selected="true"] p {{ color:inherit; font-weight:650; }}
     [data-testid="stAlert"] {{ border-left:3px solid var(--unsw-information); background:rgba(63,97,196,.08); }}
     [data-testid="stExpander"] {{ border-left:3px solid var(--unsw-exploration); }}
     .type-major-section {{ font-size:clamp(1.35rem, 2.2vw, 1.65rem); line-height:1.2; }}

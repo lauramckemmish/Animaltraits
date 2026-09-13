@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from html import escape
 
 import streamlit as st
@@ -111,6 +113,57 @@ def graph_support(reading: str, looking_for: str) -> None:
         st.markdown("**Reading the graph**")
         st.write(reading)
         st.caption(f"Look for: {looking_for}")
+
+
+_IMAGE_ROLES = frozenset({"context", "evidence", "graph", "support", "hero"})
+_PAIR_IMAGE_ROLES = frozenset({"context", "support"})
+
+
+def _validate_image_role(role: str) -> None:
+    if role not in _IMAGE_ROLES:
+        raise ValueError(f"Unknown image role: {role}")
+
+
+def _render_role_image(image, caption: str | None) -> None:
+    """Render an image using the existing responsive Streamlit default."""
+    st.image(image, caption=caption, width="stretch")
+
+
+def role_image(image, *, role: str, caption: str | None = None, key: str | None = None) -> None:
+    """Render an image with a validated instructional presentation role.
+
+    ``context`` establishes setting, ``evidence`` is inspected by learners,
+    ``graph`` is a data representation, ``support`` is secondary explanation,
+    and ``hero`` carries opening visual attention.
+    """
+    _validate_image_role(role)
+    if key is None:
+        _render_role_image(image, caption)
+        return
+    with st.container(key=f"role_image_{role}_{key}"):
+        _render_role_image(image, caption)
+
+
+@contextmanager
+def media_text_pair(
+    image,
+    *,
+    role: str,
+    caption: str | None = None,
+    key: str,
+) -> Iterator[None]:
+    """Pair context or support media with associated text, stacking on narrow screens."""
+    _validate_image_role(role)
+    if role not in _PAIR_IMAGE_ROLES:
+        raise ValueError("A media/text pair must use the context or support role")
+
+    ratios = [1, 1] if role == "context" else [1, 2]
+    with st.container(key=f"media_text_{key}"):
+        image_column, text_column = st.columns(ratios, gap="medium")
+        with image_column:
+            _render_role_image(image, caption)
+        with text_column:
+            yield
 
 
 def variable_card(field: str, meaning: str, *, unit: str | None = None, scale_note: str | None = None) -> None:

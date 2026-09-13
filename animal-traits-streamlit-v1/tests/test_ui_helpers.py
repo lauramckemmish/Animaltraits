@@ -1,5 +1,6 @@
 """Focused acceptance tests for Animal Traits shared UI contracts."""
 
+import inspect
 import unittest
 from unittest.mock import patch
 
@@ -19,15 +20,22 @@ class StreamlitStub:
         self.expanders = []
         self.markdowns = []
         self.captions = []
-    def columns(self, *_args, **_kwargs): return [Context(), Context(), Context()]
+        self.images = []
+        self.writes = []
+        self.column_args = []
+    def columns(self, *args, **kwargs):
+        self.column_args.append((args, kwargs))
+        count = len(args[0]) if args and isinstance(args[0], list) else (args[0] if args else 3)
+        return [Context() for _ in range(count)]
     def container(self, **kwargs): self.containers.append(kwargs); return Context()
     def expander(self, label, **_kwargs): self.expanders.append(label); return Context()
     def button(self, label, **_kwargs): self.buttons.append(label); return False
     def info(self, *_args, **_kwargs): pass
     def success(self, *_args, **_kwargs): pass
-    def write(self, *_args, **_kwargs): pass
+    def write(self, body, **_kwargs): self.writes.append(body)
     def markdown(self, body, **_kwargs): self.markdowns.append(body)
     def caption(self, body, **_kwargs): self.captions.append(body)
+    def image(self, image, **kwargs): self.images.append((image, kwargs))
     def text_area(self, _label, *, key, **_kwargs): return self.session_state.setdefault(key, "")
 
 
@@ -124,6 +132,58 @@ class SharedContractTests(unittest.TestCase):
             ui_helpers.sample_note(8, 10, key="playground_two_sample_note")
 
         self.assertIn({"key": "playground_two_sample_note"}, stub.containers)
+
+    def test_role_image_accepts_shared_roles_and_rejects_unknown_roles(self):
+        stub = StreamlitStub()
+        roles = ("context", "evidence", "graph", "support", "hero")
+        with patch.object(ui_helpers, "st", stub):
+            for role in roles:
+                ui_helpers.role_image("image.png", role=role, caption="Context", key=role)
+            with self.assertRaisesRegex(ValueError, "Unknown image role"):
+                ui_helpers.role_image("image.png", role="thumbnail")
+
+        self.assertEqual(len(stub.images), 5)
+        self.assertTrue(all(kwargs == {"caption": "Context", "width": "stretch"} for _, kwargs in stub.images))
+        self.assertEqual(
+            [container["key"] for container in stub.containers[-5:]],
+            [f"role_image_{role}_{role}" for role in roles],
+        )
+
+    def test_media_text_pair_uses_role_specific_ratios_and_rejects_non_pair_roles(self):
+        stub = StreamlitStub()
+        with patch.object(ui_helpers, "st", stub):
+            with ui_helpers.media_text_pair("context.png", role="context", caption="Context", key="context_pair"):
+                stub.write("Associated explanation")
+            with ui_helpers.media_text_pair("support.png", role="support", key="support_pair"):
+                stub.write("Associated support")
+            with self.assertRaisesRegex(ValueError, "context or support"):
+                with ui_helpers.media_text_pair("graph.png", role="graph", key="invalid_pair"):
+                    pass
+
+        self.assertEqual(stub.column_args, [(([1, 1],), {"gap": "medium"}), (([1, 2],), {"gap": "medium"})])
+        self.assertEqual(
+            stub.images,
+            [("context.png", {"caption": "Context", "width": "stretch"}), ("support.png", {"caption": None, "width": "stretch"})],
+        )
+        self.assertEqual(stub.writes[-2:], ["Associated explanation", "Associated support"])
+
+    def test_visual_system_defines_responsive_media_pair_structure(self):
+        import visual_system
+
+        styles = inspect.getsource(visual_system.apply_visual_system)
+        self.assertIn('class*="st-key-media_text_"', styles)
+        self.assertIn("@media (max-width:700px)", styles)
+        self.assertIn("flex-direction:column", styles)
+
+    def test_visual_system_covers_shared_button_tab_and_focus_states(self):
+        import visual_system
+
+        styles = inspect.getsource(visual_system.apply_visual_system)
+        self.assertIn('button[kind="secondary"]', styles)
+        self.assertIn('stFormSubmitButton', styles)
+        self.assertIn('stBaseButton-primaryFormSubmit', styles)
+        self.assertIn('role="tablist"', styles)
+        self.assertIn("flex-wrap:wrap", styles)
 
 
 if __name__ == "__main__":
