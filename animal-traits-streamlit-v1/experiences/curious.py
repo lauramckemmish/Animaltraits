@@ -30,6 +30,7 @@ from ui_helpers import (
     graph_support,
     hard_reveal,
     page_header,
+    predict_prompt,
     scroll_to_top_if_requested,
     soft_reveal,
     step_buttons,
@@ -678,11 +679,56 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             "Ask for rough estimates, not look-ups. Keep the focus on body mass; learners meet the evidence in the next step.",
             "4 min",
         )
-        st.header("If you made a mouse the size of an elephant, how big would you expect its brain to be?")
-        st.image(MOUSE_TO_ELEPHANT_HERO_PATH, width="stretch")
-        st.markdown("### Estimate")
-        st.write("**How heavy do you think a mouse is? How heavy do you think an elephant is?**")
-        st.write("Make rough estimates with your group. Don’t look them up.")
+        scale_estimates_committed = bool(
+            st.session_state.get("curious_start_scale_estimates_committed", False)
+        )
+        brain_expectation_committed = bool(
+            st.session_state.get("curious_start_brain_expectation_committed", False)
+        )
+
+        if not scale_estimates_committed:
+            st.header("How big is a mouse?")
+            st.text_input(
+                "Your rough estimate",
+                key="curious_start_mouse_scale_estimate",
+                placeholder="A quick comparison is enough.",
+            )
+            st.header("How big is an elephant?")
+            st.text_input(
+                "Your rough estimate",
+                key="curious_start_elephant_scale_estimate",
+                placeholder="A quick comparison is enough.",
+            )
+            st.caption("Make rough estimates with your group. Don’t look them up.")
+            st.button(
+                "Compare their scale",
+                type="primary",
+                key="curious_start_compare_scale",
+                on_click=lambda: st.session_state.__setitem__(
+                    "curious_start_scale_estimates_committed", True
+                ),
+            )
+        else:
+            st.header("If you made a mouse the size of an elephant, how big would you expect its brain to be?")
+            predict_prompt("Make a rough prediction with your group before seeing the mouse at elephant scale.")
+            st.text_input(
+                "Your expectation",
+                key="curious_start_brain_expectation",
+                placeholder="A quick idea is enough.",
+            )
+            if not brain_expectation_committed:
+                st.button(
+                    "Commit your expectation",
+                    type="primary",
+                    key="curious_start_commit_brain_expectation",
+                    on_click=lambda: st.session_state.__setitem__(
+                        "curious_start_brain_expectation_committed", True
+                    ),
+                )
+            else:
+                st.image(MOUSE_TO_ELEPHANT_HERO_PATH, width="stretch")
+
+        completion_gate(brain_expectation_committed)
 
     elif part == 1:
         teacher_note(
