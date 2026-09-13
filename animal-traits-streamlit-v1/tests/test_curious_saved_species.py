@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from charts import body_brain_representative_scatter, body_brain_scatter
+from charts import body_brain_representative_scatter, body_brain_scatter, histogram
 from data import load_data, species_traits_from_observations
 from experiences.curious import (
     _curious_saved_body_brain_species,
+    _curious_saved_body_mass_species,
     _encountered_species_after_adding,
     _eligible_species_to_save,
     _saved_species_after_adding,
@@ -147,6 +148,43 @@ def test_saved_body_brain_species_handles_empty_duplicate_unknown_and_unusable_i
     ]
     assert resolved["Scientific name"].tolist() == ["Canis familiaris"]
     assert unknown.empty
+
+
+def test_saved_body_mass_species_returns_all_positive_values_in_save_order():
+    data = species_traits_from_observations(load_data())
+
+    resolved = _curious_saved_body_mass_species(
+        data, ["Corvus brachyrhynchos", "Mus musculus", "Canis familiaris", "Corvus brachyrhynchos", "Unknown species"]
+    )
+
+    assert resolved["Scientific name"].tolist() == [
+        "Corvus brachyrhynchos", "Mus musculus", "Canis familiaris"
+    ]
+    assert resolved["body mass (kg)"].gt(0).all()
+
+
+def test_body_mass_histogram_marks_all_saved_species_without_changing_log_scale():
+    data = species_traits_from_observations(load_data())
+    saved = _curious_saved_body_mass_species(
+        data, ["Corvus brachyrhynchos", "Canis familiaris", "Muscardinus avellanarius"]
+    )
+
+    figure = histogram(
+        data,
+        "body mass (kg)",
+        log_x=True,
+        learner_selected_data=saved,
+    )
+
+    assert figure.data[-1].name == "Your earlier searches"
+    assert figure.data[-1].customdata[:, 1].tolist() == [
+        "Corvus brachyrhynchos", "Canis familiaris", "Muscardinus avellanarius"
+    ]
+    assert figure.data[-1].marker.symbol == "triangle-up"
+    assert figure.layout.xaxis.type == "log"
+
+    no_saved_figure = histogram(data, "body mass (kg)", log_x=True)
+    assert len(no_saved_figure.data) == 1
 
 
 def test_representative_chart_keeps_fixed_anchors_unchanged_without_saved_species():

@@ -81,10 +81,54 @@ def _apply_scientific_log_axis(fig, axis: str, values: pd.Series, title: str) ->
         raise ValueError("axis must be 'x' or 'y'")
 
 
-def histogram(data: pd.DataFrame, field: str, log_x: bool = False, bins: int = 25):
+def histogram(
+    data: pd.DataFrame,
+    field: str,
+    log_x: bool = False,
+    bins: int = 25,
+    learner_selected_data: pd.DataFrame | None = None,
+):
     values = pd.to_numeric(data[field], errors="coerce")
     plot_data = pd.DataFrame({field: values}).dropna()
     plot_data = plot_data[plot_data[field] > 0]
+
+    selected_data = pd.DataFrame()
+    if learner_selected_data is not None:
+        selected_data = learner_selected_data.copy()
+        selected_data[field] = pd.to_numeric(selected_data.get(field), errors="coerce")
+        selected_data["Scientific name"] = selected_data.get("Scientific name", "").fillna("").astype(str)
+        selected_data = selected_data.dropna(subset=[field])
+        selected_data = selected_data[
+            selected_data["Scientific name"].ne("") & selected_data[field].gt(0)
+        ].drop_duplicates(subset=["Scientific name"])
+
+    def add_selected_species_trace(fig):
+        if selected_data.empty:
+            return
+        common_names = selected_data.get("Common name", selected_data["Scientific name"])
+        common_names = common_names.fillna("").astype(str)
+        common_names = common_names.mask(common_names.eq(""), selected_data["Scientific name"])
+        fig.add_trace(
+            go.Scatter(
+                x=selected_data[field],
+                y=[0] * len(selected_data),
+                mode="markers",
+                name="Your earlier searches",
+                cliponaxis=False,
+                marker=dict(
+                    size=11,
+                    color="#d95f02",
+                    symbol="triangle-up",
+                    line=dict(color="#7f2704", width=1.5),
+                ),
+                customdata=np.column_stack([common_names, selected_data["Scientific name"]]),
+                hovertemplate=(
+                    "Animal: %{customdata[0]}<br>"
+                    "Scientific name: %{customdata[1]}<br>"
+                    "Body mass: %{x} kg<extra></extra>"
+                ),
+            )
+        )
 
     if log_x and not plot_data.empty:
         low = np.log10(plot_data[field].min())
@@ -96,10 +140,12 @@ def histogram(data: pd.DataFrame, field: str, log_x: bool = False, bins: int = 2
         _apply_scientific_log_axis(fig, "x", plot_data[field], field)
         fig.update_yaxes(title="Number of animals")
         fig.update_layout(title=f"Distribution of {field} · logarithmic scale", bargap=0.02)
+        add_selected_species_trace(fig)
         return fig
 
     fig = px.histogram(plot_data, x=field, nbins=bins, title=f"Distribution of {field} · linear scale")
     fig.update_yaxes(title="Number of animals")
+    add_selected_species_trace(fig)
     return fig
 
 

@@ -186,6 +186,42 @@ def _curious_saved_body_brain_species(data: pd.DataFrame, saved_species: list[st
     return pd.DataFrame(records, columns=columns)
 
 
+def _curious_saved_body_mass_species(data: pd.DataFrame, saved_species: list[str]) -> pd.DataFrame:
+    """Resolve saved identities to current, usable body-mass species data."""
+    saved_order = []
+    for species in saved_species:
+        if isinstance(species, str) and species.strip() and species.strip() not in saved_order:
+            saved_order.append(species.strip())
+
+    columns = ["Common name", "Scientific name", "body mass (kg)"]
+    if not saved_order:
+        return pd.DataFrame(columns=columns)
+
+    current_species = student_facing_data(data)
+    current_species["Body mass (kg)"] = pd.to_numeric(
+        current_species["Body mass (kg)"], errors="coerce"
+    )
+    current_species = current_species[
+        current_species["Scientific name"].isin(saved_order)
+        & current_species["Body mass (kg)"].gt(0)
+    ].drop_duplicates(subset=["Scientific name"])
+
+    by_species = current_species.set_index("Scientific name")
+    records = []
+    for species in saved_order:
+        if species not in by_species.index:
+            continue
+        record = by_species.loc[species]
+        records.append(
+            {
+                "Common name": record["Common name"],
+                "Scientific name": species,
+                "body mass (kg)": record["Body mass (kg)"],
+            }
+        )
+    return pd.DataFrame(records, columns=columns)
+
+
 def _eligible_species_to_save(matches: pd.DataFrame) -> pd.DataFrame:
     """Return exact search results that can later appear on a body/brain graph."""
     eligible = matches.copy()
@@ -671,6 +707,9 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         st.write("Start with body mass.")
 
         body = _body_mass_values(curious_data)
+        saved_body_mass_species = _curious_saved_body_mass_species(
+            curious_data, _saved_species_from_session()
+        )
         if not body.empty:
             largest_value = body.max()
             smallest_value = body.min()
@@ -704,7 +743,13 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     st.markdown("### Now let’s look at all the species body-mass values together.")
                     st.caption("What do you notice? Can you actually see most of the data clearly?")
                     st.plotly_chart(
-                        histogram(curious_data, "body mass (kg)", bins=25, log_x=False),
+                        histogram(
+                            curious_data,
+                            "body mass (kg)",
+                            bins=25,
+                            log_x=False,
+                            learner_selected_data=saved_body_mass_species,
+                        ),
                         use_container_width=True,
                     )
 
@@ -715,7 +760,13 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     ):
                         st.write("The same values are now spaced differently.")
                         st.plotly_chart(
-                            histogram(curious_data, "body mass (kg)", bins=25, log_x=True),
+                            histogram(
+                                curious_data,
+                                "body mass (kg)",
+                                bins=25,
+                                log_x=True,
+                                learner_selected_data=saved_body_mass_species,
+                            ),
                             use_container_width=True,
                         )
                         st.write(
