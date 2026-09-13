@@ -40,6 +40,7 @@ from ui_helpers import (
 STEP_LABELS = [
     "Start",
     "Find your animals",
+    "Body mass",
     "Body + brain",
     "Animal groups",
     "Predict brain size",
@@ -686,6 +687,9 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         st.caption("10⁻³ kg = 0.001 kg · 10⁰ kg = 1 kg · 10³ kg = 1,000 kg")
 
     elif part == 2:
+        st.header("Body mass")
+
+    elif part == 3:
         teacher_note(
             "Two variables",
             "Move from a few familiar species to the full two-variable dataset, then reactivate the log-scale idea from Step 3 to make the full pattern easier to see.",
@@ -805,7 +809,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
 
                 st.caption("This graph puts body mass and brain mass together to show their relationship.")
 
-    elif part == 3:
+    elif part == 4:
         teacher_note(
             "Animal class",
             "Begin with the broad animal pattern, then reveal Mammal and Reptile evidence so learners can see that one relationship does not describe every group equally well.",
@@ -928,7 +932,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     )
         completion_gate(comparison_revealed)
 
-    elif part == 4:
+    elif part == 5:
         model_check_complete = bool(st.session_state.get("curious_mammal_model_check_complete", False))
         teacher_note(
             "Mammal model",
@@ -991,7 +995,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 st.caption("Look again for the answer that describes a typical pattern rather than an exact rule or a cause.")
         completion_gate(model_check_complete)
 
-    if part == 4 and model_check_complete:
+    if part == 5 and model_check_complete:
         prediction_ready = False
         cat_sequence_complete = bool(st.session_state.get("curious_cat_sequence_complete", False))
         teacher_note(
@@ -1121,7 +1125,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         st.caption("You used a model to make a prediction, then tested it with new evidence.")
         completion_gate(cat_sequence_complete)
 
-    if part == 4 and model_check_complete and cat_sequence_complete:
+    if part == 5 and model_check_complete and cat_sequence_complete:
         elephant_sequence_complete = bool(st.session_state.get("curious_elephant_sequence_complete", False))
         trust_committed = False
         teacher_note(
@@ -1290,7 +1294,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     st.caption("You used a model beyond its data range, then tested that extrapolation with new evidence.")
         completion_gate(elephant_sequence_complete)
 
-    elif part == 5:
+    elif part == 6:
         absolute_choice_committed = False
         relative_choice_committed = False
         teacher_note(
@@ -1432,7 +1436,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         completion_gate(absolute_choice_committed)
         completion_gate(relative_choice_committed)
 
-    elif part == 6:
+    elif part == 7:
         teacher_note(
             "Data Science transfer",
             "Focus on the repeated process, not the internal algorithms.",
