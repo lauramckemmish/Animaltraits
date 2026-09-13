@@ -138,6 +138,52 @@ def _curious_orientation_animals(data: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
+def _curious_saved_body_brain_species(data: pd.DataFrame, saved_species: list[str]) -> pd.DataFrame:
+    """Resolve saved identities to current, graph-usable CURIOUS species data.
+
+    The saved identities remain in session state even if a species is no longer
+    present or lacks the paired positive measurements needed for this graph.
+    """
+    saved_order = []
+    for species in saved_species:
+        if isinstance(species, str) and species.strip() and species.strip() not in saved_order:
+            saved_order.append(species.strip())
+    saved_order = saved_order[:CURIOUS_SAVED_SPECIES_LIMIT]
+
+    columns = ["Common name", "Scientific name", "body mass (kg)", "brain size (kg)"]
+    if not saved_order:
+        return pd.DataFrame(columns=columns)
+
+    current_species = student_facing_data(data)
+    current_species["Body mass (kg)"] = pd.to_numeric(
+        current_species["Body mass (kg)"], errors="coerce"
+    )
+    current_species["Brain size (kg)"] = pd.to_numeric(
+        current_species["Brain size (kg)"], errors="coerce"
+    )
+    current_species = current_species[
+        current_species["Scientific name"].isin(saved_order)
+        & current_species["Body mass (kg)"].gt(0)
+        & current_species["Brain size (kg)"].gt(0)
+    ].drop_duplicates(subset=["Scientific name"])
+
+    by_species = current_species.set_index("Scientific name")
+    records = []
+    for species in saved_order:
+        if species not in by_species.index:
+            continue
+        record = by_species.loc[species]
+        records.append(
+            {
+                "Common name": record["Common name"],
+                "Scientific name": species,
+                "body mass (kg)": record["Body mass (kg)"],
+                "brain size (kg)": record["Brain size (kg)"],
+            }
+        )
+    return pd.DataFrame(records, columns=columns)
+
+
 def _eligible_species_to_save(matches: pd.DataFrame) -> pd.DataFrame:
     """Return exact search results that can later appear on a body/brain graph."""
     eligible = matches.copy()

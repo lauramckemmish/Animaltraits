@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import pandas as pd
 
+from data import load_data, species_traits_from_observations
 from experiences.curious import (
     CURIOUS_SAVED_SPECIES_LIMIT,
+    _curious_saved_body_brain_species,
     _eligible_species_to_save,
     _saved_species_after_adding,
     _saved_species_after_removing,
@@ -67,3 +69,34 @@ def test_removing_saved_species_frees_a_slot_for_a_replacement():
     saved, result = _saved_species_after_adding(saved, "Homo sapiens")
 
     assert (saved, result) == (["Corvus brachyrhynchos", "Homo sapiens"], "saved")
+
+
+def test_saved_body_brain_species_returns_current_values_in_save_order():
+    data = species_traits_from_observations(load_data())
+
+    resolved = _curious_saved_body_brain_species(
+        data, ["Corvus brachyrhynchos", "Canis familiaris"]
+    )
+
+    assert resolved["Scientific name"].tolist() == ["Corvus brachyrhynchos", "Canis familiaris"]
+    assert resolved["Common name"].tolist() == ["American Crow", "Canis familiaris"]
+    assert resolved["body mass (kg)"].tolist() == [0.337, 21.117058823529412]
+    assert resolved["brain size (kg)"].tolist() == [0.0093, 0.08946176470588235]
+
+
+def test_saved_body_brain_species_handles_empty_duplicate_unknown_and_unusable_identities():
+    data = species_traits_from_observations(load_data())
+
+    empty = _curious_saved_body_brain_species(data, [])
+    resolved = _curious_saved_body_brain_species(
+        data,
+        ["Canis familiaris", "Mus musculus", "Canis familiaris"],
+    )
+    unknown = _curious_saved_body_brain_species(data, ["Unknown species"])
+
+    assert empty.empty
+    assert empty.columns.tolist() == [
+        "Common name", "Scientific name", "body mass (kg)", "brain size (kg)"
+    ]
+    assert resolved["Scientific name"].tolist() == ["Canis familiaris"]
+    assert unknown.empty
