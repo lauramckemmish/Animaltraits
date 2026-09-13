@@ -39,8 +39,7 @@ from ui_helpers import (
 
 STEP_LABELS = [
     "Start",
-    "Explore",
-    "Size & scale",
+    "Explore & scale",
     "Body + brain",
     "Animal groups",
     "Mammal model",
@@ -414,7 +413,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             )
         completion_gate(attempts >= 3)
 
-    elif part == 2:
+    if part == 1 and attempts >= 3:
         teacher_note(
             "Body mass and scale",
             "Use one familiar variable to introduce range, then create the need for scientific notation and logarithmic scales rather than teaching either idea in isolation.",
@@ -478,7 +477,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         )
                         st.caption("10⁻³ kg = 0.001 kg · 10⁰ kg = 1 kg · 10³ kg = 1,000 kg")
 
-    elif part == 3:
+    elif part == 2:
         teacher_note(
             "Two variables",
             "Move from a few familiar species to the full two-variable dataset, then reactivate the log-scale idea from Step 3 to make the full pattern easier to see.",
@@ -581,7 +580,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
 
                 st.caption("You put two variables together to look for a relationship.")
 
-    elif part == 4:
+    elif part == 3:
         teacher_note(
             "Animal class",
             "Begin with the broad animal pattern, then reveal Mammal and Reptile evidence so learners can see that one relationship does not describe every group equally well.",
@@ -715,7 +714,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         )
         completion_gate(comparison_revealed)
 
-    elif part == 5:
+    elif part == 4:
         model_check_complete = False
         teacher_note(
             "Mammal model",
@@ -772,7 +771,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 st.caption("Look again for the answer that describes a typical pattern rather than an exact rule or a cause.")
         completion_gate(model_check_complete)
 
-    elif part == 6:
+    elif part == 5:
         prediction_ready = False
         teacher_note(
             "Domestic cat interpolation",
@@ -896,7 +895,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         st.caption("You used a model to make a prediction, then tested it with new evidence.")
         completion_gate(prediction_ready)
 
-    elif part == 7:
+    elif part == 6:
         trust_committed = False
         teacher_note(
             "African elephant extrapolation",
@@ -1057,7 +1056,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     st.caption("You used a model beyond its data range, then tested that extrapolation with new evidence.")
         completion_gate(trust_committed)
 
-    elif part == 8:
+    elif part == 7:
         absolute_choice_committed = False
         relative_choice_committed = False
         teacher_note(
@@ -1199,7 +1198,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         completion_gate(absolute_choice_committed)
         completion_gate(relative_choice_committed)
 
-    elif part == 9:
+    elif part == 8:
         teacher_note(
             "Data Science transfer",
             "Focus on the repeated process, not the internal algorithms.",
