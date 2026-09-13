@@ -30,7 +30,6 @@ from ui_helpers import (
     graph_support,
     hard_reveal,
     page_header,
-    predict_prompt,
     scroll_to_top_if_requested,
     soft_reveal,
     step_buttons,
@@ -84,6 +83,12 @@ CURIOUS_COLLECTION_MAX_CANDIDATES = 12
 CURIOUS_COLLECTION_INITIAL_SELECTION = 4
 CURIOUS_COLLECTION_MAX_SELECTION = 8
 
+START_MASS_UNIT_TO_KG = {
+    "grams": 0.001,
+    "kilograms": 1.0,
+    "tonnes": 1000.0,
+}
+
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
 CROW_IMAGE_PATH = MEDIA_DIR / "Corvus moneduloides, Sarramea, New Caledonia 1.jpg"
@@ -94,6 +99,36 @@ MOUSE_TO_ELEPHANT_HERO_PATH = MEDIA_DIR / "mouse_to_elephant_hero.png"
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
     values = pd.to_numeric(data["body mass (kg)"], errors="coerce").dropna()
     return values[values > 0]
+
+
+def _start_mass_in_kg(value: float, unit: str) -> float:
+    """Convert a Start-stage estimate to kilograms for comparison."""
+    return float(value) * START_MASS_UNIT_TO_KG[unit]
+
+
+def _format_start_mass_kg(value: float) -> str:
+    """Format the matched Start-stage estimates in one common unit."""
+    return f"{value:,.4g} kg"
+
+
+def _start_reference_masses(data: pd.DataFrame) -> tuple[float, float]:
+    """Return the grounded mouse and existing external elephant body masses."""
+    mouse_records = data.loc[
+        data["species"].eq("Mus musculus"), "body mass (kg)"
+    ]
+    mouse_mass_kg = pd.to_numeric(mouse_records, errors="coerce").dropna()
+    if len(mouse_mass_kg) != 1:
+        raise ValueError("CURIOUS Start requires one grounded Mus musculus body-mass record.")
+
+    external_comparisons = load_external_comparison_animals()
+    elephant_records = external_comparisons.loc[
+        external_comparisons["scientific_name"].eq("Loxodonta africana"), "body_mass_kg"
+    ]
+    elephant_mass_kg = pd.to_numeric(elephant_records, errors="coerce").dropna()
+    if len(elephant_mass_kg) != 1:
+        raise ValueError("CURIOUS Start requires the existing external elephant body-mass record.")
+
+    return float(mouse_mass_kg.iloc[0]), float(elephant_mass_kg.iloc[0])
 
 
 def _curious_usable_body_brain_species(data: pd.DataFrame) -> pd.DataFrame:
@@ -679,56 +714,83 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             "Ask for rough estimates, not look-ups. Keep the focus on body mass; learners meet the evidence in the next step.",
             "4 min",
         )
-        scale_estimates_committed = bool(
-            st.session_state.get("curious_start_scale_estimates_committed", False)
-        )
-        brain_expectation_committed = bool(
-            st.session_state.get("curious_start_brain_expectation_committed", False)
+        comparison_revealed = bool(
+            st.session_state.get("curious_start_mass_comparison_revealed", False)
         )
 
-        if not scale_estimates_committed:
-            st.header("How big is a mouse?")
-            st.text_input(
-                "Your rough estimate",
-                key="curious_start_mouse_scale_estimate",
-                placeholder="A quick comparison is enough.",
+        if not comparison_revealed:
+            st.write("Make rough estimates with your group. Don’t look them up.")
+            mouse_column, elephant_column = st.columns(2)
+            with mouse_column:
+                st.markdown("### How much does a mouse weigh?")
+                st.number_input(
+                    "Your estimate",
+                    min_value=0.0,
+                    value=None,
+                    step=1.0,
+                    key="curious_start_mouse_mass_estimate",
+                )
+                st.selectbox(
+                    "Unit",
+                    list(START_MASS_UNIT_TO_KG),
+                    key="curious_start_mouse_mass_unit",
+                )
+            with elephant_column:
+                st.markdown("### How much does an elephant weigh?")
+                st.number_input(
+                    "Your estimate",
+                    min_value=0.0,
+                    value=None,
+                    step=1.0,
+                    key="curious_start_elephant_mass_estimate",
+                )
+                st.selectbox(
+                    "Unit",
+                    list(START_MASS_UNIT_TO_KG),
+                    key="curious_start_elephant_mass_unit",
+                )
+
+            estimates_ready = (
+                st.session_state.get("curious_start_mouse_mass_estimate") is not None
+                and st.session_state.get("curious_start_elephant_mass_estimate") is not None
             )
-            st.header("How big is an elephant?")
-            st.text_input(
-                "Your rough estimate",
-                key="curious_start_elephant_scale_estimate",
-                placeholder="A quick comparison is enough.",
-            )
-            st.caption("Make rough estimates with your group. Don’t look them up.")
             st.button(
-                "Compare their scale",
+                "Compare the estimates",
                 type="primary",
-                key="curious_start_compare_scale",
+                disabled=not estimates_ready,
+                key="curious_start_compare_masses",
                 on_click=lambda: st.session_state.__setitem__(
-                    "curious_start_scale_estimates_committed", True
+                    "curious_start_mass_comparison_revealed", True
                 ),
             )
         else:
-            st.header("If you made a mouse the size of an elephant, how big would you expect its brain to be?")
-            predict_prompt("Make a rough prediction with your group before seeing the mouse at elephant scale.")
-            st.text_input(
-                "Your expectation",
-                key="curious_start_brain_expectation",
-                placeholder="A quick idea is enough.",
+            mouse_reference_kg, elephant_reference_kg = _start_reference_masses(data)
+            learner_mouse_kg = _start_mass_in_kg(
+                st.session_state["curious_start_mouse_mass_estimate"],
+                st.session_state["curious_start_mouse_mass_unit"],
             )
-            if not brain_expectation_committed:
-                st.button(
-                    "Commit your expectation",
-                    type="primary",
-                    key="curious_start_commit_brain_expectation",
-                    on_click=lambda: st.session_state.__setitem__(
-                        "curious_start_brain_expectation_committed", True
-                    ),
-                )
-            else:
-                st.image(MOUSE_TO_ELEPHANT_HERO_PATH, width="stretch")
+            learner_elephant_kg = _start_mass_in_kg(
+                st.session_state["curious_start_elephant_mass_estimate"],
+                st.session_state["curious_start_elephant_mass_unit"],
+            )
+            st.header("How close were you?")
+            mouse_column, elephant_column = st.columns(2)
+            with mouse_column:
+                st.markdown("**Mouse**")
+                st.write(f"Your estimate: **{_format_start_mass_kg(learner_mouse_kg)}**")
+                st.write(f"Reference: **{_format_start_mass_kg(mouse_reference_kg)}**")
+            with elephant_column:
+                st.markdown("**Elephant**")
+                st.write(f"Your estimate: **{_format_start_mass_kg(learner_elephant_kg)}**")
+                st.write(f"Reference: **{_format_start_mass_kg(elephant_reference_kg)}**")
+            st.caption("Both estimates are shown in kilograms so they can be compared.")
+            st.caption(
+                "Mouse reference: AnimalTraits. Elephant reference: separate published evidence, not AnimalTraits data."
+            )
+            st.header("Now imagine a mouse that size.")
+            st.image(MOUSE_TO_ELEPHANT_HERO_PATH, width="stretch")
 
-        completion_gate(brain_expectation_committed)
+        completion_gate(comparison_revealed)
 
     elif part == 1:
         teacher_note(

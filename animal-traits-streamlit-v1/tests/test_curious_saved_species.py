@@ -3,21 +3,39 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from charts import body_brain_representative_scatter, body_brain_scatter, histogram
 from data import load_data, species_traits_from_observations
 from experiences.curious import (
+    _format_start_mass_kg,
     _curious_saved_body_brain_species,
     _curious_saved_body_mass_species,
     _encountered_species_after_adding,
     _eligible_species_to_save,
     _saved_species_after_adding,
     _saved_species_after_removing,
+    _start_mass_in_kg,
+    _start_reference_masses,
 )
 
 
 def _matches(rows: list[dict[str, object]]) -> pd.DataFrame:
     return pd.DataFrame(rows)
+
+
+def test_start_mass_estimates_convert_to_a_common_kilogram_unit():
+    assert _start_mass_in_kg(32.1, "grams") == pytest.approx(0.0321)
+    assert _start_mass_in_kg(5.55, "tonnes") == pytest.approx(5550)
+    assert _format_start_mass_kg(0.0321) == "0.0321 kg"
+    assert _format_start_mass_kg(5550) == "5,550 kg"
+
+
+def test_start_references_use_the_grounded_mouse_and_existing_elephant_comparison():
+    mouse_mass_kg, elephant_mass_kg = _start_reference_masses(load_data())
+
+    assert mouse_mass_kg == 0.0321
+    assert elephant_mass_kg == 5550
 
 
 def test_eligible_species_requires_exact_identity_and_positive_paired_measurements():
