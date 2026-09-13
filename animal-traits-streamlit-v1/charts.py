@@ -214,8 +214,9 @@ def body_brain_representative_scatter(
     representative_data: pd.DataFrame,
     *,
     title: str = "A few familiar animals",
+    learner_selected_data: pd.DataFrame | None = None,
 ):
-    """Plot labelled representative body/brain points for orientation."""
+    """Plot labelled representative points with optional learner-selected markers."""
     x_field = "body mass (kg)"
     y_field = "brain size (kg)"
     plot_data = representative_data.copy()
@@ -223,7 +224,8 @@ def body_brain_representative_scatter(
     plot_data[y_field] = pd.to_numeric(plot_data[y_field], errors="coerce")
     plot_data = plot_data.dropna(subset=[x_field, y_field, "Animal"])
     scientific_names = plot_data.get("Scientific name", pd.Series("", index=plot_data.index)).astype(str)
-    fig = go.Figure(
+    fig = go.Figure()
+    fig.add_trace(
         go.Scatter(
             x=plot_data[x_field],
             y=plot_data[y_field],
@@ -231,6 +233,7 @@ def body_brain_representative_scatter(
             text=plot_data["Animal"],
             textposition="top center",
             name="Selected familiar animals",
+            showlegend=False,
             marker=dict(size=11, color="#2563eb", line=dict(color="#1e3a8a", width=1)),
             customdata=np.column_stack([plot_data["Animal"].astype(str), scientific_names]),
             hovertemplate=(
@@ -240,11 +243,48 @@ def body_brain_representative_scatter(
             ),
         )
     )
+
+    if learner_selected_data is not None:
+        selected_data = learner_selected_data.copy()
+        selected_data[x_field] = pd.to_numeric(selected_data.get(x_field), errors="coerce")
+        selected_data[y_field] = pd.to_numeric(selected_data.get(y_field), errors="coerce")
+        selected_data["Scientific name"] = selected_data.get("Scientific name", "").fillna("").astype(str)
+        selected_data = selected_data.dropna(subset=[x_field, y_field])
+        selected_data = selected_data[
+            selected_data["Scientific name"].ne("")
+            & selected_data[x_field].gt(0)
+            & selected_data[y_field].gt(0)
+        ].drop_duplicates(subset=["Scientific name"])
+        if not selected_data.empty:
+            common_names = selected_data.get("Common name", selected_data["Scientific name"]).fillna("").astype(str)
+            common_names = common_names.mask(common_names.eq(""), selected_data["Scientific name"])
+            anchor_species = set(scientific_names)
+            overlaps_anchor = selected_data["Scientific name"].isin(anchor_species)
+            fig.add_trace(
+                go.Scatter(
+                    x=selected_data[x_field],
+                    y=selected_data[y_field],
+                    mode="markers",
+                    name="Your earlier searches",
+                    marker=dict(
+                        size=[16 if overlaps else 11 for overlaps in overlaps_anchor],
+                        color="#d95f02",
+                        symbol=["circle-open" if overlaps else "circle" for overlaps in overlaps_anchor],
+                        line=dict(color="#7f2704", width=1.5),
+                    ),
+                    customdata=np.column_stack([common_names, selected_data["Scientific name"]]),
+                    hovertemplate=(
+                        "Animal: %{customdata[0]}<br>"
+                        "Scientific name: %{customdata[1]}<br>"
+                        "Body mass: %{x}<br>Brain mass: %{y}<extra></extra>"
+                    ),
+                )
+            )
     fig.update_layout(
         title=title,
         xaxis_title="Body mass (kg)",
         yaxis_title="Brain size (kg)",
-        showlegend=False,
+        showlegend=len(fig.data) > 1,
     )
     fig.update_xaxes(type="linear")
     fig.update_yaxes(type="linear")

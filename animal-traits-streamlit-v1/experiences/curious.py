@@ -669,6 +669,9 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         )
         st.header("Do bigger animals have bigger brains?")
         orientation = _curious_orientation_animals(curious_data)
+        saved_orientation_species = _curious_saved_body_brain_species(
+            curious_data, _saved_species_from_session()
+        )
         st.markdown("### A few familiar animals")
         st.caption("Which animal is heaviest? Which has the largest brain?")
         st.dataframe(
@@ -680,9 +683,18 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         )
 
         st.plotly_chart(
-            body_brain_representative_scatter(orientation),
+            body_brain_representative_scatter(
+                orientation,
+                learner_selected_data=saved_orientation_species,
+            ),
             use_container_width=True,
         )
+        if not saved_orientation_species.empty:
+            saved_names = saved_orientation_species["Common name"].fillna("").astype(str)
+            saved_names = saved_names.mask(
+                saved_names.eq(""), saved_orientation_species["Scientific name"]
+            )
+            st.caption("Your earlier searches: " + "; ".join(saved_names))
         graph_support(
             "Each dot represents one species. Farther right means greater body mass; higher up means greater brain mass.",
             "Can you find Human?",
