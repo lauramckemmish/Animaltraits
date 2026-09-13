@@ -73,6 +73,8 @@ CURIOUS_GROUP_CLASSES = {
 CURIOUS_TREND_MINIMUM_SPECIES = 10
 CURIOUS_SAVED_SPECIES_KEY = "curious_saved_species"
 CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY = "curious_exploration_eligible_species"
+CURIOUS_SELECTION_COMPLETE_KEY = "curious_exploration_selection_complete"
+CURIOUS_FIND_MORE_KEY = "curious_exploration_find_more"
 
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
@@ -275,6 +277,15 @@ def _remove_saved_species(scientific_name: str) -> None:
     )
 
 
+def _start_finding_more_animals() -> None:
+    st.session_state[CURIOUS_FIND_MORE_KEY] = True
+
+
+def _finish_choosing_animals() -> None:
+    st.session_state[CURIOUS_SELECTION_COMPLETE_KEY] = True
+    st.session_state[CURIOUS_FIND_MORE_KEY] = False
+
+
 def _species_labels(data: pd.DataFrame, species_names: list[str]) -> list[tuple[str, str]]:
     """Resolve scientific identities to current learner-facing names."""
     student_data = student_facing_data(data)
@@ -359,7 +370,7 @@ def _render_saved_species_summary(data: pd.DataFrame) -> None:
         )
 
 
-def _render_post_exploration_save_species_control(data: pd.DataFrame) -> None:
+def _render_post_exploration_save_species_control(data: pd.DataFrame) -> bool:
     """Offer optional exact-species selection after the three-search exploration."""
     st.markdown("### Keep animals for later")
     saved_species = _saved_species_from_session()
@@ -370,14 +381,14 @@ def _render_post_exploration_save_species_control(data: pd.DataFrame) -> None:
         st.caption(
             "None of the animals you found have both body-mass and brain-mass values for the later graph."
         )
-        return
+        return False
 
     available_species = [
         species for species in encountered_species if species not in saved_species
     ]
     if not available_species:
         st.caption("The eligible animals you found are already saved for later.")
-        return
+        return True
 
     labels = {
         scientific_name: f"{common_name} — {scientific_name}"
@@ -396,6 +407,7 @@ def _render_post_exploration_save_species_control(data: pd.DataFrame) -> None:
         on_click=_save_species_for_later,
         args=(scientific_name,),
     )
+    return True
 
 
 def _render_data_science_transfer_prototype() -> None:
@@ -560,54 +572,81 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             "6 min",
         )
         st.header("What animals can we find?")
-        st.write("Try searching for at least three animals you are interested in. A search does not have to succeed.")
-        st.caption("Need an idea? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
-        animal_query = st.text_input("Search for an animal", key="curious_exploration_search")
-        last_query = st.session_state.get("curious_exploration_last_query", "")
         attempts = int(st.session_state.get("curious_exploration_attempts", 0))
-        new_search = animal_query.strip() and animal_query.strip() != last_query
-        if new_search:
-            attempts += 1
-            st.session_state["curious_exploration_attempts"] = attempts
-            st.session_state["curious_exploration_last_query"] = animal_query.strip()
-            history = list(st.session_state.get("curious_exploration_history", []))
-            history.append(animal_query.strip())
-            st.session_state["curious_exploration_history"] = history
-        st.caption(f"Searches tried: {attempts} of 3")
+        selection_complete = bool(st.session_state.get(CURIOUS_SELECTION_COMPLETE_KEY, False))
+        finding_more = bool(st.session_state.get(CURIOUS_FIND_MORE_KEY, False))
+        searching = attempts < 3 or (not selection_complete and finding_more)
 
-        if animal_query.strip():
-            animal_matches = search_student_animals(curious_data, animal_query)
-            if animal_matches.empty:
-                st.warning(
-                    "**No match found.** AnimalTraits focuses on **terrestrial animals** — animals that live mainly on land. "
-                    "A no-match can reflect spelling, another name, a broad search or dataset coverage; it does not mean the animal does not exist."
-                )
-            else:
-                _render_search_results(animal_matches, SEARCH_DISPLAY_COLUMNS)
-                _render_measurement_summary(animal_matches)
-                if new_search and attempts <= 3:
-                    _record_encountered_eligible_species(animal_matches)
-                with soft_reveal("Where did this data come from?"):
-                    st.write(
-                        "AnimalTraits is a curated scientific database that brings together original measurements "
-                        "reported across many peer-reviewed studies of terrestrial animals. Each underlying entry is "
-                        "an observation from a specimen or group of the same species, and can include one or more traits."
-                    )
-                    st.write(
-                        "For this investigation, repeated observations are combined using the AnimalTraits authors’ "
-                        "documented species-trait method. That is why CURIOUS graphs use **one dot = one species**."
-                    )
-                    st.write(
-                        "Different species and traits have different amounts of evidence. AnimalTraits does not need "
-                        "to include every animal species or every trait for every species to be useful."
-                    )
-                    st.caption(
-                        "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
-                        "DOI: 10.1038/s41597-022-01364-9."
-                    )
-                st.caption("Try another animal when you’re ready.")
+        if attempts < 3:
+            st.write("Try searching for at least three animals you are interested in. A search does not have to succeed.")
+            st.caption("Need an idea? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
 
-        if attempts >= 3:
+        if searching:
+            animal_query = st.text_input("Search for an animal", key="curious_exploration_search")
+            last_query = st.session_state.get("curious_exploration_last_query", "")
+            new_search = animal_query.strip() and animal_query.strip() != last_query
+            if new_search:
+                attempts += 1
+                st.session_state["curious_exploration_attempts"] = attempts
+                st.session_state["curious_exploration_last_query"] = animal_query.strip()
+                history = list(st.session_state.get("curious_exploration_history", []))
+                history.append(animal_query.strip())
+                st.session_state["curious_exploration_history"] = history
+            st.caption(f"Searches tried: {min(attempts, 3)} of 3")
+
+            if animal_query.strip():
+                animal_matches = search_student_animals(curious_data, animal_query)
+                if animal_matches.empty:
+                    st.warning(
+                        "**No match found.** AnimalTraits focuses on **terrestrial animals** — animals that live mainly on land. "
+                        "A no-match can reflect spelling, another name, a broad search or dataset coverage; it does not mean the animal does not exist."
+                    )
+                else:
+                    _render_search_results(animal_matches, SEARCH_DISPLAY_COLUMNS)
+                    _render_measurement_summary(animal_matches)
+                    if new_search:
+                        _record_encountered_eligible_species(animal_matches)
+                    with soft_reveal("Where did this data come from?"):
+                        st.write(
+                            "AnimalTraits is a curated scientific database that brings together original measurements "
+                            "reported across many peer-reviewed studies of terrestrial animals. Each underlying entry is "
+                            "an observation from a specimen or group of the same species, and can include one or more traits."
+                        )
+                        st.write(
+                            "For this investigation, repeated observations are combined using the AnimalTraits authors’ "
+                            "documented species-trait method. That is why CURIOUS graphs use **one dot = one species**."
+                        )
+                        st.write(
+                            "Different species and traits have different amounts of evidence. AnimalTraits does not need "
+                            "to include every animal species or every trait for every species to be useful."
+                        )
+                        st.caption(
+                            "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
+                            "DOI: 10.1038/s41597-022-01364-9."
+                        )
+                    st.caption("Try another animal when you’re ready.")
+
+            if attempts > 3 and new_search:
+                st.session_state[CURIOUS_FIND_MORE_KEY] = False
+                finding_more = False
+
+        if attempts >= 3 and not selection_complete and not finding_more:
+            has_candidates = _render_post_exploration_save_species_control(curious_data)
+            find_more_column, finish_column = st.columns(2)
+            find_more_column.button(
+                "Find more animals",
+                type="secondary",
+                key="curious_find_more_animals",
+                on_click=_start_finding_more_animals,
+            )
+            finish_column.button(
+                "Keep these animals" if has_candidates else "Move on without choosing animals",
+                type="primary",
+                key="curious_finish_choosing_animals",
+                on_click=_finish_choosing_animals,
+            )
+
+        if attempts >= 3 and selection_complete:
             student_data = student_facing_data(curious_data)
             distinct_species = student_data["Scientific name"].replace("", pd.NA).nunique(dropna=True)
             missing_measurements = int(
@@ -619,8 +658,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 f"This investigation uses {len(curious_data):,} species-level rows: one for each of {distinct_species:,} species. "
                 f"Some species are missing a body-mass or brain-mass value."
             )
-            _render_post_exploration_save_species_control(curious_data)
-        completion_gate(attempts >= 3)
+        completion_gate(selection_complete)
 
     if part == 2 and int(st.session_state.get("curious_exploration_attempts", 0)) >= 3:
         teacher_note(
