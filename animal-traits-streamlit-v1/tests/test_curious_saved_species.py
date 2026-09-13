@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from charts import body_brain_representative_scatter
+from charts import body_brain_representative_scatter, body_brain_scatter
 from data import load_data, species_traits_from_observations
 from experiences.curious import (
     _curious_saved_body_brain_species,
@@ -203,6 +203,39 @@ def test_representative_chart_keeps_all_saved_species_in_one_hoverable_trace():
     assert figure.data[1].x.tolist() == [0.337, 21.1, 0.023]
     assert figure.layout.xaxis.type == "linear"
     assert figure.layout.yaxis.type == "linear"
+
+
+def test_log_log_chart_adds_all_saved_species_as_an_independent_hoverable_trace():
+    data = species_traits_from_observations(load_data())
+    saved = _curious_saved_body_brain_species(
+        data, ["Corvus brachyrhynchos", "Canis familiaris", "Muscardinus avellanarius"]
+    )
+
+    figure = body_brain_scatter(
+        data,
+        log_x=True,
+        log_y=True,
+        learner_selected_data=saved,
+    )
+
+    assert figure.data[-1].name == "Your earlier searches"
+    assert figure.data[-1].mode == "markers"
+    assert figure.data[-1].customdata[:, 1].tolist() == [
+        "Corvus brachyrhynchos", "Canis familiaris", "Muscardinus avellanarius"
+    ]
+    assert figure.data[-1].showlegend is None
+    assert figure.layout.xaxis.type == "log"
+    assert figure.layout.yaxis.type == "log"
+
+
+def test_log_log_chart_is_unchanged_without_saved_species():
+    data = species_traits_from_observations(load_data())
+
+    figure = body_brain_scatter(data, log_x=True, log_y=True)
+
+    assert len(figure.data) == 1
+    assert figure.layout.xaxis.type == "log"
+    assert figure.layout.yaxis.type == "log"
 
 
 def test_representative_chart_marks_overlap_without_duplicate_filled_point():

@@ -744,7 +744,12 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             ):
                 st.markdown("### Now look at the full dataset on log–log axes")
                 st.plotly_chart(
-                    body_brain_scatter(curious_data, log_x=True, log_y=True),
+                    body_brain_scatter(
+                        curious_data,
+                        log_x=True,
+                        log_y=True,
+                        learner_selected_data=saved_orientation_species,
+                    ),
                     use_container_width=True,
                 )
                 st.write(

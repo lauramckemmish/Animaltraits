@@ -139,6 +139,7 @@ def body_brain_scatter(
     log_y: bool = False,
     colour_by_class: bool = False,
     fit: FitResult | None = None,
+    learner_selected_data: pd.DataFrame | None = None,
 ):
     """Plot body mass against brain size for CURIOUS.
 
@@ -197,6 +198,36 @@ def body_brain_scatter(
     if log_y:
         _apply_scientific_log_axis(fig, "y", plot_data[y_field], "Brain size (kg)")
     fig.update_traces(marker=dict(size=7, opacity=0.78))
+    if learner_selected_data is not None:
+        selected_data = learner_selected_data.copy()
+        selected_data[x_field] = pd.to_numeric(selected_data.get(x_field), errors="coerce")
+        selected_data[y_field] = pd.to_numeric(selected_data.get(y_field), errors="coerce")
+        selected_data["Scientific name"] = selected_data.get("Scientific name", "").fillna("").astype(str)
+        selected_data = selected_data.dropna(subset=[x_field, y_field])
+        selected_data = selected_data[
+            selected_data["Scientific name"].ne("")
+            & selected_data[x_field].gt(0)
+            & selected_data[y_field].gt(0)
+        ].drop_duplicates(subset=["Scientific name"])
+        if not selected_data.empty:
+            common_names = selected_data.get("Common name", selected_data["Scientific name"])
+            common_names = common_names.fillna("").astype(str)
+            common_names = common_names.mask(common_names.eq(""), selected_data["Scientific name"])
+            fig.add_trace(
+                go.Scatter(
+                    x=selected_data[x_field],
+                    y=selected_data[y_field],
+                    mode="markers",
+                    name="Your earlier searches",
+                    marker=dict(size=11, color="#d95f02", line=dict(color="#7f2704", width=1.5)),
+                    customdata=np.column_stack([common_names, selected_data["Scientific name"]]),
+                    hovertemplate=(
+                        "Animal: %{customdata[0]}<br>"
+                        "Scientific name: %{customdata[1]}<br>"
+                        "Body mass: %{x}<br>Brain mass: %{y}<extra></extra>"
+                    ),
+                )
+            )
     if fit is not None:
         fig.add_trace(
             go.Scatter(
