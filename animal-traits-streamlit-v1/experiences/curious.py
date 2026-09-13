@@ -46,7 +46,7 @@ STEP_LABELS = [
     "Mammal model",
     "Domestic cat",
     "African elephant",
-    "Brain size & intelligence",
+    "Intelligent?",
     "Data Science",
 ]
 
