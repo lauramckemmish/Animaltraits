@@ -477,6 +477,28 @@ def _render_measurement_summary(matches: pd.DataFrame) -> None:
         )
 
 
+def _render_provenance_disclosure() -> None:
+    """Render CURIOUS's existing source explanation after collection commitment."""
+    with soft_reveal("Where did this data come from?"):
+        st.write(
+            "AnimalTraits is a curated scientific database that brings together original measurements "
+            "reported across many peer-reviewed studies of terrestrial animals. Each underlying entry is "
+            "an observation from a specimen or group of the same species, and can include one or more traits."
+        )
+        st.write(
+            "For this investigation, repeated observations are combined using the AnimalTraits authors’ "
+            "documented species-trait method. That is why CURIOUS graphs use **one dot = one species**."
+        )
+        st.write(
+            "Different species and traits have different amounts of evidence. AnimalTraits does not need "
+            "to include every animal species or every trait for every species to be useful."
+        )
+        st.caption(
+            "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
+            "DOI: 10.1038/s41597-022-01364-9."
+        )
+
+
 def _render_collection_tray(data: pd.DataFrame) -> bool:
     """Render the direct, bounded animal collection controls after initial searching."""
     candidates = _initialise_collection_candidates()
@@ -485,9 +507,9 @@ def _render_collection_tray(data: pd.DataFrame) -> bool:
 
     selected = _collection_selected_species(candidates)
     labels = dict(_species_labels(data, candidates))
-    st.markdown("### Choose animals to keep following")
+    st.markdown("### You’ve got some animals to choose from.")
     st.write("Pick the animals you want to take with you into the next graphs.")
-    st.caption(f"Choose up to {CURIOUS_COLLECTION_MAX_SELECTION} animals.")
+    st.caption(f"{len(selected)} of {CURIOUS_COLLECTION_MAX_SELECTION} animals selected")
 
     columns = st.columns(3)
     for index, scientific_name in enumerate(candidates):
@@ -690,7 +712,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 history.append(animal_query.strip())
                 st.session_state["curious_exploration_history"] = history
             if initial_search:
-                st.caption(f"Searches tried: {min(attempts, 3)} of 3")
+                st.caption(f"{min(attempts, 3)} of 3 searches")
 
             if animal_query.strip():
                 animal_matches = search_student_animals(curious_data, animal_query)
@@ -706,29 +728,15 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         _record_encountered_eligible_species(animal_matches)
                         if finding_more:
                             _add_collection_candidates(animal_matches)
-                    with soft_reveal("Where did this data come from?"):
-                        st.write(
-                            "AnimalTraits is a curated scientific database that brings together original measurements "
-                            "reported across many peer-reviewed studies of terrestrial animals. Each underlying entry is "
-                            "an observation from a specimen or group of the same species, and can include one or more traits."
-                        )
-                        st.write(
-                            "For this investigation, repeated observations are combined using the AnimalTraits authors’ "
-                            "documented species-trait method. That is why CURIOUS graphs use **one dot = one species**."
-                        )
-                        st.write(
-                            "Different species and traits have different amounts of evidence. AnimalTraits does not need "
-                            "to include every animal species or every trait for every species to be useful."
-                        )
-                        st.caption(
-                            "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
-                            "DOI: 10.1038/s41597-022-01364-9."
-                        )
                     st.caption("Try another animal when you’re ready.")
 
             if attempts > 3 and new_search:
                 st.session_state[CURIOUS_FIND_MORE_KEY] = False
                 finding_more = False
+            elif attempts == 3 and new_search:
+                # The third search completes the exploration phase; the next
+                # render should make collection-building the obvious next job.
+                st.rerun()
 
         if attempts >= 3 and not selection_complete and not finding_more:
             has_candidates = _render_collection_tray(curious_data)
@@ -794,6 +802,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 f"This investigation uses {len(curious_data):,} species-level rows: one for each of {distinct_species:,} species. "
                 f"Some species are missing a body-mass or brain-mass value."
             )
+            _render_provenance_disclosure()
         completion_gate(selection_complete)
 
     if part == 2:
