@@ -9,6 +9,7 @@ from data import load_data, species_traits_from_observations
 from experiences.curious import (
     CURIOUS_SAVED_SPECIES_LIMIT,
     _curious_saved_body_brain_species,
+    _encountered_species_after_adding,
     _eligible_species_to_save,
     _saved_species_after_adding,
     _saved_species_after_removing,
@@ -46,6 +47,38 @@ def test_broad_results_keep_each_exact_eligible_species_available_for_choice():
     eligible = _eligible_species_to_save(matches)
 
     assert eligible["Scientific name"].tolist() == ["Canis familiaris", "Corvus brachyrhynchos"]
+
+
+def test_encountered_species_keeps_all_eligible_broad_results_in_first_seen_order():
+    first_matches = _matches(
+        [
+            {"Common name": "Dog", "Scientific name": "Canis familiaris", "Body mass (kg)": 20, "Brain size (kg)": 0.08},
+            {"Common name": "Crow", "Scientific name": "Corvus brachyrhynchos", "Body mass (kg)": 0.3, "Brain size (kg)": 0.009},
+            {"Common name": "Missing", "Scientific name": "Missingus", "Body mass (kg)": 2, "Brain size (kg)": None},
+        ]
+    )
+    second_matches = _matches(
+        [
+            {"Common name": "Crow", "Scientific name": "Corvus brachyrhynchos", "Body mass (kg)": 0.3, "Brain size (kg)": 0.009},
+            {"Common name": "Human", "Scientific name": "Homo sapiens", "Body mass (kg)": 60, "Brain size (kg)": 1.3},
+        ]
+    )
+
+    encountered = _encountered_species_after_adding([], first_matches)
+    encountered = _encountered_species_after_adding(encountered, second_matches)
+
+    assert encountered == ["Canis familiaris", "Corvus brachyrhynchos", "Homo sapiens"]
+
+
+def test_encountered_species_ignores_successful_results_without_paired_values():
+    matches = _matches(
+        [
+            {"Common name": "Missing brain", "Scientific name": "Missingus", "Body mass (kg)": 2, "Brain size (kg)": None},
+            {"Common name": "Zero brain", "Scientific name": "Zero", "Body mass (kg)": 2, "Brain size (kg)": 0},
+        ]
+    )
+
+    assert _encountered_species_after_adding(["Canis familiaris"], matches) == ["Canis familiaris"]
 
 
 def test_saved_species_are_ordered_bounded_and_not_duplicated():

@@ -72,6 +72,7 @@ CURIOUS_GROUP_CLASSES = {
 CURIOUS_TREND_MINIMUM_SPECIES = 10
 CURIOUS_SAVED_SPECIES_KEY = "curious_saved_species"
 CURIOUS_SAVED_SPECIES_LIMIT = 2
+CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY = "curious_exploration_eligible_species"
 
 MEDIA_DIR = Path(__file__).resolve().parents[1] / "assets"
 ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), Masai Mara.jpg"
@@ -199,6 +200,20 @@ def _eligible_species_to_save(matches: pd.DataFrame) -> pd.DataFrame:
     return eligible.drop_duplicates(subset=["Scientific name"])
 
 
+def _encountered_species_after_adding(
+    encountered_species: list[str], matches: pd.DataFrame
+) -> list[str]:
+    """Keep first-seen exact identities with paired values from Explore results."""
+    encountered = []
+    for species in encountered_species:
+        if isinstance(species, str) and species.strip() and species.strip() not in encountered:
+            encountered.append(species.strip())
+    for scientific_name in _eligible_species_to_save(matches)["Scientific name"]:
+        if scientific_name not in encountered:
+            encountered.append(scientific_name)
+    return encountered
+
+
 def _saved_species_after_adding(saved_species: list[str], scientific_name: str) -> tuple[list[str], str]:
     """Add one stable identity without replacing or duplicating saved species."""
     species = scientific_name.strip()
@@ -232,6 +247,27 @@ def _saved_species_from_session() -> list[str]:
     return cleaned
 
 
+def _encountered_species_from_session() -> list[str]:
+    """Return ordered eligible identities collected during the first three searches."""
+    encountered = st.session_state.setdefault(CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY, [])
+    if not isinstance(encountered, list):
+        st.session_state[CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY] = []
+        return []
+    cleaned = []
+    for species in encountered:
+        if isinstance(species, str) and species.strip() and species.strip() not in cleaned:
+            cleaned.append(species.strip())
+    if cleaned != encountered:
+        st.session_state[CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY] = cleaned
+    return cleaned
+
+
+def _record_encountered_eligible_species(matches: pd.DataFrame) -> None:
+    st.session_state[CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY] = _encountered_species_after_adding(
+        _encountered_species_from_session(), matches
+    )
+
+
 def _save_species_for_later(scientific_name: str) -> None:
     saved, _ = _saved_species_after_adding(_saved_species_from_session(), scientific_name)
     st.session_state[CURIOUS_SAVED_SPECIES_KEY] = saved
@@ -243,11 +279,11 @@ def _remove_saved_species(scientific_name: str) -> None:
     )
 
 
-def _saved_species_labels(data: pd.DataFrame, saved_species: list[str]) -> list[tuple[str, str]]:
-    """Resolve saved identities to current learner-facing names for the Explore summary."""
+def _species_labels(data: pd.DataFrame, species_names: list[str]) -> list[tuple[str, str]]:
+    """Resolve scientific identities to current learner-facing names."""
     student_data = student_facing_data(data)
     names = student_data.set_index("Scientific name")["Common name"].to_dict()
-    return [(species, names.get(species) or species) for species in saved_species]
+    return [(species, names.get(species) or species) for species in species_names]
 
 
 def _plain_decimal(value: float) -> str:
@@ -311,7 +347,7 @@ def _render_saved_species_summary(data: pd.DataFrame) -> None:
     if not saved_species:
         return
 
-    saved_labels = _saved_species_labels(data, saved_species)
+    saved_labels = _species_labels(data, saved_species)
     st.caption(
         f"**Saved for later ({len(saved_labels)} of {CURIOUS_SAVED_SPECIES_LIMIT}):** "
         + ", ".join(label for _, label in saved_labels)
@@ -327,43 +363,39 @@ def _render_saved_species_summary(data: pd.DataFrame) -> None:
         )
 
 
-def _render_save_species_control(matches: pd.DataFrame) -> None:
-    """Offer optional, exact-species saving after a successful Explore result."""
-    eligible = _eligible_species_to_save(matches)
-    if eligible.empty:
+def _render_post_exploration_save_species_control(data: pd.DataFrame) -> None:
+    """Offer optional exact-species selection after the three-search exploration."""
+    st.markdown("### Keep animals for later")
+    saved_species = _saved_species_from_session()
+    encountered_species = _encountered_species_from_session()
+    _render_saved_species_summary(data)
+
+    if not encountered_species:
+        st.caption(
+            "None of the animals you found have both body-mass and brain-mass values for the later graph."
+        )
         return
 
-    saved_species = _saved_species_from_session()
     if len(saved_species) >= CURIOUS_SAVED_SPECIES_LIMIT:
         st.caption("You have saved two animals. Remove one to choose another.")
         return
 
-    eligible = eligible[~eligible["Scientific name"].isin(saved_species)]
-    if eligible.empty:
-        st.caption("This eligible species is already saved for later.")
+    available_species = [
+        species for species in encountered_species if species not in saved_species
+    ]
+    if not available_species:
+        st.caption("The eligible animals you found are already saved for later.")
         return
 
     labels = {
-        row["Scientific name"]: f"{row['Common name'] or row['Scientific name']} — {row['Scientific name']}"
-        for _, row in eligible.iterrows()
+        scientific_name: f"{common_name} — {scientific_name}"
+        for scientific_name, common_name in _species_labels(data, available_species)
     }
-    if len(eligible) == 1:
-        scientific_name = eligible.iloc[0]["Scientific name"]
-        common_name = eligible.iloc[0]["Common name"] or scientific_name
-        st.button(
-            f"Keep {common_name} for later",
-            type="secondary",
-            key=f"curious_keep_saved_species_{scientific_name}",
-            on_click=_save_species_for_later,
-            args=(scientific_name,),
-        )
-        return
-
     scientific_name = st.selectbox(
         "Choose a species to keep for later",
-        options=list(labels),
+        options=available_species,
         format_func=labels.get,
-        key="curious_exploration_saved_species_choice",
+        key="curious_post_exploration_saved_species_choice",
     )
     st.button(
         "Keep for later",
@@ -541,7 +573,8 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         animal_query = st.text_input("Search for an animal", key="curious_exploration_search")
         last_query = st.session_state.get("curious_exploration_last_query", "")
         attempts = int(st.session_state.get("curious_exploration_attempts", 0))
-        if animal_query.strip() and animal_query.strip() != last_query:
+        new_search = animal_query.strip() and animal_query.strip() != last_query
+        if new_search:
             attempts += 1
             st.session_state["curious_exploration_attempts"] = attempts
             st.session_state["curious_exploration_last_query"] = animal_query.strip()
@@ -549,7 +582,6 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             history.append(animal_query.strip())
             st.session_state["curious_exploration_history"] = history
         st.caption(f"Searches tried: {attempts} of 3")
-        _render_saved_species_summary(curious_data)
 
         if animal_query.strip():
             animal_matches = search_student_animals(curious_data, animal_query)
@@ -561,7 +593,8 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             else:
                 _render_search_results(animal_matches, SEARCH_DISPLAY_COLUMNS)
                 _render_measurement_summary(animal_matches)
-                _render_save_species_control(animal_matches)
+                if new_search and attempts <= 3:
+                    _record_encountered_eligible_species(animal_matches)
                 with soft_reveal("Where did this data come from?"):
                     st.write(
                         "AnimalTraits is a curated scientific database that brings together original measurements "
@@ -594,6 +627,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 f"This investigation uses {len(curious_data):,} species-level rows: one for each of {distinct_species:,} species. "
                 f"Some species are missing a body-mass or brain-mass value."
             )
+            _render_post_exploration_save_species_control(curious_data)
         completion_gate(attempts >= 3)
 
     if part == 1 and attempts >= 3:
