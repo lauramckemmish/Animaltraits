@@ -260,7 +260,7 @@ def body_brain_highlight_scatter(
     selected_label: str = "Selected animal",
     title: str | None = None,
 ):
-    """Plot all body/brain records with selected records highlighted.
+    """Plot all body/brain points with selected points highlighted.
 
     ``selected_data`` is supplied by the calling experience; this helper does not
     perform search or filtering. Its analytical unit is determined by the caller.
@@ -338,7 +338,7 @@ def body_brain_highlight_scatter(
         title=title,
         xaxis_title="Body mass (kg)",
         yaxis_title="Brain size (kg)",
-        legend_title="Highlighted records",
+        legend_title="Highlighted species",
     )
     axis_values = plot_data if not plot_data.empty else selected_plot_data
     if log_x:
@@ -355,9 +355,9 @@ def body_brain_highlight_scatter(
 def body_brain_class_sample_size_bar(
     data: pd.DataFrame,
     *,
-    title: str = "Usable body-and-brain records by animal class",
+    title: str = "Usable body-and-brain species by animal class",
 ):
-    """Count usable body/brain records for each student-facing animal class."""
+    """Count usable body/brain points for each student-facing animal class."""
     plot_data = with_common_class_names(data).copy()
     for column in ["body mass (kg)", "brain size (kg)"]:
         plot_data[column] = pd.to_numeric(plot_data[column], errors="coerce")
@@ -368,20 +368,20 @@ def body_brain_class_sample_size_bar(
     counts = (
         plot_data.groupby("Animal class", as_index=False)
         .size()
-        .rename(columns={"size": "Usable records"})
-        .sort_values("Usable records", ascending=True)
+        .rename(columns={"size": "Usable species"})
+        .sort_values("Usable species", ascending=True)
     )
     fig = px.bar(
         counts,
-        x="Usable records",
+        x="Usable species",
         y="Animal class",
         orientation="h",
-        text="Usable records",
+        text="Usable species",
         title=title,
     )
     fig.update_traces(marker_color="#4c78a8", textposition="outside", cliponaxis=False)
     fig.update_layout(
-        xaxis_title="Number of usable records",
+        xaxis_title="Number of usable species",
         yaxis_title="Animal class",
         showlegend=False,
     )
@@ -395,7 +395,7 @@ def body_brain_class_fit_scatter(
     highlighted_classes: list[str],
     fits: dict[str, FitResult] | None = None,
     highlighted_records: pd.DataFrame | None = None,
-    highlighted_label: str = "Selected records",
+    highlighted_label: str = "Selected species",
     highlighted_colour: str = "#d95f02",
     highlighted_line_colour: str = "#7f2704",
     comparison_points: list[dict[str, object]] | None = None,

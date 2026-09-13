@@ -141,15 +141,15 @@ def _render_measurement_summary(matches: pd.DataFrame) -> None:
     both_count = int(matches[["Body mass (kg)", "Brain size (kg)"]].notna().all(axis=1).sum())
     total_count = len(matches)
     if both_count == total_count:
-        st.caption(f"All {total_count:,} matching records have both body mass and brain mass.")
+        st.caption(f"All {total_count:,} matching species have both body mass and brain mass.")
     elif both_count:
         st.caption(
-            f"{both_count:,} of {total_count:,} matching records have both body mass and brain mass. "
+            f"{both_count:,} of {total_count:,} matching species have both body mass and brain mass. "
             f"Body mass is available for {body_count:,}; brain mass is available for {brain_count:,}."
         )
     else:
         st.caption(
-            f"None of the {total_count:,} matching records have both body mass and brain mass. "
+            f"None of the {total_count:,} matching species have both body mass and brain mass. "
             f"Body mass is available for {body_count:,}; brain mass is available for {brain_count:,}."
         )
 
@@ -308,7 +308,7 @@ def render(data: pd.DataFrame) -> None:
     elif part == 1:
         teacher_note(
             "Explore the dataset",
-            "Use a few searches to discover useful records and the limits of the dataset.",
+            "Use a few searches to discover useful species and the limits of the dataset.",
             "Students can choose any animals. Include a no-match if one occurs, then invite a quick comparison of measurement completeness.",
             "6 min",
         )
@@ -348,7 +348,7 @@ def render(data: pd.DataFrame) -> None:
             st.markdown("### What have we learned about this dataset?")
             st.info(
                 f"AnimalTraits focuses on terrestrial animals and does not contain every animal. "
-                f"This investigation uses {len(curious_data):,} species-level records from {distinct_species:,} distinct species. "
+                f"This investigation uses {len(curious_data):,} species-level rows: one for each of {distinct_species:,} species. "
                 f"Some species are missing a body-mass or brain-mass value."
             )
             data_science_callout(
@@ -374,12 +374,12 @@ def render(data: pd.DataFrame) -> None:
             smallest_plain = _plain_decimal(smallest_value)
             smallest_scientific = _scientific_notation(smallest_value)
 
-            st.markdown("### How big can an animal record be?")
-            st.metric("Largest recorded body mass", f"{largest_plain} kg")
+            st.markdown("### How big can a species be?")
+            st.metric("Largest species body mass", f"{largest_plain} kg")
             st.caption("Now compare it with the smallest value in the dataset.")
 
-            st.markdown("### How small can an animal record be?")
-            st.metric("Smallest recorded body mass", f"{smallest_plain} kg")
+            st.markdown("### How small can a species be?")
+            st.metric("Smallest species body mass", f"{smallest_plain} kg")
             st.write(
                 "That is a lot of zeros. Scientists often use a shorter way to write numbers like this."
             )
@@ -395,9 +395,9 @@ def render(data: pd.DataFrame) -> None:
                 if hard_reveal(
                     "",
                     "curious_body_mass_linear_revealed",
-                    reveal_label="Look at all the body-mass measurements",
+                    reveal_label="Look at all the species body-mass values",
                 ):
-                    st.markdown("### Now let’s look at all the body-mass measurements together.")
+                    st.markdown("### Now let’s look at all the species body-mass values together.")
                     st.caption("What do you notice? Can you actually see most of the data clearly?")
                     st.plotly_chart(
                         histogram(curious_data, "body mass (kg)", bins=25, log_x=False),
@@ -409,7 +409,7 @@ def render(data: pd.DataFrame) -> None:
                         "curious_body_mass_log_revealed",
                         reveal_label="Try a logarithmic scale",
                     ):
-                        st.write("The same measurements are now spaced differently.")
+                        st.write("The same values are now spaced differently.")
                         st.plotly_chart(
                             histogram(curious_data, "body mass (kg)", bins=25, log_x=True),
                             use_container_width=True,
@@ -427,7 +427,7 @@ def render(data: pd.DataFrame) -> None:
     elif part == 3:
         teacher_note(
             "Two variables",
-            "Move from a few familiar records to the full two-variable dataset, then reactivate the log-scale idea from Step 3 to make the full pattern easier to see.",
+            "Move from a few familiar species to the full two-variable dataset, then reactivate the log-scale idea from Step 3 to make the full pattern easier to see.",
             "Ask students to interpret positions and notice the overall relationship; do not introduce a fitted model here.",
             "7 min",
         )
@@ -448,7 +448,7 @@ def render(data: pd.DataFrame) -> None:
             use_container_width=True,
         )
         graph_support(
-            "This scatter plot shows two measurements together. Farther right means greater body mass; higher up means greater brain mass.",
+            "Each dot represents one species. Farther right means greater body mass; higher up means greater brain mass.",
             "Can you find Human?",
         )
 
@@ -457,7 +457,7 @@ def render(data: pd.DataFrame) -> None:
             "curious_step4_linear_revealed",
             reveal_label="Add all the species",
         ):
-            st.markdown("### What happens when we add all the species with both measurements?")
+            st.markdown("### What happens when we add all the species with both values?")
             st.plotly_chart(
                 body_brain_scatter(curious_data, log_x=False, log_y=False),
                 use_container_width=True,
@@ -478,7 +478,7 @@ def render(data: pd.DataFrame) -> None:
                     use_container_width=True,
                 )
                 st.write(
-                    "The animals and measurements have not changed — only the spacing of the axes has changed. "
+                    "The species and values have not changed — only the spacing of the axes has changed. "
                     "This makes small and large animals easier to see together."
                 )
                 st.caption("As body mass increases, what seems to happen to brain mass?")
@@ -528,7 +528,7 @@ def render(data: pd.DataFrame) -> None:
                         )
 
                 data_science_callout(
-                    "You put two measurements together to look for a relationship."
+                    "You put two variables together to look for a relationship."
                 )
 
     elif part == 4:
@@ -548,7 +548,7 @@ def render(data: pd.DataFrame) -> None:
             body_brain_class_sample_size_bar(curious_data, title="Usable body-and-brain species by animal class"),
             use_container_width=True,
         )
-        st.caption("Mammals and reptiles both have enough records for a useful comparison.")
+        st.caption("Mammals (501 species) and reptiles (37 species) both have enough data for a useful comparison.")
         class_options = sorted(
             with_common_class_names(curious_data)["Animal class"].dropna().unique().tolist()
         )
@@ -625,7 +625,7 @@ def render(data: pd.DataFrame) -> None:
             log_y=True,
         )
         if mammal_fit is None:
-            st.warning("There are not enough usable mammal records to build this model.")
+            st.warning("There are not enough usable mammal species to build this model.")
         else:
             st.plotly_chart(
                 body_brain_class_fit_scatter(
@@ -690,7 +690,7 @@ def render(data: pd.DataFrame) -> None:
                 log_y=True,
             )
             if mammal_fit is None:
-                st.warning("There are not enough usable mammal records to make this prediction.")
+                st.warning("There are not enough usable mammal species to make this prediction.")
             else:
                 predicted_cat_brain_mass = (
                     10 ** mammal_fit.intercept * cat_body_mass ** mammal_fit.slope
@@ -821,7 +821,7 @@ def render(data: pd.DataFrame) -> None:
                 log_y=True,
             )
             if mammal_fit is None or mammal_data.empty:
-                st.warning("There are not enough usable mammal records to make this prediction.")
+                st.warning("There are not enough usable mammal species to make this prediction.")
             else:
                 mammal_body_mass_max = float(mammal_data["body mass (kg)"].max())
                 predicted_elephant_brain_mass = (
@@ -1025,7 +1025,7 @@ def render(data: pd.DataFrame) -> None:
                             highlighted_classes=["Mammal"],
                             fits={"Mammal": mammal_fit},
                             highlighted_records=homo_records,
-                            highlighted_label="Homo sapiens records",
+                            highlighted_label="Homo sapiens",
                             highlighted_colour="#7c3aed",
                             highlighted_line_colour="#4c1d95",
                             title="Homo among mammals · body mass vs brain mass",
@@ -1037,7 +1037,7 @@ def render(data: pd.DataFrame) -> None:
                         "the purple marker shows Homo sapiens."
                     )
                     st.write(
-                        "The Homo records sit relatively high in brain mass for their body masses compared with the typical mammal pattern in this dataset."
+                        "Homo sapiens sits relatively high in brain mass for its body mass compared with the typical mammal pattern in this dataset."
                     )
                     relative_brain_choice = st.selectbox(
                         "Does being further above the mammal pattern make this an intelligence score?",
