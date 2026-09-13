@@ -42,9 +42,7 @@ STEP_LABELS = [
     "Explore & scale",
     "Body + brain",
     "Animal groups",
-    "Mammal model",
-    "Domestic cat",
-    "African elephant",
+    "Predict brain size",
     "Intelligent?",
     "Data Science",
 ]
@@ -715,7 +713,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         completion_gate(comparison_revealed)
 
     elif part == 4:
-        model_check_complete = False
+        model_check_complete = bool(st.session_state.get("curious_mammal_model_check_complete", False))
         teacher_note(
             "Mammal model",
             "Turn the visible mammal pattern into a model learners can use to make a later prediction.",
@@ -754,12 +752,17 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 f"**Among the mammals in our dataset, animals 100× heavier tend to have brains about {brain_mass_factor}× heavier.**"
             )
             st.caption("This is a typical pattern, not a cause or an exact rule for every mammal.")
+            correct_model_choice = (
+                f"A mammal that is about 100× heavier would typically be expected to have a brain about {brain_mass_factor}× heavier."
+            )
+            if model_check_complete and "curious_mammal_model_check" not in st.session_state:
+                st.session_state["curious_mammal_model_check"] = correct_model_choice
             model_check = st.selectbox(
                 "What does this model statement mean?",
                 [
                     "Choose an interpretation",
                     f"Every mammal that is 100× heavier has a brain exactly {brain_mass_factor}× heavier.",
-                    f"A mammal that is about 100× heavier would typically be expected to have a brain about {brain_mass_factor}× heavier.",
+                    correct_model_choice,
                     "Body mass causes brain mass to increase by the same amount in every mammal.",
                 ],
                 key="curious_mammal_model_check",
@@ -767,12 +770,14 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             if model_check.startswith("A mammal that is about"):
                 st.success("Yes — this is a typical prediction from the mammal model, not an exact rule.")
                 model_check_complete = True
+                st.session_state["curious_mammal_model_check_complete"] = True
             elif model_check != "Choose an interpretation":
                 st.caption("Look again for the answer that describes a typical pattern rather than an exact rule or a cause.")
         completion_gate(model_check_complete)
 
-    elif part == 5:
+    if part == 4 and model_check_complete:
         prediction_ready = False
+        cat_sequence_complete = bool(st.session_state.get("curious_cat_sequence_complete", False))
         teacher_note(
             "Domestic cat interpolation",
             "Use the mammal model for a new animal, then compare the prediction with separate external evidence.",
@@ -813,17 +818,20 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         f"### Mammal-model prediction\n\n"
                         f"**Our model predicts {predicted_cat_brain_grams:.1f} g for a {cat_body_mass:.1f} kg cat.**"
                     )
+                correct_prediction_choice = f"About {predicted_cat_brain_grams:.1f} g"
+                if cat_sequence_complete and "curious_cat_prediction_choice" not in st.session_state:
+                    st.session_state["curious_cat_prediction_choice"] = correct_prediction_choice
                 prediction_choice = st.selectbox(
                     "Select the displayed model prediction before comparing it with the external evidence.",
                     [
                         "Choose the model prediction",
-                        f"About {predicted_cat_brain_grams:.1f} g",
+                        correct_prediction_choice,
                         "About 2.8 g",
                         "About 284 g",
                     ],
                     key="curious_cat_prediction_choice",
                 )
-                prediction_ready = prediction_choice == f"About {predicted_cat_brain_grams:.1f} g"
+                prediction_ready = prediction_choice == correct_prediction_choice
                 if not prediction_ready:
                     st.caption("Use the mammal-model prediction above, then choose it before seeing the comparison value.")
                 else:
@@ -867,6 +875,8 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         "the blue diamond is the cat model prediction."
                     )
                     if cat_value_revealed:
+                        cat_sequence_complete = True
+                        st.session_state["curious_cat_sequence_complete"] = True
                         external_cat_brain_grams = cat_brain_mass * 1000
                         st.info(
                             "### Model prediction and separate measured value\n\n"
@@ -893,9 +903,10 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                             "Using a model inside the range of data that built it is called **interpolation**."
                         )
                         st.caption("You used a model to make a prediction, then tested it with new evidence.")
-        completion_gate(prediction_ready)
+        completion_gate(cat_sequence_complete)
 
-    elif part == 6:
+    if part == 4 and model_check_complete and cat_sequence_complete:
+        elephant_sequence_complete = bool(st.session_state.get("curious_elephant_sequence_complete", False))
         trust_committed = False
         teacher_note(
             "African elephant extrapolation",
@@ -948,6 +959,9 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     f"The largest body mass in the mammal data used to build this model is **{mammal_body_mass_max:,.0f} kg**. "
                     f"At {elephant_body_mass:,.0f} kg, the elephant sits well beyond that range."
                 )
+                saved_trust_judgement = st.session_state.get("curious_elephant_trust_choice")
+                if saved_trust_judgement and "curious_elephant_trust_judgement" not in st.session_state:
+                    st.session_state["curious_elephant_trust_judgement"] = saved_trust_judgement
                 trust_judgement = st.selectbox(
                     "Would you trust this prediction as much as the cat prediction?",
                     [
@@ -964,6 +978,8 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     )
                 elif trust_judgement != "Choose an answer":
                     st.caption("Think about whether the elephant's body mass is inside or outside the data range used to build the model.")
+                if trust_judgement != "Choose an answer":
+                    st.session_state["curious_elephant_trust_choice"] = trust_judgement
 
                 elephant_value_revealed = st.session_state.get("curious_elephant_external_value_revealed", False)
                 if not elephant_value_revealed:
@@ -1030,6 +1046,8 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     "the dashed black line extends that model beyond the data range; the blue diamond is the elephant model prediction."
                 )
                 if elephant_value_revealed:
+                    elephant_sequence_complete = True
+                    st.session_state["curious_elephant_sequence_complete"] = True
                     st.info(
                         "### Mammal-model prediction and external comparison\n\n"
                         f"**For a {elephant_body_mass:,.0f} kg elephant, the model predicts a brain mass of about {predicted_elephant_brain_mass:.1f} kg.**\n\n"
@@ -1054,9 +1072,9 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         )
                         st.caption("Source: Benoit et al. (2019).")
                     st.caption("You used a model beyond its data range, then tested that extrapolation with new evidence.")
-        completion_gate(trust_committed)
+        completion_gate(elephant_sequence_complete)
 
-    elif part == 7:
+    elif part == 5:
         absolute_choice_committed = False
         relative_choice_committed = False
         teacher_note(
@@ -1198,7 +1216,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         completion_gate(absolute_choice_committed)
         completion_gate(relative_choice_committed)
 
-    elif part == 8:
+    elif part == 6:
         teacher_note(
             "Data Science transfer",
             "Focus on the repeated process, not the internal algorithms.",
