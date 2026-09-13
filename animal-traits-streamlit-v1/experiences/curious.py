@@ -835,7 +835,7 @@ def render(data: pd.DataFrame) -> None:
                 st.write(f"The cat’s body mass is about **{cat_body_mass:.1f} kg**.")
                 st.info(
                     f"### Mammal-model prediction\n\n"
-                    f"**For a {cat_body_mass:.1f} kg cat, the model predicts a brain mass of about {predicted_cat_brain_grams:.1f} g.**"
+                    f"**Our model predicts {predicted_cat_brain_grams:.1f} g for a {cat_body_mass:.1f} kg cat.**"
                 )
                 prediction_choice = st.selectbox(
                     "Select the displayed model prediction before comparing it with the external evidence.",
@@ -893,11 +893,11 @@ def render(data: pd.DataFrame) -> None:
                     if cat_value_revealed:
                         external_cat_brain_grams = cat_brain_mass * 1000
                         st.success(
-                            f"**External cat comparison: {external_cat_brain_grams:.1f} g brain mass.**"
+                            f"**Measured value found for a domestic cat: {external_cat_brain_grams:.1f} g brain mass.**"
                         )
                         st.write(
-                            f"The model predicts about {predicted_cat_brain_grams:.1f} g, while the separate cat comparison value is {external_cat_brain_grams:.1f} g. "
-                            "The model gets reasonably close, but it does not need to predict every animal exactly."
+                            f"Our model predicts {predicted_cat_brain_grams:.1f} g. The measured value we found for a domestic cat is {external_cat_brain_grams:.1f} g. "
+                            "That’s close — but a model prediction doesn’t have to match a measurement exactly."
                         )
                         st.caption("The pink × is the external cat comparison value, kept separate from AnimalTraits.")
                         with soft_reveal("How do we know this?"):
