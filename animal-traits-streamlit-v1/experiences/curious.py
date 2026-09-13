@@ -355,24 +355,6 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         st.header("What animals can we find?")
         st.write("Try searching for at least three animals you are interested in. A search does not have to succeed.")
         st.caption("Need an idea? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
-        with soft_reveal("Where did this data come from?"):
-            st.write(
-                "AnimalTraits is a curated scientific database that brings together original measurements "
-                "reported across many peer-reviewed studies of terrestrial animals. Each underlying entry is "
-                "an observation from a specimen or group of the same species, and can include one or more traits."
-            )
-            st.write(
-                "For this investigation, repeated observations are combined using the AnimalTraits authors’ "
-                "documented species-trait method. That is why CURIOUS graphs use **one dot = one species**."
-            )
-            st.write(
-                "Different species and traits have different amounts of evidence. AnimalTraits does not need "
-                "to include every animal species or every trait for every species to be useful."
-            )
-            st.caption(
-                "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
-                "DOI: 10.1038/s41597-022-01364-9."
-            )
         animal_query = st.text_input("Search for an animal", key="curious_exploration_search")
         last_query = st.session_state.get("curious_exploration_last_query", "")
         attempts = int(st.session_state.get("curious_exploration_attempts", 0))
@@ -395,6 +377,24 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             else:
                 _render_search_results(animal_matches, SEARCH_DISPLAY_COLUMNS)
                 _render_measurement_summary(animal_matches)
+                with soft_reveal("Where did this data come from?"):
+                    st.write(
+                        "AnimalTraits is a curated scientific database that brings together original measurements "
+                        "reported across many peer-reviewed studies of terrestrial animals. Each underlying entry is "
+                        "an observation from a specimen or group of the same species, and can include one or more traits."
+                    )
+                    st.write(
+                        "For this investigation, repeated observations are combined using the AnimalTraits authors’ "
+                        "documented species-trait method. That is why CURIOUS graphs use **one dot = one species**."
+                    )
+                    st.write(
+                        "Different species and traits have different amounts of evidence. AnimalTraits does not need "
+                        "to include every animal species or every trait for every species to be useful."
+                    )
+                    st.caption(
+                        "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
+                        "DOI: 10.1038/s41597-022-01364-9."
+                    )
                 st.caption("Try another animal when you’re ready.")
 
         if attempts >= 3:
