@@ -27,7 +27,6 @@ from data import (
 from models import fit_relationship
 from ui_helpers import (
     completion_gate,
-    data_science_callout,
     graph_support,
     hard_reveal,
     page_header,
@@ -413,9 +412,6 @@ def render(data: pd.DataFrame) -> None:
                 f"This investigation uses {len(curious_data):,} species-level rows: one for each of {distinct_species:,} species. "
                 f"Some species are missing a body-mass or brain-mass value."
             )
-            data_science_callout(
-                "You explored a real scientific dataset and discovered its gaps and limits."
-            )
         completion_gate(attempts >= 3)
 
     elif part == 2:
@@ -481,10 +477,6 @@ def render(data: pd.DataFrame) -> None:
                             "The log scale is more useful here because these values span such a huge range."
                         )
                         st.caption("10⁻³ kg = 0.001 kg · 10⁰ kg = 1 kg · 10³ kg = 1,000 kg")
-                        data_science_callout(
-                            "You changed how the data were displayed so a huge range became easier to see.",
-                            "Same data. Better view.",
-                        )
 
     elif part == 3:
         teacher_note(
@@ -524,10 +516,7 @@ def render(data: pd.DataFrame) -> None:
                 body_brain_scatter(curious_data, log_x=False, log_y=False),
                 use_container_width=True,
             )
-            graph_support(
-                "Can you see the small animals clearly?",
-                "Many are compressed near the bottom-left.",
-            )
+            st.caption("Can you see the small animals clearly? Many are compressed near the bottom-left.")
 
             if hard_reveal(
                 "We had this problem with body mass before. What could we change?",
@@ -590,9 +579,7 @@ def render(data: pd.DataFrame) -> None:
                             use_container_width=True,
                         )
 
-                data_science_callout(
-                    "You put two variables together to look for a relationship."
-                )
+                st.caption("You put two variables together to look for a relationship.")
 
     elif part == 4:
         teacher_note(
@@ -661,8 +648,7 @@ def render(data: pd.DataFrame) -> None:
                 use_container_width=True,
             )
             st.caption(
-                "The dotted all-animal reference is there for comparison. You can hide it with the graph legend. "
-                "The solid lines summarise the mammal and reptile points."
+                "The dotted line is the all-animal reference; the solid lines summarise the mammal and reptile points."
             )
             conclusion_revealed = hard_reveal(
                 "**What does the graph show about mammals and reptiles? Which relationship should we use later for a cat or elephant, and why?**",
@@ -915,9 +901,7 @@ def render(data: pd.DataFrame) -> None:
                             "The cat’s 4.0 kg body mass sits inside the range of mammal body masses used to build our model. "
                             "Using a model inside the range of data that built it is called **interpolation**."
                         )
-                        data_science_callout(
-                            "You used a model to make a prediction, then tested it with new evidence."
-                        )
+                        st.caption("You used a model to make a prediction, then tested it with new evidence.")
         completion_gate(prediction_ready)
 
     elif part == 7:
@@ -1075,9 +1059,7 @@ def render(data: pd.DataFrame) -> None:
                             "This elephant was not part of our original AnimalTraits dataset. We’ve kept it separate so we can test our model using new evidence."
                         )
                         st.caption("Source: Benoit et al. (2019).")
-                    data_science_callout(
-                        "You used a model beyond its data range, then tested that extrapolation with new evidence."
-                    )
+                    st.caption("You used a model beyond its data range, then tested that extrapolation with new evidence.")
         completion_gate(trust_committed)
 
     elif part == 8:
@@ -1169,8 +1151,7 @@ def render(data: pd.DataFrame) -> None:
                         width="stretch",
                     )
                     st.caption(
-                        "Orange circles are AnimalTraits mammal species; the black line summarises the mammal pattern; "
-                        "the purple marker shows Homo sapiens."
+                        "The black line summarises the mammal pattern; the purple marker shows Homo sapiens."
                     )
                     st.write(
                         "Homo sapiens sits relatively high in brain mass for its body mass compared with the typical mammal pattern in this dataset."
