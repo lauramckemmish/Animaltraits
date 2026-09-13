@@ -403,7 +403,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             missing_measurements = int(
                 student_data[["Body mass (kg)", "Brain size (kg)"]].isna().any(axis=1).sum()
             )
-            st.markdown("### What have we learned about this dataset?")
+            st.markdown("### About this dataset")
             st.info(
                 f"AnimalTraits focuses on terrestrial animals and does not contain every animal. "
                 f"This investigation uses {len(curious_data):,} species-level rows: one for each of {distinct_species:,} species. "
@@ -516,7 +516,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             st.caption("Can you see the small animals clearly? Many are compressed near the bottom-left.")
 
             if hard_reveal(
-                "We had this problem with body mass before. What could we change?",
+                "The earlier body-mass display compressed small values. What could we change?",
                 "curious_step4_log_revealed",
                 reveal_label="Try log scales on both axes",
             ):
@@ -576,7 +576,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                             use_container_width=True,
                         )
 
-                st.caption("You put two variables together to look for a relationship.")
+                st.caption("This graph puts body mass and brain mass together to show their relationship.")
 
     elif part == 3:
         teacher_note(
