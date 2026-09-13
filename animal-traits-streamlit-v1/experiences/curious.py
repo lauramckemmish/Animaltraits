@@ -696,7 +696,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             )
         completion_gate(selection_complete)
 
-    if part == 2 and int(st.session_state.get("curious_exploration_attempts", 0)) >= 3:
+    if part == 2:
         teacher_note(
             "Body mass and scale",
             "Use one familiar variable to introduce range, then create the need for scientific notation and logarithmic scales rather than teaching either idea in isolation.",
