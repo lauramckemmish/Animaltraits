@@ -35,6 +35,22 @@ def test_eligible_species_requires_exact_identity_and_positive_paired_measuremen
     assert eligible["Scientific name"].tolist() == ["Canis familiaris"]
 
 
+def test_eligible_species_requires_a_usable_common_name_for_the_collection_tray():
+    matches = _matches(
+        [
+            {"Common name": "Dog", "Scientific name": "Canis familiaris", "Body mass (kg)": 20, "Brain size (kg)": 0.08},
+            {"Common name": "  ", "Scientific name": "Blankus commonus", "Body mass (kg)": 2, "Brain size (kg)": 0.01},
+            # student_facing_data uses the scientific name when a mapping is absent.
+            {"Common name": "Fallbackus scientificus", "Scientific name": "Fallbackus scientificus", "Body mass (kg)": 2, "Brain size (kg)": 0.01},
+        ]
+    )
+
+    eligible = _eligible_species_to_save(matches)
+
+    assert eligible["Scientific name"].tolist() == ["Canis familiaris"]
+    assert eligible["Common name"].tolist() == ["Dog"]
+
+
 def test_broad_results_keep_each_exact_eligible_species_available_for_choice():
     matches = _matches(
         [

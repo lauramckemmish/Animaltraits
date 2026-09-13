@@ -230,17 +230,24 @@ def _curious_saved_body_mass_species(data: pd.DataFrame, saved_species: list[str
 
 
 def _eligible_species_to_save(matches: pd.DataFrame) -> pd.DataFrame:
-    """Return exact search results that can later appear on a body/brain graph."""
+    """Return graph-eligible search results with a learner-usable common name."""
     eligible = matches.copy()
     scientific_names = eligible["Scientific name"].fillna("").astype(str).str.strip()
+    common_names = eligible.get("Common name", pd.Series("", index=eligible.index))
+    common_names = common_names.fillna("").astype(str).str.strip()
     body_mass = pd.to_numeric(eligible["Body mass (kg)"], errors="coerce")
     brain_mass = pd.to_numeric(eligible["Brain size (kg)"], errors="coerce")
     eligible = eligible[
         scientific_names.ne("")
+        & common_names.ne("")
+        # student_facing_data uses the scientific name as its fallback when no
+        # audited common name is available; that fallback is not tray-ready.
+        & common_names.ne(scientific_names)
         & body_mass.gt(0)
         & brain_mass.gt(0)
     ].copy()
     eligible["Scientific name"] = eligible["Scientific name"].astype(str).str.strip()
+    eligible["Common name"] = eligible["Common name"].astype(str).str.strip()
     return eligible.drop_duplicates(subset=["Scientific name"])
 
 
@@ -516,7 +523,7 @@ def _render_collection_tray(data: pd.DataFrame) -> bool:
         is_selected = scientific_name in selected
         label = labels.get(scientific_name) or scientific_name
         columns[index % len(columns)].button(
-            f"{'✓ ' if is_selected else ''}{label} — {scientific_name}",
+            f"{'✓ ' if is_selected else ''}{label}",
             type="primary" if is_selected else "secondary",
             key=f"curious_collection_candidate_{scientific_name}",
             disabled=not is_selected and len(selected) >= CURIOUS_COLLECTION_MAX_SELECTION,
