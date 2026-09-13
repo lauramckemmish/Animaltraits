@@ -1205,9 +1205,10 @@ def render(data: pd.DataFrame) -> None:
                             st.info("**Brain size relative to body size is biologically informative, but it is not an intelligence score.**")
 
                             st.markdown("### So what is our model still missing?")
-                            st.write("New Caledonian crows can make and use tools to solve problems.")
+                            st.write("New Caledonian crows make and use tools to get food.")
                             st.image(CROW_IMAGE_PATH, width="stretch")
                             st.caption("New Caledonian crow (*Corvus moneduloides*)")
+                            st.caption("Evidence: Kenward et al. (2005), *Nature*, DOI: 10.1038/433121a.")
                             st.write(
                                 "Our model knows about body mass, brain mass and animal group. It does not know how a brain is organised, what behaviours an animal can learn, or what problems it faces in its environment."
                             )
