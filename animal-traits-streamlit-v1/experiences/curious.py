@@ -39,7 +39,7 @@ from ui_helpers import (
 
 STEP_LABELS = [
     "Start",
-    "Explore & scale",
+    "Find your animals",
     "Body + brain",
     "Animal groups",
     "Predict brain size",
