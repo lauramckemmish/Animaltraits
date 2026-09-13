@@ -622,7 +622,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             _render_post_exploration_save_species_control(curious_data)
         completion_gate(attempts >= 3)
 
-    if part == 1 and attempts >= 3:
+    if part == 2 and int(st.session_state.get("curious_exploration_attempts", 0)) >= 3:
         teacher_note(
             "Body mass and scale",
             "Use one familiar variable to introduce range, then create the need for scientific notation and logarithmic scales rather than teaching either idea in isolation.",
@@ -685,9 +685,6 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                             "The log scale is more useful here because these values span such a huge range."
                         )
                         st.caption("10⁻³ kg = 0.001 kg · 10⁰ kg = 1 kg · 10³ kg = 1,000 kg")
-
-    elif part == 2:
-        st.header("Body mass")
 
     elif part == 3:
         teacher_note(
