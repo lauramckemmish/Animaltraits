@@ -507,8 +507,8 @@ def _render_collection_tray(data: pd.DataFrame) -> bool:
 
     selected = _collection_selected_species(candidates)
     labels = dict(_species_labels(data, candidates))
-    st.markdown("### You’ve got some animals to choose from.")
-    st.write("Pick the animals you want to take with you into the next graphs.")
+    st.markdown("### Choose animals to keep following")
+    st.write("You’ve got some animals to choose from. Pick the ones you want to take with you into the next graphs.")
     st.caption(f"{len(selected)} of {CURIOUS_COLLECTION_MAX_SELECTION} animals selected")
 
     columns = st.columns(3)
@@ -739,56 +739,57 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 st.rerun()
 
         if attempts >= 3 and not selection_complete and not finding_more:
-            has_candidates = _render_collection_tray(curious_data)
-            if has_candidates:
-                selected = _collection_selected_species(_collection_candidates_from_session())
-                st.markdown("#### Want to look for another animal?")
-                find_more_note, find_more_action = st.columns([2, 1])
-                if selected:
-                    find_more_note.write(
-                        "We’ll keep the animals you’ve selected and clear the rest to make room."
-                    )
-                else:
-                    find_more_note.write(
-                        "You haven’t selected any animals to keep. Searching again will clear this set."
-                    )
-                find_more_action.button(
-                    "Find another animal",
-                    type="secondary",
-                    key="curious_find_more_animals",
-                    on_click=_start_finding_more_animals,
-                )
-                if selected:
+            with st.container():
+                has_candidates = _render_collection_tray(curious_data)
+                if has_candidates:
+                    selected = _collection_selected_species(_collection_candidates_from_session())
+                    st.markdown("**Want another animal?**")
+                    if selected:
+                        st.write(
+                            "We’ll keep the animals you’ve selected and clear the rest to make room."
+                        )
+                    else:
+                        st.write(
+                            "You haven’t selected any animals to keep. Searching again will clear this set."
+                        )
                     st.button(
-                        "Keep these animals",
-                        type="primary",
-                        key="curious_finish_choosing_animals",
-                        on_click=_finish_choosing_animals,
+                        "Find another animal",
+                        type="secondary",
+                        key="curious_find_more_animals",
+                        on_click=_start_finding_more_animals,
                     )
+                    st.markdown("**Finished choosing?**")
+                    if selected:
+                        st.button(
+                            "Keep these animals",
+                            type="primary",
+                            key="curious_finish_choosing_animals",
+                            on_click=_finish_choosing_animals,
+                        )
+                    else:
+                        st.button(
+                            "Move on without choosing animals",
+                            type="primary",
+                            key="curious_move_on_without_animals",
+                            on_click=_move_on_without_choosing_animals,
+                        )
                 else:
-                    st.button(
+                    st.write(
+                        "None of the animals you found so far have the measurements we need for the later graphs."
+                    )
+                    find_more_column, move_on_column = st.columns(2)
+                    find_more_column.button(
+                        "Find another animal",
+                        type="secondary",
+                        key="curious_find_more_animals",
+                        on_click=_start_finding_more_animals,
+                    )
+                    move_on_column.button(
                         "Move on without choosing animals",
                         type="primary",
                         key="curious_move_on_without_animals",
                         on_click=_move_on_without_choosing_animals,
                     )
-            else:
-                st.write(
-                    "None of the animals you found so far have the measurements we need for the later graphs."
-                )
-                find_more_column, move_on_column = st.columns(2)
-                find_more_column.button(
-                    "Find another animal",
-                    type="secondary",
-                    key="curious_find_more_animals",
-                    on_click=_start_finding_more_animals,
-                )
-                move_on_column.button(
-                    "Move on without choosing animals",
-                    type="primary",
-                    key="curious_move_on_without_animals",
-                    on_click=_move_on_without_choosing_animals,
-                )
 
         if attempts >= 3 and selection_complete:
             student_data = student_facing_data(curious_data)
