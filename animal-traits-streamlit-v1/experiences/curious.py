@@ -350,12 +350,33 @@ def render(data: pd.DataFrame) -> None:
         teacher_note(
             "Explore the dataset",
             "Use a few searches to discover useful species and the limits of the dataset.",
-            "Students can choose any animals. Include a no-match if one occurs, then invite a quick comparison of measurement completeness.",
+            "AnimalTraits is a curated database assembled from measurements in peer-reviewed studies of terrestrial animals. "
+            "An underlying row is an observation from a specimen or group of one species and may contain several traits. "
+            "CURIOUS combines repeated observations with the AnimalTraits species-trait method so its graphs use one point per species; that is a useful choice for this cross-species comparison, not the only valid analysis. "
+            "Evidence coverage differs among species and traits: missing from a graph means the required measurement is absent from this dataset, not that the animal lacks the trait.",
             "6 min",
         )
         st.header("What animals can we find?")
         st.write("Try searching for at least three animals you are interested in. A search does not have to succeed.")
         st.caption("Need an idea? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
+        with soft_reveal("Where did this data come from?"):
+            st.write(
+                "AnimalTraits is a curated scientific database that brings together original measurements "
+                "reported across many peer-reviewed studies of terrestrial animals. Each underlying entry is "
+                "an observation from a specimen or group of the same species, and can include one or more traits."
+            )
+            st.write(
+                "For this investigation, repeated observations are combined using the AnimalTraits authors’ "
+                "documented species-trait method. That is why CURIOUS graphs use **one dot = one species**."
+            )
+            st.write(
+                "Different species and traits have different amounts of evidence. AnimalTraits does not need "
+                "to include every animal species or every trait for every species to be useful."
+            )
+            st.caption(
+                "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
+                "DOI: 10.1038/s41597-022-01364-9."
+            )
         animal_query = st.text_input("Search for an animal", key="curious_exploration_search")
         last_query = st.session_state.get("curious_exploration_last_query", "")
         attempts = int(st.session_state.get("curious_exploration_attempts", 0))
@@ -552,7 +573,8 @@ def render(data: pd.DataFrame) -> None:
                         ]
                         if complete_matches.empty:
                             st.info(
-                                "We found this animal in the dataset, but it does not have both measurements needed to place it on this graph."
+                                "We found this animal in the dataset, but it does not have both measurements needed to place it on this graph. "
+                                "That does not mean it has no body mass or brain; this dataset does not contain the measurements needed for this comparison."
                             )
                         else:
                             st.caption(f"Highlighting {len(complete_matches):,} usable species for {selected_query}.")

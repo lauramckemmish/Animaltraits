@@ -36,9 +36,29 @@ def render(data: pd.DataFrame, open_experience) -> None:
         st.markdown(f"### {playground.get('label', playground['name'])}")
         st.write(playground["summary"])
         st.button("Open exploration →", key="open_playground", width="stretch", on_click=open_experience, args=(EXPERIENCE_PLAYGROUND,))
-    with st.expander("Dataset status and provenance"):
-        st.write(config.DATASET_SOURCE_NOTE)
-        st.markdown(f"[{config.DATASET_SOURCE_LABEL}]({config.DATASET_SOURCE_URL}) · [Paper / DOI]({config.DATASET_PAPER_URL})")
-        st.caption(f"DOI: {config.DATASET_DOI} · [GitHub / raw source]({config.DATASET_GITHUB_URL})")
-        st.caption(f"The app currently uses the classroom-ready dataset labelled “{config.DATASET_NAME}”.")
+    with st.expander("About the data"):
+        st.write(
+            "AnimalTraits is a curated scientific database built by bringing together original measurements "
+            "from many peer-reviewed studies of terrestrial animals. Each underlying row is an observation "
+            "from a specimen or group of the same species, and may include one or more measured traits."
+        )
+        st.write(
+            "Different species and traits have different amounts of evidence. An animal missing from a "
+            "particular graph does not necessarily lack that biological trait: the dataset may simply not "
+            "contain the measurements needed for that comparison. AnimalTraits is useful without including "
+            "every species or every trait for every species."
+        )
+        st.write(
+            "CURIOUS combines repeated observations using the AnimalTraits authors’ documented species-trait "
+            "method, so its analytical graphs show one dot for each species."
+        )
+        st.caption(
+            "Source for this resource: AnimalTraits v1.0.7 (Zenodo record 6468938). "
+            "Citation: Herberstein et al. (2022), Scientific Data 9, 265."
+        )
+        st.markdown(
+            f"[{config.DATASET_SOURCE_LABEL}]({config.DATASET_SOURCE_URL}) · "
+            f"[Paper / DOI]({config.DATASET_PAPER_URL}) · "
+            "[AnimalTraits v1.0.7 / Zenodo](https://doi.org/10.5281/zenodo.6468938)"
+        )
     render_resource_context(config.RESOURCE_ABOUT, logo_path=config.ABOUT_INSTITUTIONAL_LOGO, logo_width=125)
