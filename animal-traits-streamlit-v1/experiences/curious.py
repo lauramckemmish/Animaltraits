@@ -1725,11 +1725,13 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             "Learners may supply current examples of recommendation systems or language AI. Avoid implying that different systems use identical models; product and platform examples belong in facilitation, not this durable graphic. Keep returning to: what evidence built the model, what happens with a new case, how well did the prediction work, and what might the model miss?",
             "2–3 min",
         )
-        st.write("This investigation is one example of how data science works across many different questions.")
+        st.write("This time the question was about animals. Data science can start with very different questions.")
         st.image(DATA_SCIENCE_INFOGRAPHIC_PATH, width="stretch")
         st.markdown("**Same process. Different models.**")
-        st.write("The model can change. The questions around it still matter.")
-        st.markdown("**Different questions. Different data. Different models. Same way of thinking.**")
+        st.markdown(
+            "**The powerful part is the way of thinking:** learn from data, build a model, use it on a new case, "
+            "test it against reality, and ask where the model still works."
+        )
 
 
 
