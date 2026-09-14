@@ -942,7 +942,10 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             smallest_value = body.min()
             largest_plain = _plain_decimal(largest_value)
             smallest_plain = _plain_decimal(smallest_value)
-            smallest_scientific = _scientific_notation(smallest_value)
+            smallest_log_tick_exponent = math.floor(math.log10(smallest_value))
+            smallest_log_tick_value = 10 ** smallest_log_tick_exponent
+            smallest_log_tick_label = f"10{_superscript_integer(smallest_log_tick_exponent)}"
+            smallest_log_tick_decimal = _plain_decimal(smallest_log_tick_value)
 
             st.markdown("### How big can a species be?")
             st.metric("Largest species body mass", f"{largest_plain} kg")
@@ -950,57 +953,64 @@ def render(data: pd.DataFrame, terminal_action) -> None:
 
             st.markdown("### How small can a species be?")
             st.metric("Smallest species body mass", f"{smallest_plain} kg")
-            st.write(
-                "That is a lot of zeros. Scientists often use a shorter way to write numbers like this."
-            )
+            st.write("That is a lot of zeros.")
 
             if hard_reveal(
                 "",
-                "curious_body_mass_notation_revealed",
-                reveal_label="Show the shorter version",
+                "curious_body_mass_linear_revealed",
+                reveal_label="Look at all the species body-mass values",
             ):
-                st.markdown(f"**{smallest_scientific} kg**")
-                st.write("**Same number. Different way of writing it.** For example, 10⁻³ = 0.001.")
+                st.markdown("### Now let’s look at all the species body-mass values together.")
+                st.caption("What can you see? What is hard to see?")
+                st.plotly_chart(
+                    histogram(
+                        curious_data,
+                        "body mass (kg)",
+                        bins=25,
+                        log_x=False,
+                        learner_selected_data=saved_body_mass_species,
+                    ),
+                    use_container_width=True,
+                )
 
                 if hard_reveal(
-                    "",
-                    "curious_body_mass_linear_revealed",
-                    reveal_label="Look at all the species body-mass values",
+                    "Well. Most of the animals are squashed together. Not very helpful.\n\n"
+                    "Can we show the same data in a way that lets us see more of it?",
+                    "curious_body_mass_log_revealed",
+                    reveal_label="Try another scale",
                 ):
-                    st.markdown("### Now let’s look at all the species body-mass values together.")
-                    st.caption("What do you notice? Can you actually see most of the data clearly?")
                     st.plotly_chart(
                         histogram(
                             curious_data,
                             "body mass (kg)",
                             bins=25,
-                            log_x=False,
+                            log_x=True,
                             learner_selected_data=saved_body_mass_species,
                         ),
                         use_container_width=True,
                     )
+                    st.write("Same animals. Same body masses. Much easier to see.")
+                    st.write("This is a log scale.")
 
-                    if hard_reveal(
-                        "Can we display the same data in a way that makes the huge range easier to see?",
-                        "curious_body_mass_log_revealed",
-                        reveal_label="Try a logarithmic scale",
+                    with soft_reveal(
+                        f"What do those {smallest_log_tick_label} labels mean?"
                     ):
-                        st.write("The same values are now spaced differently.")
-                        st.plotly_chart(
-                            histogram(
-                                curious_data,
-                                "body mass (kg)",
-                                bins=25,
-                                log_x=True,
-                                learner_selected_data=saved_body_mass_species,
-                            ),
-                            use_container_width=True,
+                        st.write(
+                            f"{smallest_log_tick_label} kg is {smallest_log_tick_decimal} kg. "
+                            "Scientific notation is a shorter way to write very small or very "
+                            "large numbers."
                         )
                         st.write(
-                            "**The data have not changed — only the spacing of the axis has changed.** "
-                            "The log scale is more useful here because these values span such a huge range."
+                            "On this log scale, each major step is 10 times larger than the "
+                            "one before it."
                         )
-                        st.caption("10⁻³ kg = 0.001 kg · 10⁰ kg = 1 kg · 10³ kg = 1,000 kg")
+
+                    with soft_reveal(
+                        "Did the log graph change the data, or just how we looked at it?"
+                    ):
+                        st.write(
+                            "The data did not change. Only the spacing on the axis changed."
+                        )
 
     elif part == 3:
         teacher_note(
