@@ -458,6 +458,12 @@ def _move_on_without_choosing_animals() -> None:
     _finish_choosing_animals()
 
 
+def _save_step4_trend_choice() -> None:
+    st.session_state["curious_step4_trend_choice_saved"] = st.session_state[
+        "curious_step4_trend_choice"
+    ]
+
+
 def _species_labels(data: pd.DataFrame, species_names: list[str]) -> list[tuple[str, str]]:
     """Resolve scientific identities to current learner-facing names."""
     student_data = student_facing_data(data)
@@ -1083,10 +1089,32 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     "The species and values have not changed — only the spacing of the axes has changed. "
                     "This makes small and large animals easier to see together."
                 )
-                st.caption("As body mass increases, what seems to happen to brain mass?")
-                st.write(
-                    "Larger animals generally tend to have larger brains, although the points do not all lie in the same place."
+                if (
+                    "curious_step4_trend_choice" not in st.session_state
+                    and "curious_step4_trend_choice_saved" in st.session_state
+                ):
+                    st.session_state["curious_step4_trend_choice"] = st.session_state[
+                        "curious_step4_trend_choice_saved"
+                    ]
+                trend_choice = st.selectbox(
+                    "Look from left to right. As body mass increases, what generally happens to brain mass?",
+                    [
+                        "Choose a claim",
+                        "It generally increases.",
+                        "It generally decreases.",
+                        "There is no clear relationship.",
+                    ],
+                    key="curious_step4_trend_choice",
+                    on_change=_save_step4_trend_choice,
                 )
+                if trend_choice == "It generally increases.":
+                    st.success("Yes — larger animals generally have larger brains.")
+                    st.caption("This is a broad relationship, not an exact rule for every species.")
+                elif trend_choice != "Choose a claim":
+                    st.caption(
+                        "Look across the whole cloud from left to right: the points generally rise. "
+                        "This is a broad relationship, not an exact rule for every species."
+                    )
 
                 st.markdown("### Find an animal on the graph")
                 st.write("Find one of the animals you searched for earlier.")
