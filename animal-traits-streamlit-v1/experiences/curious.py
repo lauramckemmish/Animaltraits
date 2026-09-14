@@ -521,20 +521,12 @@ def _render_measurement_summary(matches: pd.DataFrame) -> None:
 
 
 def _render_provenance_disclosure() -> None:
-    """Render CURIOUS's existing source explanation after collection commitment."""
+    """Render CURIOUS's compact source explanation after collection commitment."""
     with soft_reveal("Where did this data come from?"):
         st.write(
-            "AnimalTraits is a curated scientific database that brings together original measurements "
-            "reported across many peer-reviewed studies of terrestrial animals. Each underlying entry is "
-            "an observation from a specimen or group of the same species, and can include one or more traits."
-        )
-        st.write(
-            "For this investigation, repeated observations are combined using the AnimalTraits authors’ "
-            "documented species-trait method. That is why CURIOUS graphs use **one dot = one species**."
-        )
-        st.write(
-            "Different species and traits have different amounts of evidence. AnimalTraits does not need "
-            "to include every animal species or every trait for every species to be useful."
+            "AnimalTraits brings together measurements from peer-reviewed studies. For this investigation, "
+            "repeated observations are combined so each dot represents one species. Different species and "
+            "traits have different amounts of evidence."
         )
         st.caption(
             "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
@@ -550,8 +542,7 @@ def _render_collection_tray(data: pd.DataFrame) -> bool:
 
     selected = _collection_selected_species(candidates)
     labels = dict(_species_labels(data, candidates))
-    st.markdown("### Choose animals to keep following")
-    st.write("You’ve got some animals to choose from. Pick the ones you want to take with you into the next graphs.")
+    st.markdown("### Choose any animals you want to keep exploring.")
     st.caption(f"{len(selected)} of {CURIOUS_COLLECTION_MAX_SELECTION} animals selected")
 
     columns = st.columns(3)
@@ -809,7 +800,8 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             "Evidence coverage differs among species and traits: missing from a graph means the required measurement is absent from this dataset, not that the animal lacks the trait.",
             "6 min",
         )
-        st.header("What animals can we find?")
+        st.header("What animals are you curious about?")
+        st.write("Search for one.")
         attempts = int(st.session_state.get("curious_exploration_attempts", 0))
         selection_complete = bool(st.session_state.get(CURIOUS_SELECTION_COMPLETE_KEY, False))
         finding_more = bool(st.session_state.get(CURIOUS_FIND_MORE_KEY, False))
@@ -817,7 +809,6 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         searching = initial_search or (not selection_complete and finding_more)
 
         if initial_search:
-            st.write("Try searching for at least three animals you are interested in. A search does not have to succeed.")
             st.caption("Need an idea? Try `dragon`, `elephant`, `echidna`, `spider` or `whale` — or choose your own.")
 
         if searching:
@@ -865,7 +856,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 has_candidates = _render_collection_tray(curious_data)
                 if has_candidates:
                     selected = _collection_selected_species(_collection_candidates_from_session())
-                    st.markdown("**Want another animal?**")
+                    st.markdown("**Curious about another animal?**")
                     if selected:
                         st.write(
                             "We’ll keep the animals you’ve selected and clear the rest to make room."
@@ -880,10 +871,10 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         key="curious_find_more_animals",
                         on_click=_start_finding_more_animals,
                     )
-                    st.markdown("**Finished choosing?**")
+                    st.markdown("**Happy with your animals?**")
                     if selected:
                         st.button(
-                            "Keep these animals",
+                            "Use these animals",
                             type="primary",
                             key="curious_finish_choosing_animals",
                             on_click=_finish_choosing_animals,
@@ -914,16 +905,20 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     )
 
         if attempts >= 3 and selection_complete:
-            student_data = student_facing_data(curious_data)
-            distinct_species = student_data["Scientific name"].replace("", pd.NA).nunique(dropna=True)
-            missing_measurements = int(
-                student_data[["Body mass (kg)", "Brain size (kg)"]].isna().any(axis=1).sum()
-            )
+            saved_species = _saved_species_from_session()
+            saved_labels = dict(_species_labels(curious_data, saved_species))
+            st.markdown("### Your animals")
+            if saved_species:
+                st.write(
+                    "You chose: "
+                    + ", ".join(saved_labels.get(species_name, species_name) for species_name in saved_species)
+                )
+            else:
+                st.write("You chose to move on without saving animals.")
             st.markdown("### About this dataset")
-            st.info(
-                f"AnimalTraits focuses on terrestrial animals and does not contain every animal. "
-                f"This investigation uses {len(curious_data):,} species-level rows: one for each of {distinct_species:,} species. "
-                f"Some species are missing a body-mass or brain-mass value."
+            st.write(
+                "AnimalTraits includes 1,943 terrestrial animal species in this investigation. "
+                "It doesn’t contain every animal, and some species are missing body-mass or brain-mass values."
             )
             _render_provenance_disclosure()
         completion_gate(selection_complete)
