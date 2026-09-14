@@ -1136,7 +1136,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         )
         st.header("Does animal group change the relationship?")
         st.write(
-            "First, look at the broad relationship across all the animal species with both values."
+            "Start with all the animals together. What relationship can you see?"
         )
         usable_species = _curious_usable_body_brain_species(curious_data)
         learner_groups = _curious_animal_groups(usable_species)
@@ -1156,14 +1156,12 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             ),
             use_container_width=True,
         )
-        st.caption("Next, test whether the broad pattern describes different animal groups in the same way.")
+        st.caption("But are all these animals following the same relationship?")
 
         comparison_revealed = hard_reveal(
-            "Compare mammal and reptile evidence with the broad all-animal reference.",
+            "Now compare mammals and reptiles with the all-animal relationship.",
             "curious_mammal_reptile_comparison_revealed",
             reveal_label="Compare mammals and reptiles",
-            pre_reveal_label="Look for the broad pattern",
-            pre_reveal_guidance="Discuss the broad pattern before comparing groups.",
         )
         if comparison_revealed:
             comparison_groups = {
@@ -1192,12 +1190,11 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 use_container_width=True,
             )
             st.markdown(
-                "**What does the graph show about mammals and reptiles? Which relationship should we use later for a cat or elephant, and why?**"
+                "**What does the graph show about mammals and reptiles?**"
             )
-            with soft_reveal("Check your explanation"):
+            with soft_reveal("Compare your thinking"):
                 st.info(
-                    "**Scientific conclusion:** Mammals and reptiles do not follow exactly the same brain–body pattern. "
-                    "Because cats and elephants are mammals, a mammal-specific relationship is the more appropriate model for them."
+                    "Mammals and reptiles do not follow exactly the same brain–body pattern."
                 )
             with soft_reveal("Explore other groups"):
                 selected_groups = st.multiselect(
