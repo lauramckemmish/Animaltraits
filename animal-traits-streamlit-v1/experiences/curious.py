@@ -1705,16 +1705,18 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         if relative_brain_revealed:
                             st.info("**Brain size relative to body size is biologically informative, but it is not an intelligence score.**")
 
-                            st.markdown("### So what is our model still missing?")
+                            st.write("And then there’s the crow.")
                             st.write("New Caledonian crows make and use tools to get food.")
                             st.image(CROW_IMAGE_PATH, width="stretch")
                             st.caption("New Caledonian crow (*Corvus moneduloides*)")
                             st.caption("Evidence: Kenward et al. (2005), *Nature*, DOI: 10.1038/433121a.")
+                            st.markdown("### So what is our model still missing?")
                             st.write(
                                 "Our model knows about body mass, brain mass and animal group. It does not know how a brain is organised, what behaviours an animal can learn, or what problems it faces in its environment."
                             )
                             with soft_reveal("What else can scientists study?"):
                                 st.write("Brain organisation and neurons; behaviour and problem solving; ecology and evolutionary context.")
+                            st.write("Brain size has told us something. Clearly, it hasn’t told us everything.")
                             st.markdown("### Final takeaway")
                             st.markdown("**A useful variable is not the same thing as a complete model.**")
                             st.write(
