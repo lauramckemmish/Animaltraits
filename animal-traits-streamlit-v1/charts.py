@@ -520,6 +520,7 @@ def body_brain_class_fit_scatter(
     log_x: bool = True,
     log_y: bool = True,
     show_background: bool = True,
+    highlighted_class_opacity: float = 0.48,
     title: str | None = None,
 ):
     """Compare selected animal classes against the full body-mass/brain-size dataset.
@@ -596,7 +597,7 @@ def body_brain_class_fit_scatter(
             class_trace.name = class_name
             class_trace.legendgroup = class_name
             class_trace.showlegend = True
-            class_trace.marker.update(size=8, opacity=0.48)
+            class_trace.marker.update(size=8, opacity=highlighted_class_opacity)
             fig.add_trace(class_trace)
 
         fit = (fits or {}).get(class_name)

@@ -24,7 +24,7 @@ from data import (
     student_facing_data,
     with_common_class_names,
 )
-from models import fit_relationship
+from models import fit_relationship, predict_power_law
 from ui_helpers import (
     completion_gate,
     graph_support,
@@ -567,6 +567,13 @@ def _render_collection_tray(data: pd.DataFrame) -> bool:
             args=(scientific_name,),
         )
     return True
+
+
+def _render_model_test_values(prediction: str, evidence: str | None = None) -> None:
+    """Show the model prediction alongside evidence that may still be hidden."""
+    prediction_column, evidence_column = st.columns(2)
+    prediction_column.metric("MODEL PREDICTION", prediction)
+    evidence_column.metric("NEW EVIDENCE", evidence or "?")
 
 
 def _render_data_science_transfer_prototype() -> None:
@@ -1307,7 +1314,6 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         completion_gate(model_check_complete)
 
     if part == 5 and model_check_complete:
-        prediction_ready = False
         cat_sequence_complete = bool(st.session_state.get("curious_cat_sequence_complete", False))
         teacher_note(
             "Domestic cat interpolation",
@@ -1338,102 +1344,78 @@ def render(data: pd.DataFrame, terminal_action) -> None:
             if mammal_fit is None:
                 st.warning("There are not enough usable mammal species to make this prediction.")
             else:
-                predicted_cat_brain_mass = (
-                    10 ** mammal_fit.intercept * cat_body_mass ** mammal_fit.slope
-                )
+                predicted_cat_brain_mass = predict_power_law(mammal_fit, cat_body_mass)
                 predicted_cat_brain_grams = predicted_cat_brain_mass * 1000
                 st.write(f"The cat’s body mass is about **{cat_body_mass:.1f} kg**.")
                 cat_value_revealed = st.session_state.get("curious_cat_external_value_revealed", False)
-                if not cat_value_revealed:
-                    st.info(
-                        f"### Mammal-model prediction\n\n"
-                        f"**Our model predicts {predicted_cat_brain_grams:.1f} g for a {cat_body_mass:.1f} kg cat.**"
-                    )
-                correct_prediction_choice = f"About {predicted_cat_brain_grams:.1f} g"
-                if cat_sequence_complete and "curious_cat_prediction_choice" not in st.session_state:
-                    st.session_state["curious_cat_prediction_choice"] = correct_prediction_choice
-                prediction_choice = st.selectbox(
-                    "Select the displayed model prediction before comparing it with the external evidence.",
-                    [
-                        "Choose the model prediction",
-                        correct_prediction_choice,
-                        "About 2.8 g",
-                        "About 284 g",
-                    ],
-                    key="curious_cat_prediction_choice",
+                external_cat_brain_grams = cat_brain_mass * 1000
+                _render_model_test_values(
+                    f"{predicted_cat_brain_grams:.1f} g",
+                    f"{external_cat_brain_grams:.1f} g" if cat_value_revealed else None,
                 )
-                prediction_ready = prediction_choice == correct_prediction_choice
-                if not prediction_ready:
-                    st.caption("Use the mammal-model prediction above, then choose it before seeing the comparison value.")
-                else:
-                    prediction_point = {
-                        "label": "Cat model prediction",
-                        "body_mass_kg": cat_body_mass,
-                        "brain_mass_kg": predicted_cat_brain_mass,
-                        "colour": "#2563eb",
-                        "symbol": "diamond",
-                    }
-                    cat_value_revealed = hard_reveal(
-                        "Compare the model prediction with separate evidence about a real cat.",
-                        "curious_cat_external_value_revealed",
-                        reveal_label="Reveal the external cat value",
-                        pre_reveal_label="Test the prediction",
-                        pre_reveal_guidance="The external comparison value stays hidden until you choose to reveal it.",
+                prediction_point = {
+                    "label": "Cat model prediction",
+                    "body_mass_kg": cat_body_mass,
+                    "brain_mass_kg": predicted_cat_brain_mass,
+                    "colour": "#2563eb",
+                    "symbol": "diamond",
+                }
+                cat_value_revealed = hard_reveal(
+                    "Compare the model prediction with a separate cat measurement.",
+                    "curious_cat_external_value_revealed",
+                    reveal_label="Show the measured cat value",
+                    pre_reveal_label="Test the prediction",
+                    pre_reveal_guidance="The measured value stays hidden until you choose to reveal it.",
+                )
+                comparison_points = [prediction_point]
+                if cat_value_revealed:
+                    comparison_points.append(
+                        {
+                            "label": "Measured cat value",
+                            "body_mass_kg": cat_body_mass,
+                            "brain_mass_kg": cat_brain_mass,
+                            "colour": "#d946ef",
+                            "symbol": "x",
+                        }
                     )
-                    comparison_points = [prediction_point]
-                    if cat_value_revealed:
-                        comparison_points.append(
-                            {
-                                "label": "External cat comparison",
-                                "body_mass_kg": cat_body_mass,
-                                "brain_mass_kg": cat_brain_mass,
-                                "colour": "#d946ef",
-                                "symbol": "x",
-                            }
-                        )
-                    st.plotly_chart(
-                        body_brain_class_fit_scatter(
-                            curious_data,
-                            highlighted_classes=["Mammal"],
-                            fits={"Mammal": mammal_fit},
-                            comparison_points=comparison_points,
-                            title="Domestic cat · model prediction and external comparison",
-                        ),
-                        width="stretch",
+                st.plotly_chart(
+                    body_brain_class_fit_scatter(
+                        curious_data,
+                        highlighted_classes=["Mammal"],
+                        fits={"Mammal": mammal_fit},
+                        comparison_points=comparison_points,
+                        highlighted_class_opacity=0.34,
+                        title="Domestic cat · model prediction and new evidence",
+                    ),
+                    width="stretch",
+                )
+                st.caption(
+                    "Orange circles are derived AnimalTraits mammal species; the black line is the mammal model; "
+                    "the blue diamond is the cat model prediction."
+                )
+                if cat_value_revealed:
+                    cat_sequence_complete = True
+                    st.session_state["curious_cat_sequence_complete"] = True
+                    st.write(
+                        "That’s a fairly close prediction. A useful model prediction does not have to match a measurement exactly."
                     )
-                    st.caption(
-                        "Orange circles are derived AnimalTraits mammal species; the black line is the mammal model; "
-                        "the blue diamond is the cat model prediction."
-                    )
-                    if cat_value_revealed:
-                        cat_sequence_complete = True
-                        st.session_state["curious_cat_sequence_complete"] = True
-                        external_cat_brain_grams = cat_brain_mass * 1000
-                        st.info(
-                            "### Model prediction and separate measured value\n\n"
-                            f"**Our model predicts {predicted_cat_brain_grams:.1f} g for a {cat_body_mass:.1f} kg cat.**\n\n"
-                            f"**The measured value we found for a domestic cat is {external_cat_brain_grams:.1f} g.**"
+                    st.caption("The pink × is new evidence for testing the model — not a point used to build it.")
+                    with soft_reveal("How do we know this?"):
+                        st.write(
+                            "Scientists have measured cats in different studies, so there isn’t one perfect body mass or brain mass for every cat."
                         )
                         st.write(
-                            "That’s close — but a model prediction doesn’t have to match a measurement exactly."
+                            "We’re using a representative value from the Translating Time scientific database: about 4.0 kg body mass and 28.4 g brain mass."
                         )
-                        st.caption("The pink × is the external cat comparison value, kept separate from AnimalTraits.")
-                        with soft_reveal("How do we know this?"):
-                            st.write(
-                                "Scientists have measured cats in different studies, so there isn’t one perfect body mass or brain mass for every cat."
-                            )
-                            st.write(
-                                "We’re using a representative value from the Translating Time scientific database: about 4.0 kg body mass and 28.4 g brain mass."
-                            )
-                            st.write(
-                                "This cat value was not part of our original AnimalTraits dataset. We’ve kept it separate so we can test our model using new evidence."
-                            )
-                            st.caption("Source: Translating Time; Workman et al. (2013).")
                         st.write(
-                            "The cat’s 4.0 kg body mass sits inside the range of mammal body masses used to build our model. "
-                            "Using a model inside the range of data that built it is called **interpolation**."
+                            "This cat value was not part of our original AnimalTraits dataset. We’ve kept it separate so we can test our model using new evidence."
                         )
-                        st.caption("You used a model to make a prediction, then tested it with new evidence.")
+                        st.caption("Source: Translating Time; Workman et al. (2013).")
+                    st.write(
+                        "The cat’s 4.0 kg body mass sits inside the range of mammal body masses used to build our model. "
+                        "Using a model inside the range of data that built it is called **interpolation**."
+                    )
+                    st.caption("You used a model to make a prediction, then tested it with new evidence.")
         completion_gate(cat_sequence_complete)
 
     if part == 5 and model_check_complete and cat_sequence_complete:
@@ -1477,12 +1459,8 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 st.warning("There are not enough usable mammal species to make this prediction.")
             else:
                 mammal_body_mass_max = float(mammal_data["body mass (kg)"].max())
-                predicted_elephant_brain_mass = (
-                    10 ** mammal_fit.intercept * elephant_body_mass ** mammal_fit.slope
-                )
-                predicted_at_mammal_max = (
-                    10 ** mammal_fit.intercept * mammal_body_mass_max ** mammal_fit.slope
-                )
+                predicted_elephant_brain_mass = predict_power_law(mammal_fit, elephant_body_mass)
+                predicted_at_mammal_max = predict_power_law(mammal_fit, mammal_body_mass_max)
                 st.write(
                     f"The African savanna elephant comparison has a body mass of about **{elephant_body_mass:,.0f} kg**."
                 )
@@ -1513,11 +1491,10 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                     st.session_state["curious_elephant_trust_choice"] = trust_judgement
 
                 elephant_value_revealed = st.session_state.get("curious_elephant_external_value_revealed", False)
-                if not elephant_value_revealed:
-                    st.info(
-                        f"### Mammal-model prediction\n\n"
-                        f"**For a {elephant_body_mass:,.0f} kg elephant, the model predicts a brain mass of about {predicted_elephant_brain_mass:.1f} kg.**"
-                    )
+                _render_model_test_values(
+                    f"{predicted_elephant_brain_mass:.1f} kg",
+                    f"{elephant_brain_mass:.3f} kg" if elephant_value_revealed else None,
+                )
                 st.write(
                     "The elephant is outside the range of body masses used to build our mammal model. "
                     "Using a model beyond the range of the data that built it is called **extrapolation**."
@@ -1533,11 +1510,11 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 reveal_key = "curious_elephant_external_value_revealed"
                 if trust_committed or st.session_state.get(reveal_key, False):
                     elephant_value_revealed = hard_reveal(
-                        "Compare this out-of-range prediction with separate evidence about an African savanna elephant.",
+                        "Compare this out-of-range prediction with a separate elephant measurement.",
                         reveal_key,
-                        reveal_label="Reveal the external elephant value",
+                        reveal_label="Show the measured elephant value",
                         pre_reveal_label="Test the extrapolation",
-                        pre_reveal_guidance="The external comparison value stays hidden until you choose to reveal it.",
+                        pre_reveal_guidance="The measured value stays hidden until you choose to reveal it.",
                     )
                 else:
                     elephant_value_revealed = False
@@ -1546,7 +1523,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 if elephant_value_revealed:
                     comparison_points.append(
                         {
-                            "label": "External elephant comparison",
+                            "label": "Measured elephant value",
                             "body_mass_kg": elephant_body_mass,
                             "brain_mass_kg": elephant_brain_mass,
                             "colour": "#d946ef",
@@ -1559,6 +1536,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         highlighted_classes=["Mammal"],
                         fits={"Mammal": mammal_fit},
                         comparison_points=comparison_points,
+                        highlighted_class_opacity=0.34,
                         model_extensions=[
                             {
                                 "label": "Model extended beyond mammal data",
@@ -1579,18 +1557,14 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 if elephant_value_revealed:
                     elephant_sequence_complete = True
                     st.session_state["curious_elephant_sequence_complete"] = True
-                    st.info(
-                        "### Mammal-model prediction and external comparison\n\n"
-                        f"**For a {elephant_body_mass:,.0f} kg elephant, the model predicts a brain mass of about {predicted_elephant_brain_mass:.1f} kg.**\n\n"
-                        f"**The separate external elephant comparison is {elephant_brain_mass:.3f} kg brain mass.**"
+                    st.write(
+                        "The cat result was reassuring. This one is a warning."
                     )
                     st.write(
-                        "The prediction is much further away than it was for the cat."
+                        "The model has been pushed beyond the evidence that supports it. It can still be useful, "
+                        "but predictions become less certain when we use it far beyond the data that built it."
                     )
-                    st.write(
-                        "The mammal relationship is still useful, but predictions become less certain when we use the model far beyond the data that built it."
-                    )
-                    st.caption("The pink × is the external elephant comparison value, kept separate from AnimalTraits.")
+                    st.caption("The pink × is new evidence for testing the model — not a point used to build it.")
                     with soft_reveal("How do we know this?"):
                         st.write(
                             "Individual elephants vary, so these numbers are not the exact body and brain mass of every African savanna elephant."

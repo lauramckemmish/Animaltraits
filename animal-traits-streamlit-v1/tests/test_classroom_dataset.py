@@ -17,7 +17,7 @@ from data import (
     student_facing_data,
     with_common_class_names,
 )
-from models import fit_relationship
+from models import fit_relationship, predict_power_law
 from scripts.build_classroom_dataset import CLASSROOM_FIELD_MAP, build_classroom_dataset
 
 
@@ -60,8 +60,8 @@ def test_classroom_dataset_schema_and_scientific_contract():
     assert math.isclose(fit.r_squared, 0.8957115981, rel_tol=0, abs_tol=1e-10)
     assert round(100 ** fit.slope) == 42
 
-    cat_prediction_g = 1000 * (10 ** fit.intercept) * 4.0 ** fit.slope
-    elephant_prediction_kg = (10 ** fit.intercept) * 5550 ** fit.slope
+    cat_prediction_g = 1000 * predict_power_law(fit, 4.0)
+    elephant_prediction_kg = predict_power_law(fit, 5550)
     assert math.isclose(cat_prediction_g, 37.3612, rel_tol=0, abs_tol=1e-4)
     assert mammal["body mass (kg)"].max() == 759
     assert math.isclose(elephant_prediction_kg, 13.3366, rel_tol=0, abs_tol=1e-4)

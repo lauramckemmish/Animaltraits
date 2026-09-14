@@ -24,6 +24,16 @@ class FitResult:
     y_line: np.ndarray
 
 
+def predict_power_law(fit: FitResult, x_value: float) -> float:
+    """Predict ``y`` for a positive ``x`` from a log-log fitted relationship.
+
+    CURIOUS uses this for its mammal body-mass/brain-mass model. Keeping the
+    calculation here ensures learner-facing displays and plotted predictions
+    share the same fitted relationship.
+    """
+    return float(10 ** fit.intercept * float(x_value) ** fit.slope)
+
+
 def _transform(values: np.ndarray, use_log: bool) -> np.ndarray:
     return np.log10(values) if use_log else values
 
