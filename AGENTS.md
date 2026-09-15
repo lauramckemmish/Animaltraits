@@ -38,14 +38,17 @@ Read `animal-traits-streamlit-v1/ARCHITECTURE.md` before structural changes.
 
 Currently enabled:
 
-- CURIOUS — guided workshop, “Who’s the Smartest Animal?”
-- Data Exploration Playground
+- CURIOUS — established compact facilitated outreach experience
+- Data Exploration Playground — open exploration pathway
 
 Currently defined but disabled:
 
-- Year 8
-- Year 10
-- Find Your Animal
+- Stage 4 — two-lesson teacher-deliverable classroom experience, implemented through the Year 8 route/module
+- Find Your Animal — separate inactive/future pathway
+
+Animal Traits is the overall educational data-science resource and app. Stage 4
+and the Year 8 route are the same product, not separate experiences. There is
+no Year 10 / Stage 5 Animal Traits experience.
 
 Do not enable, remove, merge or substantially redesign experiences unless the task explicitly requires it.
 

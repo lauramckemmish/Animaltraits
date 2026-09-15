@@ -5,7 +5,7 @@ A multi-experience Streamlit app for exploring the Animal Traits teaching datase
 ## Experiences
 
 - CURIOUS — existing facilitated outreach workshop
-- Year 8 — disabled route/shell for the future Stage 4 teacher-deliverable pathway
+- Stage 4 — disabled two-lesson teacher-deliverable pathway, delivered through the Year 8 route
 - Data Exploration Playground — enabled open-exploration pathway
 - Find Your Animal — route/placeholder for later development
 
