@@ -125,6 +125,9 @@ COGNITION_GALLERY_CARDS = (
         "hook": "A very different kind of brain",
         "image_path": OCTOPUS_IMAGE_PATH,
         "image_credit": "Photo: MartinThoma / Wikimedia Commons, CC0 1.0",
+        "model": "One published Octopus vulgaris reached 8.5 kg body mass with a 1.95 g central brain.",
+        "model_note": "But this comparison gets tricky: much of an octopus’s nervous system is distributed through its arms.",
+        "model_data": "Data: Packard & Albergoni (1970); octopus nervous-system review evidence",
         "detail": (
             "Octopuses can learn, explore and solve problems — but their nervous system "
             "is organised very differently from ours. Much of their neural processing "
@@ -138,6 +141,9 @@ COGNITION_GALLERY_CARDS = (
         "hook": "Who are you calling?",
         "image_path": DOLPHIN_IMAGE_PATH,
         "image_credit": "Photo: Gregory “Slobirdr” Smith / Wikimedia Commons, CC BY-SA 2.0",
+        "model": "Body: ~190 kg · Brain: ~1.55 kg",
+        "model_note": "Representative published adult values; individuals vary.",
+        "model_data": "Data: Ridgway et al. (2018)",
         "detail": (
             "Bottlenose dolphins develop individually distinctive signature whistles. "
             "Other dolphins can recognise individuals from these whistles, and dolphins "
@@ -151,6 +157,9 @@ COGNITION_GALLERY_CARDS = (
         "hook": "Wait for me!",
         "image_path": COGNITION_ELEPHANT_IMAGE_PATH,
         "image_credit": "Photo: Bernard DUPONT / Wikimedia Commons, CC BY-SA 2.0",
+        "model": "Body: ~5,550 kg · Brain: ~4.87 kg",
+        "model_note": "Representative published values; individuals vary.",
+        "model_data": "Data: Benoit et al. (2019)",
         "detail": (
             "In a cooperation experiment, two elephants had to pull different ends of a "
             "rope at the same time. Elephants learned to wait for their partner — and some "
@@ -164,6 +173,9 @@ COGNITION_GALLERY_CARDS = (
         "hook": "Tiny brain. Surprisingly complicated rules.",
         "image_path": HONEYBEE_IMAGE_PATH,
         "image_credit": "Photo: Plaksin Alexander / Wikimedia Commons, CC BY 4.0",
+        "model": "Body: ~0.1 g · Brain: ~0.001 g",
+        "model_note": "Representative worker values; individuals vary.",
+        "model_data": "Data: Greco et al. (2012)",
         "detail": (
             "Honeybees can learn abstract rules such as ‘same’ and ‘different’ and apply "
             "the rule to patterns they have never seen before. They do this with a brain "
@@ -177,6 +189,9 @@ COGNITION_GALLERY_CARDS = (
         "hook": "More than copying words",
         "image_path": AFRICAN_GREY_PARROT_IMAGE_PATH,
         "image_credit": "Photo: Papooga / Wikimedia Commons, CC0 1.0",
+        "model": "Body: ~454 g · Brain: ~10.3 g",
+        "model_note": "Mean values from two adult male Congo African grey parrots in one published study.",
+        "model_data": "Data: Manger et al. (2018)",
         "detail": (
             "One intensively studied African grey parrot, Alex, learned labels for colours, "
             "shapes and quantities. Experiments showed that he could use some of those labels "
@@ -190,6 +205,9 @@ COGNITION_GALLERY_CARDS = (
         "hook": "A rock can be a tool",
         "image_path": SEA_OTTER_IMAGE_PATH,
         "image_credit": "Photo: Brocken Inaglory / Wikimedia Commons, CC BY-SA 3.0",
+        "model": "Body: ~20–30 kg · Brain: unresolved",
+        "model_note": "Good body-mass evidence exists, but we did not find a brain-mass source strong enough to use here.",
+        "model_data": "Data: published adult sea-otter body-mass studies",
         "detail": (
             "Sea otters use rocks and other hard objects to break open difficult prey. In wild "
             "southern sea otters, tool use can give access to harder or larger prey — and can "
@@ -668,6 +686,10 @@ def _render_cognition_gallery_card(card: dict[str, str | Path]) -> None:
         with soft_reveal("Tell me more"):
             st.write(card["detail"])
             st.caption(card["coda"])
+            st.caption("**Back to our model**")
+            st.caption(card["model"])
+            st.caption(card["model_note"])
+            st.caption(card["model_data"])
             if image_credit := card.get("image_credit"):
                 st.caption(image_credit)
 

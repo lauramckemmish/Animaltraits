@@ -142,6 +142,18 @@ bounded science/provenance task.
 
 ## Deliberate boundaries and known gaps
 
+## CURIOUS cognition-gallery contextual comparisons
+
+These gallery-only comparisons are not AnimalTraits measurements and are not
+merged into the main dataset. Dolphin: 190 kg/1.55 kg representative adults
+(Ridgway et al. 2018); honeybee: 0.1 g/0.001 g representative workers (Greco
+et al. 2012); African grey: 453.75 g/10.30 g mean of two adult males (Manger
+et al. 2018). The elephant reuses the verified external comparison record.
+Octopus (*O. vulgaris*) is an 8.5 kg/1.95 g central-brain example (Packard &
+Albergoni 1970), explicitly not directly equivalent because its nervous system
+is distributed through its arms. Sea otter uses ~20–30 kg adult body mass only;
+its brain mass remains unresolved because no sufficiently strong source was found.
+
 - The upstream AnimalTraits resource, rather than this local CSV, is the place
   to inspect record-level source citations and richer methodological metadata.
 - Comparative-neurobiology support for intelligence/cognition guardrails, and
