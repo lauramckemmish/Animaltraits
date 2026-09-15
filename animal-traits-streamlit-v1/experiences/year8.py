@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from ui_helpers import page_header, scroll_to_top_if_requested, step_buttons, step_tabs
+from data import comparison_reference_masses
+from ui_helpers import completion_gate, page_header, scroll_to_top_if_requested, step_buttons, step_tabs
 
 
 @dataclass(frozen=True)
@@ -22,6 +24,15 @@ class Stage4Screen:
 LESSON_LABELS = (
     "Lesson 1 — Seeing structure in data",
     "Lesson 2 — Using and trusting a model",
+)
+
+STAGE4_MASS_UNIT_TO_KG = {
+    "grams": 0.001,
+    "kilograms": 1.0,
+    "tonnes": 1000.0,
+}
+MOUSE_TO_ELEPHANT_HERO_PATH = (
+    Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
 )
 
 STAGE4_SCREENS = (
@@ -93,10 +104,107 @@ def _screen_labels(screen_indexes: range) -> list[str]:
     return [f"{index + 1}. {STAGE4_SCREENS[index].title}" for index in screen_indexes]
 
 
+def _stage4_mass_in_kg(value: float, unit: str) -> float:
+    """Convert a Stage 4 body-mass estimate to the common kilogram unit."""
+    return float(value) * STAGE4_MASS_UNIT_TO_KG[unit]
+
+
+def _format_stage4_mass_kg(value: float) -> str:
+    """Format a Stage 4 body-mass estimate or reference in kilograms."""
+    return f"{value:,.4g} kg"
+
+
+def _render_start_with_scale(data: pd.DataFrame) -> None:
+    """Render Stage 4's estimate-before-evidence opening interaction."""
+    comparison_revealed = bool(
+        st.session_state.get("stage4_scale_mass_comparison_revealed", False)
+    )
+
+    if not comparison_revealed:
+        st.write("Make rough estimates first. Do not look up the values.")
+        mouse_column, elephant_column = st.columns(2)
+        with mouse_column:
+            st.subheader("How much does a mouse weigh?")
+            st.number_input(
+                "Your mouse estimate",
+                min_value=0.0,
+                value=None,
+                step=1.0,
+                placeholder="Enter a rough estimate",
+                key="stage4_scale_mouse_mass_estimate",
+                persist_state="session",
+            )
+            st.selectbox(
+                "Mouse unit",
+                list(STAGE4_MASS_UNIT_TO_KG),
+                key="stage4_scale_mouse_mass_unit",
+                persist_state="session",
+            )
+        with elephant_column:
+            st.subheader("How much does an elephant weigh?")
+            st.number_input(
+                "Your elephant estimate",
+                min_value=0.0,
+                value=None,
+                step=1.0,
+                placeholder="Enter a rough estimate",
+                key="stage4_scale_elephant_mass_estimate",
+                persist_state="session",
+            )
+            st.selectbox(
+                "Elephant unit",
+                list(STAGE4_MASS_UNIT_TO_KG),
+                key="stage4_scale_elephant_mass_unit",
+                persist_state="session",
+            )
+
+        estimates_ready = (
+            st.session_state.get("stage4_scale_mouse_mass_estimate") is not None
+            and st.session_state.get("stage4_scale_elephant_mass_estimate") is not None
+        )
+        st.button(
+            "Compare the estimates",
+            type="primary",
+            disabled=not estimates_ready,
+            key="stage4_scale_compare_masses",
+            on_click=lambda: st.session_state.__setitem__(
+                "stage4_scale_mass_comparison_revealed", True
+            ),
+        )
+    else:
+        mouse_reference_kg, elephant_reference_kg = comparison_reference_masses(data)
+        learner_mouse_kg = _stage4_mass_in_kg(
+            st.session_state["stage4_scale_mouse_mass_estimate"],
+            st.session_state["stage4_scale_mouse_mass_unit"],
+        )
+        learner_elephant_kg = _stage4_mass_in_kg(
+            st.session_state["stage4_scale_elephant_mass_estimate"],
+            st.session_state["stage4_scale_elephant_mass_unit"],
+        )
+        st.subheader("Compare the estimates")
+        mouse_column, elephant_column = st.columns(2)
+        with mouse_column:
+            st.markdown("**Mouse**")
+            st.write(f"Your estimate: **{_format_stage4_mass_kg(learner_mouse_kg)}**")
+            st.write(f"Reference: **{_format_stage4_mass_kg(mouse_reference_kg)}**")
+            st.caption("Reference from AnimalTraits.")
+        with elephant_column:
+            st.markdown("**Elephant**")
+            st.write(f"Your estimate: **{_format_stage4_mass_kg(learner_elephant_kg)}**")
+            st.write(f"Reference: **{_format_stage4_mass_kg(elephant_reference_kg)}**")
+            st.caption("Reference from separate published comparison evidence, not AnimalTraits.")
+        st.caption("Both comparisons use kilograms so the scale range is visible.")
+        st.image(MOUSE_TO_ELEPHANT_HERO_PATH, width="stretch")
+        st.info("What do you notice about the range from a mouse to an elephant?")
+        st.write(
+            "Animal body sizes span a huge range. Next, explore which animals and measurements are actually present in the dataset."
+        )
+
+    completion_gate(comparison_revealed)
+
+
 def render(data: pd.DataFrame) -> None:
     """Render the first structural pass of the two-lesson Stage 4 experience."""
-    del data  # Later passes introduce the relevant evidence screen by screen.
-
     screen_index = int(st.session_state.get("stage4_screen", 0))
     screen_index = max(0, min(screen_index, len(STAGE4_SCREENS) - 1))
     lesson_index = _lesson_for_screen(screen_index)
@@ -143,7 +251,10 @@ def render(data: pd.DataFrame) -> None:
         f"{LESSON_LABELS[_lesson_for_screen(screen_index)]} · Screen {screen_index + 1} of 10"
     )
     st.header(f"{screen_index + 1}. {screen.title}")
-    st.write(screen.framing)
+    if screen_index == 0:
+        _render_start_with_scale(data)
+    else:
+        st.write(screen.framing)
     if screen_index == 4:
         st.info("Lesson 1 ends here.")
     elif screen_index == 5:

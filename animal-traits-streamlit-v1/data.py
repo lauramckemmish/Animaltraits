@@ -173,6 +173,31 @@ def load_external_comparison_animals(
     return comparisons
 
 
+def comparison_reference_masses(data: pd.DataFrame) -> tuple[float, float]:
+    """Return the grounded mouse and external elephant body-mass references.
+
+    The mouse is an AnimalTraits record; the elephant is deliberately retained
+    as a separate published comparison record rather than being treated as part
+    of the AnimalTraits dataset.
+    """
+    mouse_records = data.loc[
+        data["species"].eq("Mus musculus"), "body mass (kg)"
+    ]
+    mouse_mass_kg = pd.to_numeric(mouse_records, errors="coerce").dropna()
+    if len(mouse_mass_kg) != 1:
+        raise ValueError("A comparison requires one grounded Mus musculus body-mass record.")
+
+    external_comparisons = load_external_comparison_animals()
+    elephant_records = external_comparisons.loc[
+        external_comparisons["scientific_name"].eq("Loxodonta africana"), "body_mass_kg"
+    ]
+    elephant_mass_kg = pd.to_numeric(elephant_records, errors="coerce").dropna()
+    if len(elephant_mass_kg) != 1:
+        raise ValueError("A comparison requires the existing external elephant body-mass record.")
+
+    return float(mouse_mass_kg.iloc[0]), float(elephant_mass_kg.iloc[0])
+
+
 def column_profile(data: pd.DataFrame) -> dict[str, list[str]]:
     numeric = data.select_dtypes(include="number").columns.tolist()
     categorical = [column for column in data.columns if column not in numeric]

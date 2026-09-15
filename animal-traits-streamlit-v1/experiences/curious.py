@@ -18,6 +18,7 @@ from charts import (
     histogram,
 )
 from data import (
+    comparison_reference_masses,
     load_external_comparison_animals,
     search_student_animals,
     species_traits_from_observations,
@@ -235,22 +236,7 @@ def _format_start_mass_kg(value: float) -> str:
 
 def _start_reference_masses(data: pd.DataFrame) -> tuple[float, float]:
     """Return the grounded mouse and existing external elephant body masses."""
-    mouse_records = data.loc[
-        data["species"].eq("Mus musculus"), "body mass (kg)"
-    ]
-    mouse_mass_kg = pd.to_numeric(mouse_records, errors="coerce").dropna()
-    if len(mouse_mass_kg) != 1:
-        raise ValueError("CURIOUS Start requires one grounded Mus musculus body-mass record.")
-
-    external_comparisons = load_external_comparison_animals()
-    elephant_records = external_comparisons.loc[
-        external_comparisons["scientific_name"].eq("Loxodonta africana"), "body_mass_kg"
-    ]
-    elephant_mass_kg = pd.to_numeric(elephant_records, errors="coerce").dropna()
-    if len(elephant_mass_kg) != 1:
-        raise ValueError("CURIOUS Start requires the existing external elephant body-mass record.")
-
-    return float(mouse_mass_kg.iloc[0]), float(elephant_mass_kg.iloc[0])
+    return comparison_reference_masses(data)
 
 
 def _curious_usable_body_brain_species(data: pd.DataFrame) -> pd.DataFrame:
