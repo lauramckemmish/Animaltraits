@@ -12,26 +12,33 @@ import streamlit.components.v1 as components
 
 
 _CONTINUE_BLOCKED_KEY = "_ui_helpers_continue_blocked"
+FACILITATOR_NOTES_KEY = "facilitator_notes"
+FACILITATOR_LIVE_LABELS = frozenset(
+    {"CORE LEARNING", "STREAMLINE", "EXTENSION", "FACILITATION NOTE"}
+)
 
 
 def _block_continue() -> None:
     st.session_state[_CONTINUE_BLOCKED_KEY] = True
 
 
-def page_header(title: str, *, subtitle: str | None = None, teacher_control: bool = True, compact: bool = False) -> None:
-    """Render a page title with an optional Facilitator notes toggle at top-right."""
-    if teacher_control:
-        title_col, control_col = st.columns([5, 1], vertical_alignment="center")
-        with title_col:
-            (st.subheader if compact else st.title)(title)
-            if subtitle:
-                st.caption(subtitle)
-        with control_col:
-            st.toggle("Facilitator notes", key="teacher_view")
-    else:
-        (st.subheader if compact else st.title)(title)
-        if subtitle:
-            st.caption(subtitle)
+def facilitator_notes_control() -> None:
+    """Render the shell-level Facilitator notes control at the top right."""
+    _, control_column = st.columns([5, 1], vertical_alignment="center")
+    with control_column:
+        st.toggle("Facilitator notes", key=FACILITATOR_NOTES_KEY)
+
+
+def facilitator_notes_enabled() -> bool:
+    """Return whether the optional facilitator layer is visible this session."""
+    return st.session_state.get(FACILITATOR_NOTES_KEY, False)
+
+
+def page_header(title: str, *, subtitle: str | None = None, compact: bool = False) -> None:
+    """Render an experience page title; shell controls live in ``app.py``."""
+    (st.subheader if compact else st.title)(title)
+    if subtitle:
+        st.caption(subtitle)
 
 
 def select_tab_step(tab_key: str, labels: list[str], step_key: str, scroll_key: str, step: int) -> None:
@@ -123,12 +130,43 @@ def data_science_callout(text: str, supporting_text: str | None = None) -> None:
     st.info(message)
 
 
-def teacher_note(title: str, purpose: str, facilitation: str, timing: str = "", *, teacher_state_key: str = "teacher_view") -> None:
-    content = f"**Learning intention:** {purpose}\n\n{facilitation}"
-    if timing:
-        content = f"*Suggested time: {timing}*\n\n" + content
-    if st.session_state.get(teacher_state_key, False):
-        teacher_guidance(title, content)
+def facilitator_preparation(content: str, *, expanded: bool = False) -> None:
+    """Show optional stage-local preparation only when Facilitator notes are enabled."""
+    if not facilitator_notes_enabled():
+        return
+    with st.container(key="facilitator_preparation"):
+        with st.expander("For facilitators", expanded=expanded):
+            st.markdown(content)
+
+
+def facilitator_orientation() -> None:
+    """Render the brief preparation orientation on Home."""
+    if not facilitator_notes_enabled():
+        return
+    with st.container(key="facilitator_orientation"):
+        st.markdown("**Facilitator notes**")
+        st.write(
+            "Before delivery, walk through the learner experience yourself with "
+            "Facilitator notes on. Open the local notes as you go to prepare for "
+            "learner reasoning, protected moments, likely thinking, and relevant "
+            "science or data-science context."
+        )
+
+
+def facilitator_live_cue(label: str, content: str) -> None:
+    """Render one optional, glanceable facilitator cue for live delivery."""
+    if label not in FACILITATOR_LIVE_LABELS:
+        allowed = ", ".join(sorted(FACILITATOR_LIVE_LABELS))
+        raise ValueError(f"Unknown facilitator live cue: {label}. Use one of: {allowed}.")
+    if not facilitator_notes_enabled():
+        return
+    cue_key = label.lower().replace(" ", "_")
+    with st.container(key=f"facilitator_live_{cue_key}"):
+        st.markdown(
+            f'<span class="facilitator-live__label">{escape(label)}</span>',
+            unsafe_allow_html=True,
+        )
+        st.write(content)
 
 
 def graph_support(reading: str, looking_for: str) -> None:
@@ -208,15 +246,6 @@ def sample_note(complete: int, total: int, *, label: str = "records", key: str) 
             f"**Data used:** {complete:,} of {total:,} {label}. "
             f"{excluded:,} omitted because a required value is missing."
         )
-
-
-def teacher_guidance(title: str, content: str, *, expanded: bool = False) -> None:
-    """Show brief experience-owned Facilitator notes when enabled."""
-    if not st.session_state.get("teacher_view", False):
-        return
-    with st.container(key="teacher_guidance"):
-        with st.expander(f"Facilitator notes: {title}", expanded=expanded):
-            st.markdown(content)
 
 
 def placeholder_callout(label: str, guidance: str) -> None:

@@ -221,7 +221,7 @@ def _render_three_variables(data: pd.DataFrame) -> None:
 
 
 def render(data: pd.DataFrame) -> None:
-    page_header("Data Exploration Playground", teacher_control=False)
+    page_header("Data Exploration Playground")
     st.caption("Open exploration · one, two or three variables · animal-class filtering · model fitting")
 
     filtered, _ = _render_filter(data)

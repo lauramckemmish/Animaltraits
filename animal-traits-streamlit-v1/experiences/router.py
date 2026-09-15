@@ -23,7 +23,6 @@ def open_experience(name: str) -> None:
         st.session_state["experience_navigation"] = destination
     else:
         st.session_state.pop("experience_navigation", None)
-    st.session_state["teacher_view"] = False
     if destination == EXPERIENCE_CURIOUS:
         st.session_state["curious_part"] = 0
         st.session_state.pop("curious_step_selector", None)

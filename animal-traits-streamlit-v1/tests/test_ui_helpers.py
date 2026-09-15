@@ -24,6 +24,7 @@ class StreamlitStub:
         self.images = []
         self.writes = []
         self.column_args = []
+        self.toggles = []
     def columns(self, *args, **kwargs):
         self.column_args.append((args, kwargs))
         count = len(args[0]) if args and isinstance(args[0], list) else (args[0] if args else 3)
@@ -38,6 +39,9 @@ class StreamlitStub:
     def caption(self, body, **_kwargs): self.captions.append(body)
     def image(self, image, **kwargs): self.images.append((image, kwargs))
     def text_area(self, _label, *, key, **_kwargs): return self.session_state.setdefault(key, "")
+    def toggle(self, label, *, key, **_kwargs):
+        self.toggles.append((label, key))
+        return self.session_state.setdefault(key, False)
 
 
 class SharedContractTests(unittest.TestCase):
@@ -153,17 +157,83 @@ class SharedContractTests(unittest.TestCase):
             ui_helpers.completion_gate(True)
             self.assertIn("Continue →", self.nav(stub))
 
-    def test_response_and_teacher_toggle_preserve_caller_state(self):
+    def test_facilitator_preparation_is_visibility_only_and_collapsed(self):
         stub = StreamlitStub()
         with patch.object(ui_helpers, "st", stub):
             self.assertEqual(ui_helpers.response_box("Respond", "stage_response"), "")
             stub.session_state["stage_response"] = "An observation"
-            ui_helpers.teacher_guidance("Stage", "Listen for evidence")
+            ui_helpers.facilitator_preparation("Listen for evidence")
             self.assertEqual(stub.expanders, [])
-            stub.session_state["teacher_view"] = True
-            ui_helpers.teacher_guidance("Stage", "Listen for evidence")
-            self.assertEqual(stub.expanders, ["Facilitator notes: Stage"])
+            stub.session_state[ui_helpers.FACILITATOR_NOTES_KEY] = True
+            ui_helpers.facilitator_preparation("Listen for evidence")
+            self.assertEqual(stub.expanders, ["For facilitators"])
+            self.assertEqual(stub.expander_kwargs, [{"expanded": False}])
             self.assertEqual(ui_helpers.response_box("Respond", "stage_response"), "An observation")
+
+    def test_facilitator_control_and_live_cues_use_canonical_labels(self):
+        stub = StreamlitStub()
+        with patch.object(ui_helpers, "st", stub):
+            ui_helpers.facilitator_notes_control()
+            self.assertEqual(stub.toggles, [("Facilitator notes", ui_helpers.FACILITATOR_NOTES_KEY)])
+            self.assertFalse(ui_helpers.facilitator_notes_enabled())
+            stub.session_state[ui_helpers.FACILITATOR_NOTES_KEY] = True
+            for label in ui_helpers.FACILITATOR_LIVE_LABELS:
+                ui_helpers.facilitator_live_cue(label, "A delivery decision.")
+            with self.assertRaisesRegex(ValueError, "Unknown facilitator live cue"):
+                ui_helpers.facilitator_live_cue("SKIP", "Not a canonical label.")
+
+        self.assertEqual(len(stub.containers), 4)
+        self.assertEqual(stub.writes[-4:], ["A delivery decision."] * 4)
+
+    def test_facilitator_orientation_is_conditional_and_student_safe(self):
+        stub = StreamlitStub()
+        with patch.object(ui_helpers, "st", stub):
+            ui_helpers.facilitator_orientation()
+            self.assertEqual(stub.markdowns, [])
+            self.assertEqual(stub.writes, [])
+            stub.session_state[ui_helpers.FACILITATOR_NOTES_KEY] = True
+            ui_helpers.facilitator_orientation()
+
+        self.assertEqual(stub.markdowns, ["**Facilitator notes**"])
+        orientation = stub.writes[-1]
+        self.assertIn("walk through the learner experience", orientation)
+        self.assertIn("Facilitator notes on", orientation)
+        self.assertNotIn("answer", orientation.lower())
+
+    def test_facilitator_notes_persist_across_routes_without_touching_learner_state(self):
+        from experiences import router
+
+        stub = StreamlitStub()
+        stub.session_state.update(
+            {
+                ui_helpers.FACILITATOR_NOTES_KEY: True,
+                "stage_response": "An observation",
+                "curious_context_evidence": True,
+                "curious_scientific_choice": "A careful interpretation",
+            }
+        )
+        with patch.object(router, "st", stub):
+            router.open_experience("Home")
+            router.open_experience("CURIOUS")
+            router.open_experience("Data Exploration Playground")
+            router.open_experience("Home")
+
+        self.assertTrue(stub.session_state[ui_helpers.FACILITATOR_NOTES_KEY])
+        self.assertEqual(stub.session_state["stage_response"], "An observation")
+        self.assertTrue(stub.session_state["curious_context_evidence"])
+        self.assertEqual(stub.session_state["curious_scientific_choice"], "A careful interpretation")
+
+    def test_visual_system_uses_one_navy_facilitator_family(self):
+        import visual_system
+
+        self.assertEqual(visual_system.SEMANTIC_TOKENS["facilitator"], "#294C70")
+        self.assertNotIn("facilitator_prep", visual_system.SEMANTIC_TOKENS)
+        self.assertNotIn("facilitator_live", visual_system.SEMANTIC_TOKENS)
+        styles = inspect.getsource(visual_system.apply_visual_system)
+        self.assertIn("--unsw-facilitator", styles)
+        self.assertIn("st-key-facilitator_preparation", styles)
+        self.assertIn("st-key-facilitator_live_", styles)
+        self.assertIn("overflow-wrap:anywhere", styles)
 
     def test_gate_is_transient_between_stage_renders(self):
         stub = StreamlitStub()

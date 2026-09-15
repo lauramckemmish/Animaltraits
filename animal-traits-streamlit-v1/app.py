@@ -16,6 +16,7 @@ from config import (
 )
 from data import load_data
 from experiences import curious, data_exploration_playground, find_your_animal, landing, router, year10, year8
+from ui_helpers import facilitator_notes_control
 from visual_system import apply_visual_system, sidebar_data_source, sidebar_identity, validate_shared_assets
 
 st.set_page_config(page_title=config.SHORT_NAME, page_icon=APP_ICON, layout="wide")
@@ -29,6 +30,8 @@ with st.sidebar:
     sidebar_identity(config.SHORT_NAME, config.SIDEBAR_INSTITUTIONAL_LOGO)
     sidebar_data_source(len(data), len(data.columns), DATASET_SOURCE_LABEL)
     router.render_sidebar_navigation()
+
+facilitator_notes_control()
 
 if current == router.LANDING:
     landing.render(data, router.open_experience)

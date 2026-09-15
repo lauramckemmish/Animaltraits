@@ -5,6 +5,7 @@ import streamlit as st
 import config
 from config import SHORT_NAME, EXPERIENCE_PLAYGROUND
 from experiences.catalog import experience_catalog
+from ui_helpers import facilitator_orientation
 from visual_system import render_resource_context
 
 
@@ -52,6 +53,7 @@ def render(data: pd.DataFrame, open_experience) -> None:
     with hero_text:
         st.write("Explore real measurements of animals and investigate patterns across species.")
         st.write("Compare animals and groups, look for relationships between traits, build models, and ask what the data can — and cannot — tell us.")
+    facilitator_orientation()
     st.markdown("## Choose an investigation")
     st.write("Follow a guided investigation designed for a classroom or workshop.")
     guided = [item for item in experience_catalog(enabled_only=True) if item["name"] != EXPERIENCE_PLAYGROUND]

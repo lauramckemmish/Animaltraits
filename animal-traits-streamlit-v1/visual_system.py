@@ -10,7 +10,7 @@ from html import escape
 import streamlit as st
 
 UNSW_PALETTE = {"yellow":"#FFDC00","black":"#000000","white":"#FFFFFF","indigo":"#3F61C4","purple":"#8A68C8","teal":"#007882","pink":"#FA91B6","red":"#FF635D","green":"#1AC987"}
-SEMANTIC_TOKENS = {"brand": UNSW_PALETTE["yellow"], "active_emphasis": UNSW_PALETTE["yellow"], "information": UNSW_PALETTE["indigo"], "exploration": UNSW_PALETTE["purple"], "secondary_accent": UNSW_PALETTE["teal"], "success": UNSW_PALETTE["green"], "warning_error": UNSW_PALETTE["red"]}
+SEMANTIC_TOKENS = {"brand": UNSW_PALETTE["yellow"], "active_emphasis": UNSW_PALETTE["yellow"], "information": UNSW_PALETTE["indigo"], "exploration": UNSW_PALETTE["purple"], "secondary_accent": UNSW_PALETTE["teal"], "success": UNSW_PALETTE["green"], "warning_error": UNSW_PALETTE["red"], "facilitator": "#294C70"}
 
 def semantic_heading(text: str, role: str) -> None:
     level = {"major-section": 2, "subsection": 3, "resource-identity": 3}[role]
@@ -18,7 +18,7 @@ def semantic_heading(text: str, role: str) -> None:
 
 def apply_visual_system() -> None:
     st.markdown(f"""<style>
-    :root {{ --unsw-brand:{SEMANTIC_TOKENS['brand']}; --unsw-active-emphasis:{SEMANTIC_TOKENS['active_emphasis']}; --unsw-information:{SEMANTIC_TOKENS['information']}; --unsw-exploration:{SEMANTIC_TOKENS['exploration']}; --unsw-secondary-accent:{SEMANTIC_TOKENS['secondary_accent']}; }}
+    :root {{ --unsw-brand:{SEMANTIC_TOKENS['brand']}; --unsw-active-emphasis:{SEMANTIC_TOKENS['active_emphasis']}; --unsw-information:{SEMANTIC_TOKENS['information']}; --unsw-exploration:{SEMANTIC_TOKENS['exploration']}; --unsw-secondary-accent:{SEMANTIC_TOKENS['secondary_accent']}; --unsw-facilitator:{SEMANTIC_TOKENS['facilitator']}; }}
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{ gap:.35rem; }}
     [data-testid="stSidebar"] {{ border-right:1px solid rgba(255,220,0,.35); }}
     [class*="st-key-media_text_"] [data-testid="stHorizontalBlock"] {{ align-items:center; }}
@@ -54,6 +54,15 @@ def apply_visual_system() -> None:
     .st-key-notice_prompt [data-testid="stMarkdownContainer"] p, .st-key-compare_prompt [data-testid="stMarkdownContainer"] p, .st-key-predict_prompt [data-testid="stMarkdownContainer"] p, .st-key-explain_prompt [data-testid="stMarkdownContainer"] p, .st-key-conclude_prompt [data-testid="stMarkdownContainer"] p, .st-key-revise_prompt [data-testid="stMarkdownContainer"] p, .st-key-recall_prompt [data-testid="stMarkdownContainer"] p, [class*="st-key-hard_reveal_"] [data-testid="stMarkdownContainer"] p {{ margin-bottom:.2rem; }}
     [class*="st-key-hard_reveal_"] {{ border-left:2px solid var(--unsw-information); padding:.1rem 0 .1rem .65rem; margin:.65rem 0 .8rem; }}
     [class*="st-key-hard_reveal_"] .hard-reveal__label {{ color:var(--unsw-information); }}
+    .st-key-facilitator_orientation {{ border-left:3px solid var(--unsw-facilitator); background:rgba(41,76,112,.06); padding:.5rem .7rem; margin:.45rem 0 .8rem; }}
+    .st-key-facilitator_orientation p {{ margin-bottom:.2rem; }}
+    .st-key-facilitator_preparation {{ border-left:3px solid var(--unsw-facilitator); background:rgba(41,76,112,.045); padding:.15rem .45rem; margin:.55rem 0 .8rem; }}
+    .st-key-facilitator_preparation [data-testid="stExpander"] {{ border-left:0; }}
+    [class*="st-key-facilitator_live_"] {{ box-sizing:border-box; min-width:0; max-width:100%; border-left:4px solid var(--unsw-facilitator); background:rgba(41,76,112,.10); padding:.4rem .65rem; margin:.35rem 0; overflow-wrap:anywhere; }}
+    [class*="st-key-facilitator_live_"] [data-testid="stMarkdownContainer"] {{ min-width:0; max-width:100%; margin-bottom:0 !important; overflow-wrap:anywhere; }}
+    [class*="st-key-facilitator_live_"] [data-testid="stMarkdownContainer"] p {{ overflow-wrap:anywhere; word-break:normal; }}
+    .facilitator-live__label {{ display:block; color:var(--unsw-facilitator); font-size:.72rem; font-weight:750; letter-spacing:.08em; line-height:1.2; }}
+    [class*="st-key-facilitator_live_"] p {{ margin-bottom:.15rem; line-height:1.4; }}
     .type-major-section {{ font-size:clamp(1.35rem, 2.2vw, 1.65rem); line-height:1.2; }}
     .type-subsection {{ font-size:1.25rem; line-height:1.25; }}
     .type-resource-identity {{ font-size:clamp(1.25rem, 2.1vw, 1.55rem); line-height:1.2; }}

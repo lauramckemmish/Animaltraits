@@ -9,7 +9,7 @@ from ui_helpers import page_header
 
 
 def render(data: pd.DataFrame) -> None:
-    page_header("Find Your Animal", teacher_control=False)
+    page_header("Find Your Animal")
     st.info(
         "This experience is intentionally not implemented in Version 1. It will become "
         "a goal-driven investigation where students search for animals matching chosen "

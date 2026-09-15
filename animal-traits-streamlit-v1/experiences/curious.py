@@ -27,6 +27,8 @@ from data import (
 from models import fit_relationship, predict_power_law
 from ui_helpers import (
     completion_gate,
+    facilitator_live_cue,
+    facilitator_preparation,
     graph_support,
     hard_reveal,
     page_header,
@@ -34,7 +36,6 @@ from ui_helpers import (
     soft_reveal,
     step_buttons,
     step_tabs,
-    teacher_note,
 )
 
 STEP_LABELS = [
@@ -82,6 +83,16 @@ CURIOUS_COLLECTION_DEFAULTS_APPLIED_KEY = "curious_exploration_collection_defaul
 CURIOUS_COLLECTION_MAX_CANDIDATES = 12
 CURIOUS_COLLECTION_INITIAL_SELECTION = 4
 CURIOUS_COLLECTION_MAX_SELECTION = 8
+
+
+def _facilitator_preparation_note(
+    title: str, purpose: str, facilitation: str, timing: str = ""
+) -> None:
+    """Keep CURIOUS's existing preparation content in the shared note surface."""
+    content = f"### {title}\n\n**Learning intention:** {purpose}\n\n{facilitation}"
+    if timing:
+        content = f"*Suggested time: {timing}*\n\n" + content
+    facilitator_preparation(content)
 
 START_MASS_UNIT_TO_KG = {
     "grams": 0.001,
@@ -712,11 +723,15 @@ def render(data: pd.DataFrame, terminal_action) -> None:
     scroll_to_top_if_requested("curious_scroll_to_top")
 
     if part == 0:
-        teacher_note(
+        _facilitator_preparation_note(
             "Start with scale",
             "Elicit estimates of two familiar body masses before learners encounter the evidence in AnimalTraits.",
             "Ask for rough estimates, not look-ups. Keep the focus on body mass; learners meet the evidence in the next step.",
             "4 min",
+        )
+        facilitator_live_cue(
+            "CORE LEARNING",
+            "Let learners make rough estimates before presenting the reference evidence.",
         )
         comparison_revealed = bool(
             st.session_state.get("curious_start_mass_comparison_revealed", False)
@@ -797,7 +812,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         completion_gate(comparison_revealed)
 
     elif part == 1:
-        teacher_note(
+        _facilitator_preparation_note(
             "Explore the dataset",
             "Use a few searches to discover useful species and the limits of the dataset.",
             "AnimalTraits is a curated database assembled from measurements in peer-reviewed studies of terrestrial animals. "
@@ -930,11 +945,19 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         completion_gate(selection_complete)
 
     if part == 2:
-        teacher_note(
+        _facilitator_preparation_note(
             "Body mass and scale",
             "Use one familiar variable to introduce range, then create the need for scientific notation and logarithmic scales rather than teaching either idea in isolation.",
             "Do not expect students to calculate logarithms. Build the need first: the tiny value is awkward to write, and a linear graph compresses small animals. Then show scientific notation and log spacing as useful representations of the same data.",
             "6 min",
+        )
+        facilitator_live_cue(
+            "CORE LEARNING",
+            "Use the range in the data to create the need for scientific notation and logarithmic spacing.",
+        )
+        facilitator_live_cue(
+            "FACILITATION NOTE",
+            "Learners do not need to calculate logarithms; focus on what the representation makes easier to see.",
         )
         st.header("How can we make sense of such a huge range?")
         st.write("Start with body mass.")
@@ -1019,11 +1042,15 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                         )
 
     elif part == 3:
-        teacher_note(
+        _facilitator_preparation_note(
             "Two variables",
             "Move from a few familiar species to the full two-variable dataset, then reactivate the log-scale idea from Step 3 to make the full pattern easier to see.",
             "Ask students to interpret positions and notice the overall relationship; do not introduce a fitted model here.",
             "7 min",
+        )
+        facilitator_live_cue(
+            "FACILITATION NOTE",
+            "Keep the focus on reading the relationship; save fitted-model discussion for the later stage.",
         )
         st.header("Do bigger animals have bigger brains?")
         orientation = _curious_orientation_animals(curious_data)
@@ -1161,11 +1188,15 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 st.caption("This graph puts body mass and brain mass together to show their relationship.")
 
     elif part == 4:
-        teacher_note(
+        _facilitator_preparation_note(
             "Animal class",
             "Begin with the broad animal pattern, then reveal Mammal and Reptile evidence so learners can see that one relationship does not describe every group equally well.",
             "Ask students to compare Mammal and Reptile at similar body masses. Treat the lines as visual summaries, not regression lessons. The key conclusion is that future cat and elephant predictions should use mammal evidence.",
             "5 min",
+        )
+        facilitator_live_cue(
+            "CORE LEARNING",
+            "Let learners compare animal groups at similar body masses before discussing the explanation.",
         )
         st.header("Does animal group change the relationship?")
         st.write(
@@ -1282,11 +1313,15 @@ def render(data: pd.DataFrame, terminal_action) -> None:
 
     elif part == 5:
         model_check_complete = bool(st.session_state.get("curious_mammal_model_check_complete", False))
-        teacher_note(
+        _facilitator_preparation_note(
             "Mammal model",
             "Turn the visible mammal pattern into a model learners can use to make a later prediction.",
             "Emphasise that the line summarises a typical dataset pattern, not an exact rule or a cause. Ask learners to interpret the 100× statement before continuing.",
             "5 min",
+        )
+        facilitator_live_cue(
+            "CORE LEARNING",
+            "Treat the mammal line as a typical pattern for prediction, not an exact rule or causal claim.",
         )
         st.header("A model for mammals")
         st.write(
@@ -1345,7 +1380,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
 
     if part == 5 and model_check_complete:
         cat_sequence_complete = bool(st.session_state.get("curious_cat_sequence_complete", False))
-        teacher_note(
+        _facilitator_preparation_note(
             "Domestic cat interpolation",
             "Use the mammal model for a new animal, then compare the prediction with separate external evidence.",
             "Have students commit to the model prediction before revealing the separate comparison. Introduce interpolation only after the comparison: the cat's body mass is inside the model's data range.",
@@ -1451,7 +1486,7 @@ def render(data: pd.DataFrame, terminal_action) -> None:
     if part == 5 and model_check_complete and cat_sequence_complete:
         elephant_sequence_complete = bool(st.session_state.get("curious_elephant_sequence_complete", False))
         trust_committed = False
-        teacher_note(
+        _facilitator_preparation_note(
             "African elephant extrapolation",
             "Use the mammal model beyond the range of data that built it, then compare that prediction with separate external evidence.",
             "Return briefly to the opening question. The model remains useful, but its prediction is less certain because the elephant is beyond the mammal data range. Introduce extrapolation after students confront that limitation, then reveal the separate comparison.",
@@ -1612,11 +1647,15 @@ def render(data: pd.DataFrame, terminal_action) -> None:
     elif part == 6:
         absolute_choice_committed = False
         relative_choice_committed = False
-        teacher_note(
+        _facilitator_preparation_note(
             "Brain size and intelligence",
             "Prevent two misleading shortcuts: bigger brains or heads mean smarter, and further above a mammal pattern means smarter.",
             "Keep brain size biologically informative rather than meaningless. Do not turn the elephant–human comparison into a universal intelligence ranking. Keep detailed neuroscience optional, and finish the animal-science story here before the later Data Science transfer screen.",
             "7 min",
+        )
+        facilitator_live_cue(
+            "CORE LEARNING",
+            "Keep brain-size evidence separate from broad claims about intelligence.",
         )
         st.header("Can brain size tell us how intelligent an animal is?")
         st.markdown("### Bigger brain = smarter?")
@@ -1754,11 +1793,15 @@ def render(data: pd.DataFrame, terminal_action) -> None:
         completion_gate(relative_choice_committed)
 
     elif part == 7:
-        teacher_note(
+        _facilitator_preparation_note(
             "Data Science transfer",
             "Focus on the repeated process, not the internal algorithms.",
             "Learners may supply current examples of recommendation systems or language AI. Avoid implying that different systems use identical models; product and platform examples belong in facilitation, not this durable graphic. Keep returning to: what evidence built the model, what happens with a new case, how well did the prediction work, and what might the model miss?",
             "2–3 min",
+        )
+        facilitator_live_cue(
+            "FACILITATION NOTE",
+            "Use current AI examples as discussion material, not as scientific evidence or a claim that all systems work alike.",
         )
         st.write("This time the question was about animals. Data science can start with very different questions.")
         st.image(DATA_SCIENCE_INFOGRAPHIC_PATH, width="stretch")
