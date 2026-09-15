@@ -1542,6 +1542,10 @@ When time is short, compress exposition, optional stories, repeated examples and
 
     if part == 5 and model_check_complete:
         cat_sequence_complete = bool(st.session_state.get("curious_cat_sequence_complete", False))
+        facilitator_live_cue(
+            "FACILITATION NOTE",
+            "Protect prediction → separate evidence → comparison. A different measured value is not automatic failure; ask whether the prediction was still fairly close before naming interpolation.",
+        )
         _facilitator_preparation_note(
             "Domestic cat interpolation",
             "Use the mammal model for a new animal, then compare the prediction with separate external evidence.",
@@ -1648,6 +1652,10 @@ When time is short, compress exposition, optional stories, repeated examples and
     if part == 5 and model_check_complete and cat_sequence_complete:
         elephant_sequence_complete = bool(st.session_state.get("curious_elephant_sequence_complete", False))
         trust_committed = False
+        facilitator_live_cue(
+            "STREAMLINE",
+            "Pair this with the cat: ask what is different before the reveal, let the larger miss land, then connect beyond the evidence range with less certain trust — not automatic failure.",
+        )
         _facilitator_preparation_note(
             "African elephant extrapolation",
             "Use the mammal model beyond the range of data that built it, then compare that prediction with separate external evidence.",
