@@ -893,7 +893,7 @@ When time is short, compress exposition, optional stories, repeated examples and
         )
         facilitator_live_cue(
             "CORE LEARNING",
-            "Let learners make rough estimates before presenting the reference evidence.",
+            "Protect the estimate: use broad non-human brackets, not precision or immediate answers. If time is short, shorten discussion — do not skip it.",
         )
         comparison_revealed = bool(
             st.session_state.get("curious_start_mass_comparison_revealed", False)
@@ -1115,7 +1115,7 @@ When time is short, compress exposition, optional stories, repeated examples and
         )
         facilitator_live_cue(
             "CORE LEARNING",
-            "Use the range in the data to create the need for scientific notation and logarithmic spacing.",
+            "Let the awkward linear graph land first. Ask what is hard to see, then show the data are the same — only the spacing changed.",
         )
         facilitator_live_cue(
             "FACILITATION NOTE",
@@ -1212,7 +1212,7 @@ When time is short, compress exposition, optional stories, repeated examples and
         )
         facilitator_live_cue(
             "FACILITATION NOTE",
-            "Keep the focus on reading the relationship; save fitted-model discussion for the later stage.",
+            "Protect the learner-generated broad claim. Accept “it goes up,” then help them say brain mass generally increases — not exactly or causally.",
         )
         st.header("Do bigger animals have bigger brains?")
         orientation = _curious_orientation_animals(curious_data)
@@ -1358,7 +1358,7 @@ When time is short, compress exposition, optional stories, repeated examples and
         )
         facilitator_live_cue(
             "CORE LEARNING",
-            "Let learners compare animal groups at similar body masses before discussing the explanation.",
+            "Turn “mammals are higher” into a controlled comparison: for similar body mass, which group tends to have larger brain mass? Keep lines as broad summaries only.",
         )
         st.header("Does animal group change the relationship?")
         st.write(
@@ -1483,7 +1483,7 @@ When time is short, compress exposition, optional stories, repeated examples and
         )
         facilitator_live_cue(
             "CORE LEARNING",
-            "Treat the mammal line as a typical pattern for prediction, not an exact rule or causal claim.",
+            "Useful does not mean perfect: the line is a typical pattern, not every mammal or a cause. Preserve useful ≠ perfect, pattern ≠ rule, relationship ≠ cause.",
         )
         st.header("A model for mammals")
         st.write(
