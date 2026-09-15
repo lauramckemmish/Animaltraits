@@ -111,12 +111,15 @@ DOLPHIN_IMAGE_PATH = (
     MEDIA_DIR
     / "Bottlenose Dolphin (Tursiops truncatus) (16365830393) - cognition card crop.jpg"
 )
+OCTOPUS_IMAGE_PATH = MEDIA_DIR / "Octopus-vulgaris-1 - cognition card crop.jpg"
 
 COGNITION_GALLERY_CARDS = (
     {
         "emoji": "🐙",
         "animal": "Octopus",
         "hook": "A very different kind of brain",
+        "image_path": OCTOPUS_IMAGE_PATH,
+        "image_credit": "Photo: MartinThoma / Wikimedia Commons, CC0 1.0",
         "detail": (
             "Octopuses can learn, explore and solve problems — but their nervous system "
             "is organised very differently from ours. Much of their neural processing "
