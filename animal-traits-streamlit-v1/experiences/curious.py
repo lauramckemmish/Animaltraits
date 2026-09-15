@@ -106,6 +106,75 @@ CROW_IMAGE_PATH = MEDIA_DIR / "Corvus moneduloides, Sarramea, New Caledonia 1.jp
 DATA_SCIENCE_INFOGRAPHIC_PATH = MEDIA_DIR / "Animal_Traits_Data_Science_Transfer_Infographic_v0.11_final_candidate.png"
 MOUSE_TO_ELEPHANT_HERO_PATH = MEDIA_DIR / "mouse_to_elephant_hero.png"
 
+COGNITION_GALLERY_CARDS = (
+    {
+        "emoji": "🐙",
+        "animal": "Octopus",
+        "hook": "A very different kind of brain",
+        "detail": (
+            "Octopuses can learn, explore and solve problems — but their nervous system "
+            "is organised very differently from ours. Much of their neural processing "
+            "happens through their arms, not just in one central brain."
+        ),
+        "coda": "Does cognition have to be built the same way?",
+    },
+    {
+        "emoji": "🐬",
+        "animal": "Bottlenose dolphin",
+        "hook": "Who are you calling?",
+        "detail": (
+            "Bottlenose dolphins develop individually distinctive signature whistles. "
+            "Other dolphins can recognise individuals from these whistles, and dolphins "
+            "can even copy another dolphin’s signature whistle when communicating with them."
+        ),
+        "coda": "What does a social animal need to remember about everyone else?",
+    },
+    {
+        "emoji": "🐘",
+        "animal": "Elephant",
+        "hook": "Wait for me!",
+        "detail": (
+            "In a cooperation experiment, two elephants had to pull different ends of a "
+            "rope at the same time. Elephants learned to wait for their partner — and some "
+            "avoided pulling when the other elephant could not reach the rope."
+        ),
+        "coda": "Sometimes solving a problem means understanding what someone else needs to do too.",
+    },
+    {
+        "emoji": "🐝",
+        "animal": "Honeybee",
+        "hook": "Tiny brain. Surprisingly complicated rules.",
+        "detail": (
+            "Honeybees can learn abstract rules such as ‘same’ and ‘different’ and apply "
+            "the rule to patterns they have never seen before. They do this with a brain "
+            "containing fewer than a million neurons."
+        ),
+        "coda": "How much brain do you actually need to learn a rule?",
+    },
+    {
+        "emoji": "🦜",
+        "animal": "African grey parrot",
+        "hook": "More than copying words",
+        "detail": (
+            "One intensively studied African grey parrot, Alex, learned labels for colours, "
+            "shapes and quantities. Experiments showed that he could use some of those labels "
+            "in ways consistent with abstract numerical concepts — not simply repeat sounds."
+        ),
+        "coda": "What does it take to show that an animal has learned a concept?",
+    },
+    {
+        "emoji": "🦦",
+        "animal": "Sea otter",
+        "hook": "A rock can be a tool",
+        "detail": (
+            "Sea otters use rocks and other hard objects to break open difficult prey. In wild "
+            "southern sea otters, tool use can give access to harder or larger prey — and can "
+            "even reduce damage to their teeth."
+        ),
+        "coda": "Sometimes a clever solution is also a very practical one.",
+    },
+)
+
 
 def _body_mass_values(data: pd.DataFrame) -> pd.Series:
     values = pd.to_numeric(data["body mass (kg)"], errors="coerce").dropna()
@@ -549,6 +618,19 @@ def _render_provenance_disclosure() -> None:
             "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
             "DOI: 10.1038/s41597-022-01364-9."
         )
+
+
+def _render_cognition_gallery_card(card: dict[str, str]) -> None:
+    """Render one optional cognition example for the CURIOUS model-limits gallery."""
+    with st.container(border=True):
+        with st.container(height=112, border=True):
+            st.markdown(f"### {card['emoji']}")
+            st.caption("Photo coming soon")
+        st.markdown(f"**{card['animal']}**")
+        st.write(card["hook"])
+        with soft_reveal("Tell me more"):
+            st.write(card["detail"])
+            st.caption(card["coda"])
 
 
 def _render_collection_tray(data: pd.DataFrame) -> bool:
@@ -1781,8 +1863,17 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                             st.write(
                                 "Our model knows about body mass, brain mass and animal group. It does not know how a brain is organised, what behaviours an animal can learn, or what problems it faces in its environment."
                             )
-                            with soft_reveal("What else can scientists study?"):
-                                st.write("Brain organisation and neurons; behaviour and problem solving; ecology and evolutionary context.")
+                            st.markdown("### Different animals, different problems")
+                            st.write(
+                                "Different animals solve very different problems. Pick any animal that catches your eye."
+                            )
+                            for row_start in range(0, len(COGNITION_GALLERY_CARDS), 3):
+                                columns = st.columns(3)
+                                for column, card in zip(
+                                    columns, COGNITION_GALLERY_CARDS[row_start : row_start + 3]
+                                ):
+                                    with column:
+                                        _render_cognition_gallery_card(card)
                             st.write("Brain size has told us something. Clearly, it hasn’t told us everything.")
                             st.markdown("### Final takeaway")
                             st.markdown("**A useful variable is not the same thing as a complete model.**")
