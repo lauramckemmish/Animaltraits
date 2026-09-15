@@ -1787,7 +1787,10 @@ def render(data: pd.DataFrame, terminal_action) -> None:
                 if absolute_brain_choice == "African savanna elephant":
                     st.success("Using that proposed rule, the elephant would get the higher score because its brain mass is larger.")
                 else:
-                    st.caption("Test the proposed rule strictly: it would give the higher score to the animal with the larger brain mass.")
+                    st.warning(
+                        "**Not quite — try a different animal.**\n\n"
+                        "That choice doesn’t fit this rule. Change your selection, then test it again."
+                    )
 
                 absolute_brain_revealed = hard_reveal(
                     "Examine what this proposed rule leaves out.",
