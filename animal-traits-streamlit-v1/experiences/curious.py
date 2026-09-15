@@ -107,6 +107,10 @@ DATA_SCIENCE_INFOGRAPHIC_PATH = MEDIA_DIR / "Animal_Traits_Data_Science_Transfer
 MOUSE_TO_ELEPHANT_HERO_PATH = MEDIA_DIR / "mouse_to_elephant_hero.png"
 HONEYBEE_IMAGE_PATH = MEDIA_DIR / "Honey Bee(Ápis melliféra) on a flower.jpg"
 SEA_OTTER_IMAGE_PATH = MEDIA_DIR / "Sea otter with shells at Moss Landing.jpg"
+DOLPHIN_IMAGE_PATH = (
+    MEDIA_DIR
+    / "Bottlenose Dolphin (Tursiops truncatus) (16365830393) - cognition card crop.jpg"
+)
 
 COGNITION_GALLERY_CARDS = (
     {
@@ -124,6 +128,8 @@ COGNITION_GALLERY_CARDS = (
         "emoji": "🐬",
         "animal": "Bottlenose dolphin",
         "hook": "Who are you calling?",
+        "image_path": DOLPHIN_IMAGE_PATH,
+        "image_credit": "Photo: Gregory “Slobirdr” Smith / Wikimedia Commons, CC BY-SA 2.0",
         "detail": (
             "Bottlenose dolphins develop individually distinctive signature whistles. "
             "Other dolphins can recognise individuals from these whistles, and dolphins "
