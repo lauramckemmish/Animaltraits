@@ -52,10 +52,12 @@ An experience should not contain reusable regression mathematics or general data
 ## V1 experience boundaries
 
 1. **CURIOUS** — enabled guided workshop.
-2. **Year 8** — route/shell only until explicitly selected for development.
-3. **Year 10** — route/shell only until explicitly selected for development.
-4. **Data Exploration Playground** — enabled open-exploration pathway. Uses one-, two- and three-variable exploration, an animal-class-only filter, and optional fitting in the two-variable view.
-5. **Find Your Animal** — separate route only. Do not implement until it becomes the active slice.
+2. **Year 8** — disabled route/shell for the future Stage 4 teacher-deliverable pathway.
+3. **Data Exploration Playground** — enabled open-exploration pathway. Uses one-, two- and three-variable exploration, an animal-class-only filter, and optional fitting in the two-variable view.
+4. **Find Your Animal** — separate route only. Do not implement until it becomes the active slice.
+
+There is no separate Year 10 / Stage 5 pathway. CURIOUS remains the existing
+facilitated outreach experience.
 
 ## Change discipline
 
@@ -75,4 +77,4 @@ The playground mirrors the Exoplanets exploratory mental model:
 - **Three variables:** x + y + colour variable
 - **Filter:** animal class only, applied across the playground
 
-Fitting is deliberately stronger here than in Exoplanets. It is implemented in `models.py` so it can later be reused in Year 10 or other experiences without coupling those experiences to the playground UI.
+Fitting is deliberately stronger here than in Exoplanets. It is implemented in `models.py` so it can later be reused in appropriate experiences without coupling those experiences to the playground UI.

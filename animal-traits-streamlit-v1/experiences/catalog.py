@@ -10,7 +10,6 @@ from config import (
     EXPERIENCE_FIND_ANIMAL,
     EXPERIENCE_PLAYGROUND,
     EXPERIENCE_YEAR8,
-    EXPERIENCE_YEAR10,
 )
 
 
@@ -24,12 +23,7 @@ EXPERIENCES = [
     },
     {
         "name": EXPERIENCE_YEAR8,
-        "summary": "A two-lesson Year 8 classroom pathway.",
-        "enabled": False,
-    },
-    {
-        "name": EXPERIENCE_YEAR10,
-        "summary": "A deeper two-lesson Year 10 classroom pathway.",
+        "summary": "A Stage 4 teacher-deliverable classroom pathway.",
         "enabled": False,
     },
     {

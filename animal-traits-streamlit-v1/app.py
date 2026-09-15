@@ -12,10 +12,9 @@ from config import (
     EXPERIENCE_FIND_ANIMAL,
     EXPERIENCE_PLAYGROUND,
     EXPERIENCE_YEAR8,
-    EXPERIENCE_YEAR10,
 )
 from data import load_data
-from experiences import curious, data_exploration_playground, find_your_animal, landing, router, year10, year8
+from experiences import curious, data_exploration_playground, find_your_animal, landing, router, year8
 from ui_helpers import facilitator_notes_control
 from visual_system import apply_visual_system, sidebar_data_source, sidebar_identity, validate_shared_assets
 
@@ -39,8 +38,6 @@ elif current == EXPERIENCE_CURIOUS:
     curious.render(data, router.go_home)
 elif current == EXPERIENCE_YEAR8:
     year8.render(data)
-elif current == EXPERIENCE_YEAR10:
-    year10.render(data)
 elif current == EXPERIENCE_PLAYGROUND:
     data_exploration_playground.render(data)
 elif current == EXPERIENCE_FIND_ANIMAL:

@@ -1,4 +1,4 @@
-"""Minimal two-lesson shell shared by Year 8 and Year 10."""
+"""Minimal two-lesson shell used by the Year 8 route."""
 
 from __future__ import annotations
 
