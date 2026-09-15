@@ -1817,8 +1817,9 @@ When time is short, compress exposition, optional stories, repeated examples and
         )
         facilitator_live_cue(
             "CORE LEARNING",
-            "Keep brain-size evidence separate from broad claims about intelligence.",
+            "Ask what the model measures and what it misses. Brain size can be informative without being an intelligence score; the crow complicates the story, not ranks animals.",
         )
+        facilitator_live_cue("EXTENSION", "Pick one cognition card only if useful. Use it to complicate a single intelligence scale, never to rank animals.")
         st.header("Can brain size tell us how intelligent an animal is?")
         st.markdown("### Bigger brain = smarter?")
         external_comparisons = load_external_comparison_animals()
@@ -1975,7 +1976,7 @@ When time is short, compress exposition, optional stories, repeated examples and
         )
         facilitator_live_cue(
             "FACILITATION NOTE",
-            "Use current AI examples as discussion material, not as scientific evidence or a claim that all systems work alike.",
+            "Debrief the process: question → evidence → pattern → model → new case → comparison with reality → what the model misses. One genuine connection is enough.",
         )
         st.write("This time the question was about animals. Data science can start with very different questions.")
         st.image(DATA_SCIENCE_INFOGRAPHIC_PATH, width="stretch")
