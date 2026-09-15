@@ -646,6 +646,15 @@ def _render_provenance_disclosure() -> None:
 
 def _render_cognition_gallery_card(card: dict[str, str | Path]) -> None:
     """Render one optional cognition example for the CURIOUS model-limits gallery."""
+    st.markdown(
+        """<style>
+        [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stImage"] img {
+            height: 160px;
+            object-fit: cover;
+        }
+        </style>""",
+        unsafe_allow_html=True,
+    )
     with st.container(border=True):
         image_path = card.get("image_path")
         if image_path:
