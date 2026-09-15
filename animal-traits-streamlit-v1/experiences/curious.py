@@ -105,6 +105,8 @@ ELEPHANT_IMAGE_PATH = MEDIA_DIR / "African bush elephant (Loxodonta africana), M
 CROW_IMAGE_PATH = MEDIA_DIR / "Corvus moneduloides, Sarramea, New Caledonia 1.jpg"
 DATA_SCIENCE_INFOGRAPHIC_PATH = MEDIA_DIR / "Animal_Traits_Data_Science_Transfer_Infographic_v0.11_final_candidate.png"
 MOUSE_TO_ELEPHANT_HERO_PATH = MEDIA_DIR / "mouse_to_elephant_hero.png"
+HONEYBEE_IMAGE_PATH = MEDIA_DIR / "Honey Bee(Ápis melliféra) on a flower.jpg"
+SEA_OTTER_IMAGE_PATH = MEDIA_DIR / "Sea otter with shells at Moss Landing.jpg"
 
 COGNITION_GALLERY_CARDS = (
     {
@@ -144,6 +146,8 @@ COGNITION_GALLERY_CARDS = (
         "emoji": "🐝",
         "animal": "Honeybee",
         "hook": "Tiny brain. Surprisingly complicated rules.",
+        "image_path": HONEYBEE_IMAGE_PATH,
+        "image_credit": "Photo: Plaksin Alexander / Wikimedia Commons, CC BY 4.0",
         "detail": (
             "Honeybees can learn abstract rules such as ‘same’ and ‘different’ and apply "
             "the rule to patterns they have never seen before. They do this with a brain "
@@ -166,6 +170,8 @@ COGNITION_GALLERY_CARDS = (
         "emoji": "🦦",
         "animal": "Sea otter",
         "hook": "A rock can be a tool",
+        "image_path": SEA_OTTER_IMAGE_PATH,
+        "image_credit": "Photo: Brocken Inaglory / Wikimedia Commons, CC BY-SA 3.0",
         "detail": (
             "Sea otters use rocks and other hard objects to break open difficult prey. In wild "
             "southern sea otters, tool use can give access to harder or larger prey — and can "
@@ -620,17 +626,23 @@ def _render_provenance_disclosure() -> None:
         )
 
 
-def _render_cognition_gallery_card(card: dict[str, str]) -> None:
+def _render_cognition_gallery_card(card: dict[str, str | Path]) -> None:
     """Render one optional cognition example for the CURIOUS model-limits gallery."""
     with st.container(border=True):
-        with st.container(height=112, border=True):
-            st.markdown(f"### {card['emoji']}")
-            st.caption("Photo coming soon")
+        image_path = card.get("image_path")
+        if image_path:
+            st.image(image_path, width="stretch")
+        else:
+            with st.container(height=112, border=True):
+                st.markdown(f"### {card['emoji']}")
+                st.caption("Photo coming soon")
         st.markdown(f"**{card['animal']}**")
         st.write(card["hook"])
         with soft_reveal("Tell me more"):
             st.write(card["detail"])
             st.caption(card["coda"])
+            if image_credit := card.get("image_credit"):
+                st.caption(image_credit)
 
 
 def _render_collection_tray(data: pd.DataFrame) -> bool:
