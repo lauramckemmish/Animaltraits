@@ -8,7 +8,6 @@ from contextlib import contextmanager
 from html import escape
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 
 _CONTINUE_BLOCKED_KEY = "_ui_helpers_continue_blocked"
@@ -104,7 +103,7 @@ def step_buttons(
 def scroll_to_top_if_requested(key: str) -> None:
     if not st.session_state.pop(key, False):
         return
-    components.html(
+    st.html(
         """
         <script>
             const doc = window.parent.document;
@@ -113,7 +112,7 @@ def scroll_to_top_if_requested(key: str) -> None:
             window.parent.scrollTo({top: 0, left: 0, behavior: 'instant'});
         </script>
         """,
-        height=0,
+        unsafe_allow_javascript=True,
     )
 
 
