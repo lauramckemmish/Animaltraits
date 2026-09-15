@@ -4,10 +4,10 @@ A multi-experience Streamlit app for exploring the Animal Traits teaching datase
 
 ## Experiences
 
-- CURIOUS — guided workshop (existing first-pass content)
+- CURIOUS — guided workshop
 - Year 8 — two-lesson route/shell
 - Year 10 — two-lesson route/shell
-- Data Exploration Playground — implemented V1
+- Data Exploration Playground — enabled open-exploration pathway
 - Find Your Animal — route/placeholder for later development
 
 ## Run locally

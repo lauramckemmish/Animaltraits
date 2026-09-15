@@ -51,10 +51,10 @@ An experience should not contain reusable regression mathematics or general data
 
 ## V1 experience boundaries
 
-1. **CURIOUS** — existing guided workshop. Do not change while implementing another experience.
+1. **CURIOUS** — enabled guided workshop.
 2. **Year 8** — route/shell only until explicitly selected for development.
 3. **Year 10** — route/shell only until explicitly selected for development.
-4. **Data Exploration Playground** — current implementation slice. Uses one-, two- and three-variable exploration, an animal-class-only filter, and optional fitting in the two-variable view.
+4. **Data Exploration Playground** — enabled open-exploration pathway. Uses one-, two- and three-variable exploration, an animal-class-only filter, and optional fitting in the two-variable view.
 5. **Find Your Animal** — separate route only. Do not implement until it becomes the active slice.
 
 ## Change discipline
@@ -67,7 +67,7 @@ For each development pass:
 5. Run syntax/tests and manually smoke-test the active experience plus navigation before starting the next experience.
 6. Stop after the bounded slice and review it in the deployed Streamlit app.
 
-## Current slice: Data Exploration Playground V1
+## Data Exploration Playground scope
 
 The playground mirrors the Exoplanets exploratory mental model:
 - **One variable:** distribution/histogram
