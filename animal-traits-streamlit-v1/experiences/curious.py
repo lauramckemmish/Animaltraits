@@ -112,6 +112,11 @@ DOLPHIN_IMAGE_PATH = (
     / "Bottlenose Dolphin (Tursiops truncatus) (16365830393) - cognition card crop.jpg"
 )
 OCTOPUS_IMAGE_PATH = MEDIA_DIR / "Octopus-vulgaris-1 - cognition card crop.jpg"
+COGNITION_ELEPHANT_IMAGE_PATH = (
+    MEDIA_DIR
+    / "Savannah Elephants (Loxodonta africana) flirting pair ? (53095190986) - cognition card.jpg"
+)
+AFRICAN_GREY_PARROT_IMAGE_PATH = MEDIA_DIR / "African grey parrot - cognition card crop.jpg"
 
 COGNITION_GALLERY_CARDS = (
     {
@@ -144,6 +149,8 @@ COGNITION_GALLERY_CARDS = (
         "emoji": "🐘",
         "animal": "Elephant",
         "hook": "Wait for me!",
+        "image_path": COGNITION_ELEPHANT_IMAGE_PATH,
+        "image_credit": "Photo: Bernard DUPONT / Wikimedia Commons, CC BY-SA 2.0",
         "detail": (
             "In a cooperation experiment, two elephants had to pull different ends of a "
             "rope at the same time. Elephants learned to wait for their partner — and some "
@@ -168,6 +175,8 @@ COGNITION_GALLERY_CARDS = (
         "emoji": "🦜",
         "animal": "African grey parrot",
         "hook": "More than copying words",
+        "image_path": AFRICAN_GREY_PARROT_IMAGE_PATH,
+        "image_credit": "Photo: Papooga / Wikimedia Commons, CC0 1.0",
         "detail": (
             "One intensively studied African grey parrot, Alex, learned labels for colours, "
             "shapes and quantities. Experiments showed that he could use some of those labels "
