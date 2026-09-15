@@ -1,5 +1,6 @@
 """Structural contract for the canonical Stage 4 learning journey."""
 
+import pandas as pd
 import pytest
 
 from data import comparison_reference_masses, load_data
@@ -9,7 +10,10 @@ from experiences.year8 import (
     _format_stage4_mass_kg,
     _lesson_for_screen,
     _lesson_screen_range,
+    _stage4_saved_species_after_adding,
+    _stage4_saved_species_after_removing,
     _stage4_mass_in_kg,
+    _stage4_usable_species,
 )
 
 
@@ -36,3 +40,29 @@ def test_stage4_scale_estimates_use_a_common_kilogram_unit():
 
 def test_stage4_scale_reuses_the_grounded_mouse_and_external_elephant_references():
     assert comparison_reference_masses(load_data()) == (0.0321, 5550)
+
+
+def test_stage4_carried_forward_animals_use_bounded_scientific_name_identities():
+    saved = _stage4_saved_species_after_adding([], "Mus musculus")
+    saved = _stage4_saved_species_after_adding(saved, "Mus musculus")
+    saved = _stage4_saved_species_after_adding(saved, "Loxodonta africana")
+
+    assert saved == ["Mus musculus", "Loxodonta africana"]
+    assert _stage4_saved_species_after_removing(saved, "Mus musculus") == ["Loxodonta africana"]
+
+    for index in range(10):
+        saved = _stage4_saved_species_after_adding(saved, f"Species {index}")
+    assert len(saved) == 5
+
+
+def test_stage4_only_offers_species_with_both_later_graph_measurements():
+    matches = pd.DataFrame(
+        {
+            "Scientific name": ["Both values", "No brain", "No body"],
+            "Common name": ["Both", "No brain", "No body"],
+            "Body mass (kg)": [2.0, 3.0, None],
+            "Brain size (kg)": [0.1, None, 0.2],
+        }
+    )
+
+    assert _stage4_usable_species(matches)["Scientific name"].tolist() == ["Both values"]

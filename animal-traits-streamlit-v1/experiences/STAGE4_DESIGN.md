@@ -17,7 +17,7 @@ grouping → statistical model → prediction → interpolation / extrapolation 
 | Lesson | Screen | Learner-facing heading | Cognitive job |
 | --- | ---: | --- | --- |
 | Seeing structure in data | 1 | Start with scale | Make rough mouse and elephant body-mass estimates with units before comparing them with grounded reference evidence in kilograms. |
-| Seeing structure in data | 2 | Find your animals | Explore dataset scope, missingness and uneven evidence. |
+| Seeing structure in data | 2 | Find your animals | Search the real dataset, make missingness and scope explicit, then deliberately carry forward up to five learner-selected scientific-name identities; Stage 4 does not require exactly three searches. |
 | Seeing structure in data | 3 | Body mass | See why logarithmic representation makes the same evidence easier to inspect. |
 | Seeing structure in data | 4 | Body + brain | Identify and describe the broad relationship. |
 | Seeing structure in data | 5 | Animal groups | Recognise that biological grouping changes the observed relationship and appropriate model. |

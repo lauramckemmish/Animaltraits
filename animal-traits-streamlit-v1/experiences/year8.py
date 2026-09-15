@@ -8,7 +8,12 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from data import comparison_reference_masses
+from data import (
+    comparison_reference_masses,
+    search_student_animals,
+    species_traits_from_observations,
+    student_facing_data,
+)
 from ui_helpers import completion_gate, page_header, scroll_to_top_if_requested, step_buttons, step_tabs
 
 
@@ -31,6 +36,9 @@ STAGE4_MASS_UNIT_TO_KG = {
     "kilograms": 1.0,
     "tonnes": 1000.0,
 }
+STAGE4_SAVED_SPECIES_KEY = "stage4_saved_species"
+STAGE4_ANIMAL_COLLECTION_DECIDED_KEY = "stage4_animal_collection_decided"
+STAGE4_ANIMAL_COLLECTION_MAX_SELECTION = 5
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
 )
@@ -112,6 +120,225 @@ def _stage4_mass_in_kg(value: float, unit: str) -> float:
 def _format_stage4_mass_kg(value: float) -> str:
     """Format a Stage 4 body-mass estimate or reference in kilograms."""
     return f"{value:,.4g} kg"
+
+
+def _stage4_usable_species(matches: pd.DataFrame) -> pd.DataFrame:
+    """Return matched species with the paired values needed in later Stage 4 graphs."""
+    usable = matches.copy()
+    scientific_names = usable["Scientific name"].fillna("").astype(str).str.strip()
+    body_mass = pd.to_numeric(usable["Body mass (kg)"], errors="coerce")
+    brain_mass = pd.to_numeric(usable["Brain size (kg)"], errors="coerce")
+    usable = usable[scientific_names.ne("") & body_mass.gt(0) & brain_mass.gt(0)].copy()
+    usable["Scientific name"] = usable["Scientific name"].astype(str).str.strip()
+    return usable.drop_duplicates(subset=["Scientific name"])
+
+
+def _stage4_saved_species_after_adding(
+    saved_species: list[str], scientific_name: str
+) -> list[str]:
+    """Add a stable species identity to Stage 4's bounded learner collection."""
+    cleaned = []
+    for species in saved_species:
+        if isinstance(species, str) and species.strip() and species.strip() not in cleaned:
+            cleaned.append(species.strip())
+    species = scientific_name.strip()
+    if species and species not in cleaned and len(cleaned) < STAGE4_ANIMAL_COLLECTION_MAX_SELECTION:
+        cleaned.append(species)
+    return cleaned
+
+
+def _stage4_saved_species_after_removing(
+    saved_species: list[str], scientific_name: str
+) -> list[str]:
+    """Remove one scientific-name identity from the Stage 4 learner collection."""
+    return [species for species in saved_species if species != scientific_name]
+
+
+def _stage4_saved_species_from_session() -> list[str]:
+    """Return Stage 4's bounded, ordered carried-forward scientific names."""
+    saved = st.session_state.setdefault(STAGE4_SAVED_SPECIES_KEY, [])
+    if not isinstance(saved, list):
+        st.session_state[STAGE4_SAVED_SPECIES_KEY] = []
+        return []
+    cleaned = _stage4_saved_species_after_adding([], "")
+    for species in saved:
+        if isinstance(species, str):
+            cleaned = _stage4_saved_species_after_adding(cleaned, species)
+    if cleaned != saved:
+        st.session_state[STAGE4_SAVED_SPECIES_KEY] = cleaned
+    return cleaned
+
+
+def _save_stage4_species(scientific_name: str) -> None:
+    st.session_state[STAGE4_SAVED_SPECIES_KEY] = _stage4_saved_species_after_adding(
+        _stage4_saved_species_from_session(), scientific_name
+    )
+
+
+def _remove_stage4_species(scientific_name: str) -> None:
+    st.session_state[STAGE4_SAVED_SPECIES_KEY] = _stage4_saved_species_after_removing(
+        _stage4_saved_species_from_session(), scientific_name
+    )
+
+
+def _finish_stage4_animal_collection() -> None:
+    st.session_state[STAGE4_ANIMAL_COLLECTION_DECIDED_KEY] = True
+
+
+def _continue_stage4_without_animals() -> None:
+    st.session_state[STAGE4_SAVED_SPECIES_KEY] = []
+    st.session_state[STAGE4_ANIMAL_COLLECTION_DECIDED_KEY] = True
+
+
+def _change_stage4_animal_collection() -> None:
+    st.session_state[STAGE4_ANIMAL_COLLECTION_DECIDED_KEY] = False
+
+
+def _stage4_species_labels(data: pd.DataFrame, species_names: list[str]) -> dict[str, str]:
+    """Resolve carried-forward scientific identities to current learner-facing labels."""
+    student_data = student_facing_data(data)
+    common_names = student_data.set_index("Scientific name")["Common name"].to_dict()
+    return {species: common_names.get(species) or species for species in species_names}
+
+
+def _render_stage4_measurement_summary(matches: pd.DataFrame) -> None:
+    """Make the relevant evidence coverage visible without treating it as absence."""
+    body_count = int(matches["Body mass (kg)"].notna().sum())
+    brain_count = int(matches["Brain size (kg)"].notna().sum())
+    both_count = int(matches[["Body mass (kg)", "Brain size (kg)"]].notna().all(axis=1).sum())
+    total_count = len(matches)
+    st.caption(
+        f"Body mass is recorded for {body_count:,} of {total_count:,} matches; brain mass is recorded for {brain_count:,}. "
+        f"{both_count:,} have both measurements."
+    )
+    if both_count != total_count:
+        st.info(
+            "A missing value means this dataset does not contain that measurement for the species. "
+            "It does not mean the animal lacks a body or a brain."
+        )
+
+
+def _render_stage4_provenance() -> None:
+    with st.expander("Where did this data come from?"):
+        st.write(
+            "AnimalTraits brings together measurements from peer-reviewed studies of terrestrial animals. "
+            "Different species and traits have different amounts of evidence."
+        )
+        st.caption(
+            "AnimalTraits v1.0.7; Herberstein et al. (2022), Scientific Data 9, 265, "
+            "DOI: 10.1038/s41597-022-01364-9."
+        )
+
+
+def _render_find_your_animals(data: pd.DataFrame) -> None:
+    """Render Stage 4's bounded exploration and carried-forward animal choice."""
+    collection_decided = bool(
+        st.session_state.get(STAGE4_ANIMAL_COLLECTION_DECIDED_KEY, False)
+    )
+    saved_species = _stage4_saved_species_from_session()
+    species_data = species_traits_from_observations(data)
+
+    if collection_decided:
+        labels = _stage4_species_labels(species_data, saved_species)
+        if saved_species:
+            st.success(
+                "You will carry forward: "
+                + ", ".join(labels.get(species, species) for species in saved_species)
+                + "."
+            )
+        else:
+            st.success("You chose to continue without saving animals.")
+        st.info("What did you notice about what this dataset does and does not contain?")
+        _render_stage4_provenance()
+        st.button(
+            "Change my choices",
+            key="stage4_change_animal_collection",
+            on_click=_change_stage4_animal_collection,
+        )
+        completion_gate(True)
+        return
+
+    st.write("Search for animals you are curious about. Try more than one if you like.")
+    animal_query = st.text_input(
+        "Search for an animal",
+        placeholder="For example, mouse, elephant or spider",
+        key="stage4_animal_search",
+        persist_state="session",
+    )
+    if animal_query.strip():
+        matches = search_student_animals(species_data, animal_query)
+        if matches.empty:
+            st.warning(
+                "**No match found.** AnimalTraits focuses on terrestrial animals. A no-match can reflect "
+                "spelling, another name, a broad search or dataset coverage; it does not mean the animal does not exist."
+            )
+        else:
+            st.success(f"Found {len(matches):,} matching species.")
+            display_matches = matches[
+                ["Common name", "Scientific name", "Animal class", "Body mass (kg)", "Brain size (kg)"]
+            ].rename(columns={"Brain size (kg)": "Brain mass (kg)"})
+            st.dataframe(display_matches.head(25), hide_index=True)
+            if len(matches) > 25:
+                st.caption("Showing the first 25 matches.")
+            _render_stage4_measurement_summary(matches)
+
+            usable_matches = _stage4_usable_species(matches)
+            if usable_matches.empty:
+                st.caption(
+                    "None of these matches has both measurements needed for the later Stage 4 graphs. "
+                    "You can still search for another animal."
+                )
+            else:
+                st.subheader("Carry animals forward")
+                st.caption(
+                    f"Choose up to {STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} species with both measurements for later graphs."
+                )
+                labels = _stage4_species_labels(
+                    species_data, usable_matches["Scientific name"].tolist()
+                )
+                for scientific_name in usable_matches["Scientific name"]:
+                    label = labels.get(scientific_name, scientific_name)
+                    st.button(
+                        f"Add {label}",
+                        key=f"stage4_add_species_{scientific_name}",
+                        disabled=(
+                            scientific_name in saved_species
+                            or len(saved_species) >= STAGE4_ANIMAL_COLLECTION_MAX_SELECTION
+                        ),
+                        on_click=_save_stage4_species,
+                        args=(scientific_name,),
+                    )
+
+    if saved_species:
+        labels = _stage4_species_labels(species_data, saved_species)
+        st.subheader("Your animals")
+        st.caption(
+            f"{len(saved_species)} of {STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} saved for later Stage 4 graphs."
+        )
+        for scientific_name in saved_species:
+            label = labels.get(scientific_name, scientific_name)
+            st.button(
+                f"Remove {label}",
+                key=f"stage4_remove_species_{scientific_name}",
+                on_click=_remove_stage4_species,
+                args=(scientific_name,),
+            )
+
+    _render_stage4_provenance()
+    st.divider()
+    if saved_species:
+        st.button(
+            "Use these animals",
+            type="primary",
+            key="stage4_finish_animal_collection",
+            on_click=_finish_stage4_animal_collection,
+        )
+    st.button(
+        "Continue without saving animals",
+        key="stage4_continue_without_animals",
+        on_click=_continue_stage4_without_animals,
+    )
+    completion_gate(False)
 
 
 def _render_start_with_scale(data: pd.DataFrame) -> None:
@@ -253,6 +480,8 @@ def render(data: pd.DataFrame) -> None:
     st.header(f"{screen_index + 1}. {screen.title}")
     if screen_index == 0:
         _render_start_with_scale(data)
+    elif screen_index == 1:
+        _render_find_your_animals(data)
     else:
         st.write(screen.framing)
     if screen_index == 4:
