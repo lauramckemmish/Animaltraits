@@ -866,6 +866,25 @@ def render(data: pd.DataFrame, terminal_action) -> None:
     scroll_to_top_if_requested("curious_scroll_to_top")
 
     if part == 0:
+        facilitator_preparation(
+            """### CURIOUS facilitator foundation
+
+These notes are written primarily for CURIOUS facilitators delivering this ~50-minute experience. Classroom teachers are also welcome to use them; some pacing and classroom-management guidance is included because facilitators may not routinely run school classrooms.
+
+This is a fast, interactive investigation. Help learners estimate, notice, compare, articulate, test ideas against evidence, and react to scientifically interesting results — not simply operate Streamlit.
+
+**Protect productive difficulty; rescue incidental difficulty.** Protect estimating, awkward evidence, noticing patterns, comparisons and evidence/model judgements. Rescue unfamiliar notation, interface mechanics, unnecessary calculation, specialist maths and other friction that blocks participation without useful thinking.
+
+Bring the science to life: before delivery, have one or two genuine stories or perspectives ready from research, fieldwork, university classes, local wildlife, pets, or something scientifically odd you care about. You need not be an animal researcher. A short authentic detour — for example, how you would weigh a mouse, uncooperative cat or elephant — is optional, not required content.
+
+Accept informal observations first (for example, “it goes up” or “that group is higher”), then ask the next useful question about variables or comparisons. Estimation is genuine quantitative work: coach broad plausible brackets and defensible orders of magnitude; do not supply a value immediately. Avoid using students’ or other people’s body weights as benchmarks; use broad numerical or non-human anchors.
+
+Do not assume every Year 7–10 learner reads a scatter plot fluently, but do not remove the reasoning. Scaffold only the graph-reading step causing difficulty. Learners need not calculate logarithms or learn research-level fitting, equations, R² or diagnostics: the goal is broad patterns, comparisons and limits. Useful does not mean perfect; a pattern is not an exact rule, and a relationship alone does not show cause.
+
+When time is short, compress exposition, optional stories, repeated examples and specialist maths — not the reasoning moment. Extra time should buy comparison, learner questions and debrief. Live support later should stay sparse and local; this preparation layer is for stance and understanding.
+
+**Curriculum connection:** this investigation develops evidence-based quantitative reasoning, graph interpretation, variable relationships and model limits. A specific curriculum code is not included here because no verified mapping is recorded in this repository."""
+        )
         _facilitator_preparation_note(
             "Start with scale",
             "Elicit estimates of two familiar body masses before learners encounter the evidence in AnimalTraits.",
