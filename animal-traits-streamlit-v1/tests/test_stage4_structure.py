@@ -33,6 +33,8 @@ from experiences.year8 import (
     _stage4_elephant_model_ready,
     _clear_stage4_elephant_comparison_state,
     _stage4_mammal_model_ready,
+    _stage4_model_ids_for_level,
+    _stage4_model_level_for_id,
     _stage4_model_judgement_ready,
     _stage4_selected_animal_classes,
     _stage4_selected_animal_groups,
@@ -285,10 +287,50 @@ def test_stage4_model_candidates_use_stable_ids_and_the_ten_species_display_rule
     assert candidates.iloc[0]["Model id"] == "all"
     assert candidates.iloc[0]["Rank"] == "Pooled evidence"
     assert "class:Mammalia" not in candidates["Model id"].tolist()
+    assert "genus:Lichenostomus" not in candidates["Model id"].tolist()
+    assert "genus:Macropus" not in candidates["Model id"].tolist()
     assert candidates.loc[candidates["Model id"].ne("all"), "Usable species"].ge(10).all()
     assert candidates["Label"].str.contains("species").all()
     assert body_brain_model_evidence(usable, "all").equals(usable)
     assert len(body_brain_model_evidence(usable, "order:Primates")) == 86
+
+
+def test_stage4_model_candidates_are_grouped_by_eligible_evidence_level():
+    usable = usable_body_brain_species(species_traits_from_observations(load_data()))
+    candidates = body_brain_model_comparison_candidates(usable)
+
+    assert candidates["Rank"].value_counts().to_dict() == {
+        "family": 34,
+        "order": 24,
+        "genus": 5,
+        "class": 4,
+        "Pooled evidence": 1,
+    }
+    assert _stage4_model_ids_for_level(candidates, "All animals") == ["all"]
+    assert _stage4_model_ids_for_level(candidates, "Class") == [
+        "class:Aves", "class:Insecta", "class:Reptilia", "class:Amphibia"
+    ]
+
+
+def test_stage4_model_candidate_labels_orient_without_changing_source_identity():
+    usable = usable_body_brain_species(species_traits_from_observations(load_data()))
+    labels = body_brain_model_comparison_candidates(usable).set_index("Model id")["Label"]
+
+    assert labels["order:Passeriformes"] == "Passeriformes — perching birds · 275 species"
+    assert labels["family:Phyllostomatidae"] == "Phyllostomidae — leaf-nosed bats · 12 species"
+    assert labels["genus:Corvus"] == "Corvus — crows and ravens · 16 species"
+
+
+def test_stage4_model_level_change_keeps_stable_valid_ids_and_prevents_duplicates():
+    usable = usable_body_brain_species(species_traits_from_observations(load_data()))
+    candidates = body_brain_model_comparison_candidates(usable)
+
+    assert _stage4_model_level_for_id(candidates, "family:Phyllostomatidae") == "Family"
+    assert _stage4_model_level_for_id(candidates, "order:Primates") == "Order"
+    assert _stage4_model_ids_for_level(candidates, "Order", "order:Primates")[0] == "order:Passeriformes"
+    assert "order:Primates" not in _stage4_model_ids_for_level(
+        candidates, "Order", "order:Primates"
+    )
 
 
 def test_stage4_mammal_model_scaling_comes_from_the_shared_power_law_fit():

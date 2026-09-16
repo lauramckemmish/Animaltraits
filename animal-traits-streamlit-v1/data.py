@@ -91,6 +91,84 @@ TAXONOMY_DISPLAY_NAMES = {
     "species": "Species",
 }
 STAGE4_MODEL_COMPARISON_RANKS = ("class", "order", "family", "genus")
+STAGE4_MODEL_SELECTOR_LEVELS = ("All animals", "Class", "Order", "Family", "Genus")
+STAGE4_MODEL_SELECTOR_EXCLUDED_GROUPS = {
+    "genus": frozenset({"Lichenostomus", "Macropus"}),
+}
+STAGE4_MODEL_SELECTOR_DESCRIPTORS = {
+    "order": {
+        "Passeriformes": "perching birds",
+        "Diprotodontia": "kangaroos, wallabies, possums, koalas, wombats and relatives",
+        "Primates": "primates",
+        "Charadriiformes": "shorebirds, gulls, terns, auks and relatives",
+        "Carnivora": "cats, dogs, bears, seals and relatives",
+        "Dasyuromorphia": "carnivorous marsupials — quolls, dunnarts, Tasmanian devils and relatives",
+        "Psittaciformes": "parrots and cockatoos",
+        "Chiroptera": "bats",
+        "Rodentia": "rodents",
+        "Hymenoptera": "ants, bees, wasps and sawflies",
+        "Squamata": "lizards, snakes and relatives",
+        "Procellariiformes": "albatrosses, petrels, shearwaters and storm-petrels",
+        "Anseriformes": "ducks, geese, swans and relatives",
+        "Pelecaniformes": "pelicans, herons, ibises and relatives",
+        "Eulipotyphla": "shrews, moles, hedgehogs and relatives",
+        "Accipitriformes": "hawks, eagles, vultures and relatives",
+        "Columbiformes": "pigeons and doves",
+        "Didelphimorphia": "opossums",
+        "Peramelemorphia": "bandicoots and bilbies",
+        "Gruiformes": "cranes, rails and relatives",
+        "Afrosoricida": "tenrecs and golden moles",
+        "Cuculiformes": "cuckoos and relatives",
+        "Coraciiformes": "kingfishers, bee-eaters, rollers and relatives",
+        "Anura": "frogs and toads",
+    },
+    "family": {
+        "Meliphagidae": "honeyeaters",
+        "Macropodidae": "kangaroos, wallabies and relatives",
+        "Dasyuridae": "quolls, dunnarts, Tasmanian devils and relatives",
+        "Corvidae": "crows, ravens, jays and relatives",
+        "Formicidae": "ants",
+        "Psittaculidae": "parrots, lorikeets and relatives",
+        "Cercopithecidae": "macaques, baboons, langurs and other monkeys",
+        "Acanthizidae": "thornbills, gerygones, scrubwrens and relatives",
+        "Anatidae": "ducks, geese and swans",
+        "Scolopacidae": "sandpipers, snipes, curlews and relatives",
+        "Petroicidae": "Australasian robins",
+        "Procellariidae": "petrels and shearwaters",
+        "Accipitridae": "eagles, hawks, kites and some vultures",
+        "Columbidae": "pigeons and doves",
+        "Phalangeridae": "cuscuses, brushtail possums and relatives",
+        "Laridae": "gulls, terns and skimmers",
+        "Pseudocheiridae": "ringtail possums and greater gliders",
+        "Agamidae": "dragon lizards, agamas and relatives",
+        "Cacatuidae": "cockatoos",
+        "Didelphidae": "opossums",
+        "Soricidae": "shrews",
+        "Ardeidae": "herons, egrets and bitterns",
+        "Artamidae": "butcherbirds, currawongs, woodswallows and relatives",
+        "Cebidae": "capuchins and squirrel monkeys",
+        "Mustelidae": "weasels, otters, badgers and relatives",
+        "Vespertilionidae": "vesper bats",
+        "Charadriidae": "plovers, lapwings and dotterels",
+        "Phyllostomatidae": "leaf-nosed bats",
+        "Cuculidae": "cuckoos and relatives",
+        "Peramelidae": "bandicoots",
+        "Canidae": "dogs, wolves, foxes and relatives",
+        "Estrildidae": "waxbills and relatives",
+        "Lemuridae": "lemurs",
+        "Maluridae": "fairywrens, emu-wrens, grasswrens and relatives",
+    },
+    "genus": {
+        "Corvus": "crows and ravens",
+        "Ctenophorus": "dragon lizards",
+        "Petrogale": "rock-wallabies",
+        "Antechinus": "antechinuses",
+        "Phalanger": "cuscuses",
+    },
+}
+STAGE4_MODEL_SELECTOR_DISPLAY_TAXA = {
+    ("family", "Phyllostomatidae"): "Phyllostomidae",
+}
 
 STUDENT_FIELDS = [
     "Common name",
@@ -421,11 +499,21 @@ def body_brain_model_comparison_candidates(
         for group_name, count in counts[counts.ge(minimum_species)].items():
             if rank == "class" and group_name == "Mammalia":
                 continue
-            display_name = CLASS_LABELS.get(group_name, group_name) if rank == "class" else group_name
+            if group_name in STAGE4_MODEL_SELECTOR_EXCLUDED_GROUPS.get(rank, frozenset()):
+                continue
+            display_name = (
+                CLASS_LABELS.get(group_name, group_name)
+                if rank == "class"
+                else STAGE4_MODEL_SELECTOR_DISPLAY_TAXA.get((rank, group_name), group_name)
+            )
+            descriptor = STAGE4_MODEL_SELECTOR_DESCRIPTORS.get(rank, {}).get(group_name, "")
+            label = f"{display_name} · {count:,} species"
+            if descriptor:
+                label = f"{display_name} — {descriptor} · {count:,} species"
             records.append(
                 {
                     "Model id": f"{rank}:{group_name}",
-                    "Label": f"{display_name} · {rank} · {count:,} species",
+                    "Label": label,
                     "Rank": TAXONOMY_DISPLAY_NAMES[rank].lower(),
                     "Group": group_name,
                     "Usable species": int(count),

@@ -21,6 +21,7 @@ from data import (
     selected_species_body_mass,
     selected_species_body_brain,
     selected_species_taxonomy,
+    STAGE4_MODEL_SELECTOR_LEVELS,
     species_traits_from_observations,
     student_facing_data,
     taxonomy_group_size_summary,
@@ -85,6 +86,8 @@ STAGE4_MAMMAL_MODEL_INSPECTED_KEY = "stage4_mammal_model_inspected"
 STAGE4_MAMMAL_MODEL_100X_REASONING_KEY = "stage4_mammal_model_100x_reasoning"
 STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY = "stage4_mammal_model_comparison_one"
 STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY = "stage4_mammal_model_comparison_two"
+STAGE4_MAMMAL_MODEL_COMPARISON_ONE_LEVEL_KEY = "stage4_mammal_model_comparison_one_level"
+STAGE4_MAMMAL_MODEL_COMPARISON_TWO_LEVEL_KEY = "stage4_mammal_model_comparison_two_level"
 STAGE4_MAMMAL_MODEL_COMPARISON_INSPECTED_KEY = "stage4_mammal_model_comparison_inspected"
 STAGE4_MAMMAL_MODEL_INTERPRETATION_KEY = "stage4_mammal_model_interpretation"
 STAGE4_CARRIED_MODELS_KEY = "stage4_carried_models"
@@ -982,13 +985,108 @@ def _stage4_mammal_model_ready(
     )
 
 
+_STAGE4_MODEL_LEVEL_RANKS = {
+    "All animals": "Pooled evidence",
+    "Class": "class",
+    "Order": "order",
+    "Family": "family",
+    "Genus": "genus",
+}
+
+
+def _stage4_model_level_for_id(candidates: pd.DataFrame, model_id: str) -> str:
+    """Resolve a stable model identifier to its learner-selected evidence level."""
+    matching = candidates.loc[candidates["Model id"].eq(model_id), "Rank"]
+    if matching.empty:
+        return ""
+    return next(
+        (level for level, rank in _STAGE4_MODEL_LEVEL_RANKS.items() if rank == matching.iloc[0]),
+        "",
+    )
+
+
+def _stage4_model_ids_for_level(
+    candidates: pd.DataFrame, evidence_level: str, excluded_model_id: str = ""
+) -> list[str]:
+    """Return valid stable model IDs for one evidence level, excluding one duplicate."""
+    rank = _STAGE4_MODEL_LEVEL_RANKS.get(evidence_level)
+    if rank is None:
+        return []
+    return [
+        model_id
+        for model_id in candidates.loc[candidates["Rank"].eq(rank), "Model id"].tolist()
+        if model_id != excluded_model_id
+    ]
+
+
+def _set_stage4_model_level_selection(
+    candidates: pd.DataFrame,
+    model_key: str,
+    level_key: str,
+    excluded_model_id: str,
+    on_change,
+) -> None:
+    """Set a valid model when its evidence level changes, without retaining stale IDs."""
+    options = _stage4_model_ids_for_level(
+        candidates, st.session_state.get(level_key, ""), excluded_model_id
+    )
+    st.session_state[model_key] = options[0] if options else ""
+    if on_change is not None:
+        on_change()
+
+
+def _render_stage4_comparison_model_selector(
+    label: str,
+    candidates: pd.DataFrame,
+    model_key: str,
+    level_key: str,
+    excluded_model_id: str,
+    on_change,
+) -> str:
+    """Render one two-stage evidence selector while retaining a stable model ID."""
+    current_model_id = st.session_state.get(model_key, "")
+    current_level = _stage4_model_level_for_id(candidates, current_model_id)
+    if st.session_state.get(level_key, "") not in STAGE4_MODEL_SELECTOR_LEVELS:
+        st.session_state[level_key] = current_level
+
+    evidence_level = st.selectbox(
+        f"{label}: evidence level",
+        [""] + list(STAGE4_MODEL_SELECTOR_LEVELS),
+        format_func=lambda level: "Choose an evidence level…" if not level else level,
+        key=level_key,
+        persist_state="session",
+        on_change=_set_stage4_model_level_selection,
+        args=(candidates, model_key, level_key, excluded_model_id, on_change),
+    )
+    options = _stage4_model_ids_for_level(candidates, evidence_level, excluded_model_id)
+    if not evidence_level or not options:
+        st.session_state[model_key] = ""
+        if evidence_level:
+            st.caption("Choose a different evidence level for the other comparison model first.")
+        return ""
+
+    if st.session_state.get(model_key, "") not in options:
+        st.session_state[model_key] = options[0]
+    if evidence_level == "All animals":
+        return st.session_state[model_key]
+
+    return st.selectbox(
+        f"{label}: evidence group",
+        options,
+        format_func=candidates.set_index("Model id")["Label"].to_dict().__getitem__,
+        key=model_key,
+        persist_state="session",
+        on_change=on_change,
+    )
+
+
 def _stage4_comparison_model_selectors(
     candidates: pd.DataFrame,
     *,
     on_change_one=None,
     on_change_two=None,
 ) -> tuple[str, str, dict[str, str]]:
-    """Render the shared editable Stage 4 comparison-model selectors."""
+    """Render the shared staged evidence-level and evidence-group selectors."""
     candidate_ids = candidates["Model id"].tolist()
     candidate_labels = candidates.set_index("Model id")["Label"].to_dict()
     for state_key in [STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY, STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY]:
@@ -998,22 +1096,21 @@ def _stage4_comparison_model_selectors(
         STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY
     ):
         st.session_state[STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY] = ""
-
-    comparison_one = st.selectbox(
+    comparison_one = _render_stage4_comparison_model_selector(
         "First comparison model",
-        [""] + candidate_ids,
-        format_func=lambda model_id: "Choose a comparison group…" if not model_id else candidate_labels[model_id],
-        key=STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY,
-        persist_state="session",
-        on_change=on_change_one,
+        candidates,
+        STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY,
+        STAGE4_MAMMAL_MODEL_COMPARISON_ONE_LEVEL_KEY,
+        st.session_state.get(STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY, ""),
+        on_change_one,
     )
-    comparison_two = st.selectbox(
+    comparison_two = _render_stage4_comparison_model_selector(
         "Second comparison model",
-        [""] + [model_id for model_id in candidate_ids if model_id != comparison_one],
-        format_func=lambda model_id: "Choose a comparison group…" if not model_id else candidate_labels[model_id],
-        key=STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY,
-        persist_state="session",
-        on_change=on_change_two,
+        candidates,
+        STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY,
+        STAGE4_MAMMAL_MODEL_COMPARISON_TWO_LEVEL_KEY,
+        comparison_one,
+        on_change_two,
     )
     return comparison_one, comparison_two, candidate_labels
 
