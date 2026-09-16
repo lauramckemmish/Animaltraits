@@ -273,6 +273,104 @@ def selected_species_body_mass(data: pd.DataFrame, scientific_names: list[str]) 
     return pd.DataFrame(records, columns=columns)
 
 
+BODY_BRAIN_FAMILIAR_ANCHORS = (
+    ("Human", "Homo sapiens"),
+    ("Eastern Grey Kangaroo", "Macropus giganteus"),
+    ("American Crow", "Corvus brachyrhynchos"),
+    ("Domestic Dog", "Canis familiaris"),
+    ("Hazel Dormouse", "Muscardinus avellanarius"),
+)
+
+
+def selected_species_body_brain(data: pd.DataFrame, scientific_names: list[str]) -> pd.DataFrame:
+    """Resolve ordered scientific identities to current positive paired evidence."""
+    saved_order = []
+    for species in scientific_names:
+        if isinstance(species, str) and species.strip() and species.strip() not in saved_order:
+            saved_order.append(species.strip())
+
+    columns = ["Common name", "Scientific name", "body mass (kg)", "brain size (kg)"]
+    if not saved_order:
+        return pd.DataFrame(columns=columns)
+
+    current_species = student_facing_data(data)
+    current_species["Body mass (kg)"] = pd.to_numeric(
+        current_species["Body mass (kg)"], errors="coerce"
+    )
+    current_species["Brain size (kg)"] = pd.to_numeric(
+        current_species["Brain size (kg)"], errors="coerce"
+    )
+    current_species = current_species[
+        current_species["Scientific name"].isin(saved_order)
+        & current_species["Body mass (kg)"].gt(0)
+        & current_species["Brain size (kg)"].gt(0)
+    ].drop_duplicates(subset=["Scientific name"])
+
+    by_species = current_species.set_index("Scientific name")
+    records = []
+    for species in saved_order:
+        if species in by_species.index:
+            record = by_species.loc[species]
+            records.append(
+                {
+                    "Common name": record["Common name"],
+                    "Scientific name": species,
+                    "body mass (kg)": record["Body mass (kg)"],
+                    "brain size (kg)": record["Brain size (kg)"],
+                }
+            )
+    return pd.DataFrame(records, columns=columns)
+
+
+def body_brain_orientation(data: pd.DataFrame, scientific_names: list[str]) -> pd.DataFrame:
+    """Combine stable familiar anchors and saved paired evidence without duplicate species."""
+    columns = ["Animal", "Scientific name", "Role", "body mass (kg)", "brain size (kg)"]
+    current_species = student_facing_data(data)
+    current_species["Body mass (kg)"] = pd.to_numeric(
+        current_species["Body mass (kg)"], errors="coerce"
+    )
+    current_species["Brain size (kg)"] = pd.to_numeric(
+        current_species["Brain size (kg)"], errors="coerce"
+    )
+    usable = current_species[
+        current_species["Body mass (kg)"].gt(0) & current_species["Brain size (kg)"].gt(0)
+    ].drop_duplicates(subset=["Scientific name"])
+    by_species = usable.set_index("Scientific name")
+    selected = selected_species_body_brain(data, scientific_names).set_index("Scientific name")
+
+    records = []
+    included = set()
+    for label, species in BODY_BRAIN_FAMILIAR_ANCHORS:
+        if species not in by_species.index:
+            continue
+        record = by_species.loc[species]
+        records.append(
+            {
+                "Animal": label,
+                "Scientific name": species,
+                "Role": "Familiar example · your animal" if species in selected.index else "Familiar example",
+                "body mass (kg)": record["Body mass (kg)"],
+                "brain size (kg)": record["Brain size (kg)"],
+            }
+        )
+        included.add(species)
+
+    for species, record in selected.iterrows():
+        if species in included:
+            continue
+        label = record["Common name"] or species
+        records.append(
+            {
+                "Animal": label,
+                "Scientific name": species,
+                "Role": "Your animal",
+                "body mass (kg)": record["body mass (kg)"],
+                "brain size (kg)": record["brain size (kg)"],
+            }
+        )
+    return pd.DataFrame(records, columns=columns)
+
+
 def search_student_animals(data: pd.DataFrame, query: str) -> pd.DataFrame:
     """Search the student-facing common and scientific names without regular expressions."""
     prepared = student_facing_data(data)

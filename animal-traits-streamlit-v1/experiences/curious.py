@@ -19,9 +19,11 @@ from charts import (
 )
 from data import (
     comparison_reference_masses,
+    body_brain_orientation,
     load_external_comparison_animals,
     search_student_animals,
     selected_species_body_mass,
+    selected_species_body_brain,
     species_traits_from_observations,
     student_facing_data,
     with_common_class_names,
@@ -267,30 +269,8 @@ def _curious_group_has_trend(group_name: str, group_data: pd.DataFrame) -> bool:
 
 def _curious_orientation_animals(data: pd.DataFrame) -> pd.DataFrame:
     """Return a few familiar animals from CURIOUS's species-level dataset."""
-    candidates = [
-        ("Human", "Homo sapiens"),
-        ("Eastern Grey Kangaroo", "Macropus giganteus"),
-        ("American Crow", "Corvus brachyrhynchos"),
-        ("Domestic Dog", "Canis familiaris"),
-        ("Hazel Dormouse", "Muscardinus avellanarius"),
-    ]
-    usable = data.dropna(subset=["species", "body mass (kg)", "brain size (kg)"])
-    usable = usable[(usable["body mass (kg)"] > 0) & (usable["brain size (kg)"] > 0)]
-    records = []
-    for label, species in candidates:
-        species_record = usable[usable["species"].eq(species)]
-        if species_record.empty:
-            continue
-        record = species_record.iloc[0]
-        records.append(
-            {
-                "Animal": label,
-                "Scientific name": species,
-                "body mass (kg)": record["body mass (kg)"],
-                "brain size (kg)": record["brain size (kg)"],
-            }
-        )
-    return pd.DataFrame(records)
+    orientation = body_brain_orientation(data, [])
+    return orientation[["Animal", "Scientific name", "body mass (kg)", "brain size (kg)"]]
 
 
 def _curious_saved_body_brain_species(data: pd.DataFrame, saved_species: list[str]) -> pd.DataFrame:
@@ -299,43 +279,7 @@ def _curious_saved_body_brain_species(data: pd.DataFrame, saved_species: list[st
     The saved identities remain in session state even if a species is no longer
     present or lacks the paired positive measurements needed for this graph.
     """
-    saved_order = []
-    for species in saved_species:
-        if isinstance(species, str) and species.strip() and species.strip() not in saved_order:
-            saved_order.append(species.strip())
-
-    columns = ["Common name", "Scientific name", "body mass (kg)", "brain size (kg)"]
-    if not saved_order:
-        return pd.DataFrame(columns=columns)
-
-    current_species = student_facing_data(data)
-    current_species["Body mass (kg)"] = pd.to_numeric(
-        current_species["Body mass (kg)"], errors="coerce"
-    )
-    current_species["Brain size (kg)"] = pd.to_numeric(
-        current_species["Brain size (kg)"], errors="coerce"
-    )
-    current_species = current_species[
-        current_species["Scientific name"].isin(saved_order)
-        & current_species["Body mass (kg)"].gt(0)
-        & current_species["Brain size (kg)"].gt(0)
-    ].drop_duplicates(subset=["Scientific name"])
-
-    by_species = current_species.set_index("Scientific name")
-    records = []
-    for species in saved_order:
-        if species not in by_species.index:
-            continue
-        record = by_species.loc[species]
-        records.append(
-            {
-                "Common name": record["Common name"],
-                "Scientific name": species,
-                "body mass (kg)": record["Body mass (kg)"],
-                "brain size (kg)": record["Brain size (kg)"],
-            }
-        )
-    return pd.DataFrame(records, columns=columns)
+    return selected_species_body_brain(data, saved_species)
 
 
 def _curious_saved_body_mass_species(data: pd.DataFrame, saved_species: list[str]) -> pd.DataFrame:
@@ -1171,14 +1115,15 @@ When time is short, compress exposition, optional stories, repeated examples and
             "Protect the learner-generated broad claim. Accept “it goes up,” then help them say brain mass generally increases — not exactly or causally.",
         )
         st.header("Do bigger animals have bigger brains?")
-        orientation = _curious_orientation_animals(curious_data)
         saved_orientation_species = _curious_saved_body_brain_species(
             curious_data, _saved_species_from_session()
         )
-        st.markdown("### A few familiar animals")
+        orientation = body_brain_orientation(curious_data, _saved_species_from_session())
+        familiar_orientation = _curious_orientation_animals(curious_data)
+        st.markdown("### Familiar examples and your animals")
         st.caption("Which animal is heaviest? Which has the largest brain?")
         st.dataframe(
-            orientation[["Animal", "body mass (kg)", "brain size (kg)" ]].rename(
+            orientation[["Animal", "Role", "body mass (kg)", "brain size (kg)" ]].rename(
                 columns={"body mass (kg)": "Body mass (kg)", "brain size (kg)": "Brain mass (kg)"}
             ),
             use_container_width=True,
@@ -1187,7 +1132,7 @@ When time is short, compress exposition, optional stories, repeated examples and
 
         st.plotly_chart(
             body_brain_representative_scatter(
-                orientation,
+                familiar_orientation,
                 learner_selected_data=saved_orientation_species,
             ),
             use_container_width=True,

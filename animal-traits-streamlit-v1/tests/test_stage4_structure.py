@@ -21,10 +21,12 @@ from experiences.year8 import (
     _stage4_mass_in_kg,
     _stage4_body_mass_evidence,
     _stage4_body_mass_ready,
+    _stage4_body_brain_ready,
     _stage4_usable_species,
 )
 from charts import histogram
-from data import selected_species_body_mass, species_traits_from_observations
+from data import body_brain_orientation, selected_species_body_brain, selected_species_body_mass, species_traits_from_observations
+from charts import body_brain_scatter
 
 
 def test_stage4_has_the_canonical_ten_screen_sequence():
@@ -139,3 +141,32 @@ def test_stage4_body_mass_sequence_requires_linear_graph_furniture_log_and_compa
     assert not _stage4_body_mass_ready(True, True, False, True)
     assert not _stage4_body_mass_ready(True, True, True, False)
     assert _stage4_body_mass_ready(True, True, True, True)
+
+
+def test_stage4_body_brain_orientation_combines_familiar_and_saved_species_without_duplicates():
+    orientation = body_brain_orientation(
+        species_traits_from_observations(load_data()),
+        ["Homo sapiens", "Canis familiaris", "Rattus norvegicus"],
+    )
+    assert orientation["Scientific name"].is_unique
+    assert orientation.loc[orientation["Scientific name"].eq("Homo sapiens"), "Role"].item() == "Familiar example · your animal"
+    assert orientation.loc[orientation["Scientific name"].eq("Rattus norvegicus"), "Role"].item() == "Your animal"
+
+
+def test_stage4_body_brain_graph_highlights_saved_species_without_a_model_line():
+    data = species_traits_from_observations(load_data())
+    selected = selected_species_body_brain(data, ["Rattus norvegicus", "Canis familiaris"])
+    figure = body_brain_scatter(data, log_x=True, log_y=True, learner_selected_data=selected)
+    assert figure.layout.xaxis.type == figure.layout.yaxis.type == "log"
+    assert figure.data[-1].name == "Your earlier searches"
+    assert figure.data[-1].customdata[:, 1].tolist() == ["Rattus norvegicus", "Canis familiaris"]
+    assert all(trace.mode != "lines" for trace in figure.data)
+
+
+def test_stage4_body_brain_gate_requires_prediction_evidence_claim_and_reasoning():
+    correct_claim = "Brain mass generally increases as body mass increases."
+    correct_reasoning = "Across the cloud, larger bodies generally occur with larger brains, with variation."
+    assert not _stage4_body_brain_ready("Generally increase", False, correct_claim, correct_reasoning)
+    assert not _stage4_body_brain_ready("Generally increase", True, "Every larger animal has a larger brain.", correct_reasoning)
+    assert not _stage4_body_brain_ready("Generally increase", True, correct_claim, "Every point lies on one exact line.")
+    assert _stage4_body_brain_ready("Generally increase", True, correct_claim, correct_reasoning)

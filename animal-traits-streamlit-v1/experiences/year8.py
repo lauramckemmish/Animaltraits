@@ -8,11 +8,13 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from charts import histogram
+from charts import body_brain_scatter, histogram
 from data import (
+    body_brain_orientation,
     comparison_reference_masses,
     search_student_animals,
     selected_species_body_mass,
+    selected_species_body_brain,
     species_traits_from_observations,
     student_facing_data,
 )
@@ -57,6 +59,10 @@ STAGE4_BODY_MASS_SEQUENCE = (
     "logarithmic representation",
     "same and changed comparison",
 )
+STAGE4_BODY_BRAIN_FULL_EVIDENCE_KEY = "stage4_body_brain_full_evidence_inspected"
+STAGE4_BODY_BRAIN_CLAIM_KEY = "stage4_body_brain_claim"
+STAGE4_BODY_BRAIN_EVIDENCE_KEY = "stage4_body_brain_evidence_reasoning"
+STAGE4_BODY_BRAIN_PREDICTION_KEY = "stage4_body_brain_prediction"
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
 )
@@ -551,6 +557,125 @@ def _render_body_mass(data: pd.DataFrame) -> None:
     )
 
 
+def _stage4_body_brain_ready(
+    prediction: str | None,
+    full_evidence_inspected: bool,
+    claim: str | None,
+    evidence_reasoning: str | None,
+) -> bool:
+    """Return whether Screen 4's prediction-to-evidence reasoning is complete."""
+    return (
+        prediction not in (None, "Choose a prediction")
+        and full_evidence_inspected
+        and claim == "Brain mass generally increases as body mass increases."
+        and evidence_reasoning == "Across the cloud, larger bodies generally occur with larger brains, with variation."
+    )
+
+
+def _render_body_brain(data: pd.DataFrame) -> None:
+    """Render Stage 4's prediction-to-evidence body-mass and brain-mass comparison."""
+    saved_species = _stage4_saved_species_from_session()
+    species_data = species_traits_from_observations(data)
+    orientation = body_brain_orientation(species_data, saved_species)
+    selected_species = selected_species_body_brain(species_data, saved_species)
+    full_evidence_inspected = bool(st.session_state.get(STAGE4_BODY_BRAIN_FULL_EVIDENCE_KEY, False))
+
+    st.write("Do animals with larger bodies tend to have larger brains?")
+    st.write(
+        "Start with familiar examples and the graph-ready animals you chose. Then make a broad prediction before looking at the whole dataset."
+    )
+    st.subheader("Familiar examples and your animals")
+    st.dataframe(
+        orientation[["Animal", "Role", "body mass (kg)", "brain size (kg)"]].rename(
+            columns={"body mass (kg)": "Body mass (kg)", "brain size (kg)": "Brain mass (kg)"}
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+    prediction = st.selectbox(
+        "As body mass increases, what do you expect brain mass to do?",
+        ["Choose a prediction", "Generally increase", "Generally decrease", "Show no broad relationship"],
+        key=STAGE4_BODY_BRAIN_PREDICTION_KEY,
+        persist_state="session",
+    )
+
+    if prediction != "Choose a prediction":
+        st.subheader("Compare two measurements for every species")
+        st.write(
+            "A scatter plot compares paired measurements: each point is one species, farther right means greater body mass, and higher up means greater brain mass."
+        )
+        st.caption(
+            "Screen 3 showed why logarithmic scales help with huge ranges. Both axes here use kilograms and span very large ranges."
+        )
+        st.button(
+            "Inspect the full body–brain evidence",
+            type="primary",
+            key="stage4_body_brain_inspect_full_evidence",
+            on_click=lambda: st.session_state.__setitem__(STAGE4_BODY_BRAIN_FULL_EVIDENCE_KEY, True),
+        )
+
+    if full_evidence_inspected:
+        st.plotly_chart(
+            body_brain_scatter(
+                species_data,
+                log_x=True,
+                log_y=True,
+                learner_selected_data=selected_species,
+            ),
+            width="stretch",
+        )
+        if not selected_species.empty:
+            st.caption("Orange points mark the animals you chose earlier.")
+        claim = st.selectbox(
+            "What broad claim does the graph support?",
+            [
+                "Choose a claim",
+                "Brain mass generally increases as body mass increases.",
+                "Every larger animal has a larger brain.",
+                "Body mass causes brain mass to increase.",
+                "There is no broad relationship.",
+            ],
+            key=STAGE4_BODY_BRAIN_CLAIM_KEY,
+            persist_state="session",
+        )
+        if claim == "Brain mass generally increases as body mass increases.":
+            st.success("Yes. This is a broad relationship, not an exact rule for every species.")
+            st.caption("The graph shows an association; it does not show that body mass causes brain mass.")
+        elif claim != "Choose a claim":
+            st.caption("Look across the whole cloud: it generally rises, but individual species vary.")
+
+        if claim != "Choose a claim":
+            evidence_reasoning = st.selectbox(
+                "What in the graph supports your claim?",
+                [
+                    "Choose evidence",
+                    "Across the cloud, larger bodies generally occur with larger brains, with variation.",
+                    "Every point lies on one exact line.",
+                    "The graph proves body mass causes brain mass.",
+                ],
+                key=STAGE4_BODY_BRAIN_EVIDENCE_KEY,
+                persist_state="session",
+            )
+            if evidence_reasoning == "Across the cloud, larger bodies generally occur with larger brains, with variation.":
+                st.info(
+                    "Compare your prediction with the evidence. A broad pattern can be useful even when the points do not follow an exact rule."
+                )
+        else:
+            evidence_reasoning = None
+    else:
+        claim = None
+        evidence_reasoning = None
+
+    if _stage4_body_brain_ready(prediction, full_evidence_inspected, claim, evidence_reasoning):
+        st.success(
+            "We can see a broad relationship — but do all kinds of animals follow it in the same way?"
+        )
+
+    completion_gate(
+        _stage4_body_brain_ready(prediction, full_evidence_inspected, claim, evidence_reasoning)
+    )
+
+
 def render(data: pd.DataFrame) -> None:
     """Render the first structural pass of the two-lesson Stage 4 experience."""
     screen_index = int(st.session_state.get("stage4_screen", 0))
@@ -605,6 +730,8 @@ def render(data: pd.DataFrame) -> None:
         _render_find_your_animals(data)
     elif screen_index == 2:
         _render_body_mass(data)
+    elif screen_index == 3:
+        _render_body_brain(data)
     else:
         st.write(screen.framing)
     if screen_index == 4:

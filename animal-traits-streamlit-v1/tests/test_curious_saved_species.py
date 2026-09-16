@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from charts import body_brain_representative_scatter, body_brain_scatter, histogram
-from data import load_data, species_traits_from_observations
+from data import body_brain_orientation, load_data, species_traits_from_observations
 from experiences.curious import (
     _format_start_mass_kg,
     _curious_saved_body_brain_species,
@@ -182,6 +182,17 @@ def test_saved_body_brain_species_handles_empty_duplicate_unknown_and_unusable_i
     ]
     assert resolved["Scientific name"].tolist() == ["Canis familiaris"]
     assert unknown.empty
+
+
+def test_hybrid_orientation_includes_saved_animals_without_duplicate_familiar_rows():
+    orientation = body_brain_orientation(
+        species_traits_from_observations(load_data()),
+        ["Homo sapiens", "Rattus norvegicus", "Homo sapiens"],
+    )
+
+    assert orientation["Scientific name"].is_unique
+    assert orientation.loc[orientation["Scientific name"].eq("Homo sapiens"), "Role"].item() == "Familiar example · your animal"
+    assert orientation.loc[orientation["Scientific name"].eq("Rattus norvegicus"), "Role"].item() == "Your animal"
 
 
 def test_saved_body_mass_species_returns_all_positive_values_in_save_order():
