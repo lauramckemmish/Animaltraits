@@ -24,7 +24,7 @@ EXPERIENCES = [
     {
         "name": EXPERIENCE_YEAR8,
         "summary": "A Stage 4 teacher-deliverable classroom pathway.",
-        "enabled": False,
+        "enabled": True,
     },
     {
         "name": EXPERIENCE_PLAYGROUND,

@@ -39,11 +39,11 @@ Read `animal-traits-streamlit-v1/ARCHITECTURE.md` before structural changes.
 Currently enabled:
 
 - CURIOUS — established compact facilitated outreach experience
+- Stage 4 — two-lesson teacher-deliverable classroom experience, implemented through the Year 8 route/module
 - Data Exploration Playground — open exploration pathway
 
 Currently defined but disabled:
 
-- Stage 4 — two-lesson teacher-deliverable classroom experience, implemented through the Year 8 route/module
 - Find Your Animal — separate inactive/future pathway
 
 Animal Traits is the overall educational data-science resource and app. Stage 4
