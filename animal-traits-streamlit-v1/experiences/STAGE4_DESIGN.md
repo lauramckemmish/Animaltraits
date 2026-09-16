@@ -12,6 +12,30 @@ adaptation: CURIOUS is the existing compact pathway when only one lesson is avai
 comparative biological data → representation / scale → relationship → biological
 grouping → statistical model → prediction → interpolation / extrapolation → model trust
 
+## Lesson 2 learning outcomes
+
+These are the experience-specific pedagogical enactment of Stage 4 Data Science 1
+(`SC4-DA1-01`), not replacement NESA curriculum language.
+
+1. **Models are built from selected evidence.** Changing which evidence is used
+   can change the model and its predictions.
+2. **Models can be tested.** We can make predictions, compare them with independent
+   evidence, and reason about interpolation, extrapolation and model performance.
+3. **Models support judgement when the answer is unknown.** We can choose a
+   defensible model and decide how much confidence its prediction deserves, even
+   without an answer key.
+
+| Experience outcome | Curriculum relationship (established project status) |
+| --- | --- |
+| Outcome 1 | **Strongly enacts** `SC4-DA1-01.M2` (models as representations grounded in observations/data), `SC4-DA1-01.A1` (identify data/observations used to develop a model), and `SC4-DA1-01.M4` (analyse a model and generate predictions). |
+| Outcome 2 | **Strongly enacts** `SC4-DA1-01.M4`, `SC4-DA1-01.C3` (analyse patterns and test consistency with predictions), and the relevant Stage 4 Working Scientifically analysing/prediction practices already mapped for this experience. |
+| Outcome 3 | **Synthesis/payoff of** overall `SC4-DA1-01`, `SC4-DA1-01.M4`, `SC4-DA1-01.A1`, relevant `SC4-WS-06` evidence-based analysis/judgement, and `SC4-DA1-01.C1`, which remains **PARTIAL** where the scientific question is scaffolded rather than independently formulated by learners. |
+
+**Lesson 2 progression:** Screen 6 primarily establishes Outcome 1. Screens 7–8
+primarily develop Outcome 2. Later Lesson 2 screens should bridge from Outcome 2
+into Outcome 3 and culminate in making a defensible prediction when the answer is
+unavailable. Exact later-screen design remains to be settled separately.
+
 ## Canonical screen sequence
 
 | Lesson | Screen | Learner-facing heading | Cognitive job |
