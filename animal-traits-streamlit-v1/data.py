@@ -238,6 +238,41 @@ def student_facing_data(data: pd.DataFrame) -> pd.DataFrame:
     return prepared[STUDENT_FIELDS].copy()
 
 
+def selected_species_body_mass(data: pd.DataFrame, scientific_names: list[str]) -> pd.DataFrame:
+    """Resolve ordered scientific identities to current positive body-mass evidence."""
+    saved_order = []
+    for species in scientific_names:
+        if isinstance(species, str) and species.strip() and species.strip() not in saved_order:
+            saved_order.append(species.strip())
+
+    columns = ["Common name", "Scientific name", "body mass (kg)"]
+    if not saved_order:
+        return pd.DataFrame(columns=columns)
+
+    current_species = student_facing_data(data)
+    current_species["Body mass (kg)"] = pd.to_numeric(
+        current_species["Body mass (kg)"], errors="coerce"
+    )
+    current_species = current_species[
+        current_species["Scientific name"].isin(saved_order)
+        & current_species["Body mass (kg)"].gt(0)
+    ].drop_duplicates(subset=["Scientific name"])
+
+    by_species = current_species.set_index("Scientific name")
+    records = []
+    for species in saved_order:
+        if species in by_species.index:
+            record = by_species.loc[species]
+            records.append(
+                {
+                    "Common name": record["Common name"],
+                    "Scientific name": species,
+                    "body mass (kg)": record["Body mass (kg)"],
+                }
+            )
+    return pd.DataFrame(records, columns=columns)
+
+
 def search_student_animals(data: pd.DataFrame, query: str) -> pd.DataFrame:
     """Search the student-facing common and scientific names without regular expressions."""
     prepared = student_facing_data(data)

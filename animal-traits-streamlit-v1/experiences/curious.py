@@ -21,6 +21,7 @@ from data import (
     comparison_reference_masses,
     load_external_comparison_animals,
     search_student_animals,
+    selected_species_body_mass,
     species_traits_from_observations,
     student_facing_data,
     with_common_class_names,
@@ -339,38 +340,7 @@ def _curious_saved_body_brain_species(data: pd.DataFrame, saved_species: list[st
 
 def _curious_saved_body_mass_species(data: pd.DataFrame, saved_species: list[str]) -> pd.DataFrame:
     """Resolve saved identities to current, usable body-mass species data."""
-    saved_order = []
-    for species in saved_species:
-        if isinstance(species, str) and species.strip() and species.strip() not in saved_order:
-            saved_order.append(species.strip())
-
-    columns = ["Common name", "Scientific name", "body mass (kg)"]
-    if not saved_order:
-        return pd.DataFrame(columns=columns)
-
-    current_species = student_facing_data(data)
-    current_species["Body mass (kg)"] = pd.to_numeric(
-        current_species["Body mass (kg)"], errors="coerce"
-    )
-    current_species = current_species[
-        current_species["Scientific name"].isin(saved_order)
-        & current_species["Body mass (kg)"].gt(0)
-    ].drop_duplicates(subset=["Scientific name"])
-
-    by_species = current_species.set_index("Scientific name")
-    records = []
-    for species in saved_order:
-        if species not in by_species.index:
-            continue
-        record = by_species.loc[species]
-        records.append(
-            {
-                "Common name": record["Common name"],
-                "Scientific name": species,
-                "body mass (kg)": record["Body mass (kg)"],
-            }
-        )
-    return pd.DataFrame(records, columns=columns)
+    return selected_species_body_mass(data, saved_species)
 
 
 def _eligible_species_to_save(matches: pd.DataFrame) -> pd.DataFrame:

@@ -8,13 +8,21 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from charts import histogram
 from data import (
     comparison_reference_masses,
     search_student_animals,
+    selected_species_body_mass,
     species_traits_from_observations,
     student_facing_data,
 )
-from ui_helpers import completion_gate, page_header, scroll_to_top_if_requested, step_buttons, step_tabs
+from ui_helpers import (
+    completion_gate,
+    page_header,
+    scroll_to_top_if_requested,
+    step_buttons,
+    step_tabs,
+)
 
 
 @dataclass(frozen=True)
@@ -38,7 +46,17 @@ STAGE4_MASS_UNIT_TO_KG = {
 }
 STAGE4_SAVED_SPECIES_KEY = "stage4_saved_species"
 STAGE4_ANIMAL_COLLECTION_MIN_SELECTION = 4
-STAGE4_ANIMAL_COLLECTION_MAX_SELECTION = 5
+STAGE4_ANIMAL_COLLECTION_MAX_SELECTION = 8
+STAGE4_BODY_MASS_LINEAR_INSPECTED_KEY = "stage4_body_mass_linear_inspected"
+STAGE4_BODY_MASS_FURNITURE_INSPECTED_KEY = "stage4_body_mass_furniture_inspected"
+STAGE4_BODY_MASS_LOG_REVEALED_KEY = "stage4_body_mass_log_revealed"
+STAGE4_BODY_MASS_COMPARISON_INSPECTED_KEY = "stage4_body_mass_comparison_inspected"
+STAGE4_BODY_MASS_SEQUENCE = (
+    "linear representation",
+    "graph furniture",
+    "logarithmic representation",
+    "same and changed comparison",
+)
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
 )
@@ -403,6 +421,136 @@ def _render_start_with_scale(data: pd.DataFrame) -> None:
     completion_gate(comparison_revealed)
 
 
+def _stage4_body_mass_evidence(data: pd.DataFrame) -> pd.DataFrame:
+    """Return the positive species-level body-mass evidence used in both views."""
+    species_data = species_traits_from_observations(data)
+    body_mass = pd.to_numeric(species_data["body mass (kg)"], errors="coerce")
+    return species_data.loc[body_mass.gt(0)].copy()
+
+
+def _stage4_body_mass_ready(
+    linear_inspected: bool,
+    furniture_inspected: bool,
+    log_revealed: bool,
+    comparison_inspected: bool,
+) -> bool:
+    """Return whether learners have encountered the core representation comparison."""
+    return linear_inspected and furniture_inspected and log_revealed and comparison_inspected
+
+
+def _render_body_mass(data: pd.DataFrame) -> None:
+    """Render Stage 4's linear-to-log body-mass representation comparison."""
+    saved_species = _stage4_saved_species_from_session()
+    body_mass_data = _stage4_body_mass_evidence(data)
+    saved_body_mass_species = selected_species_body_mass(body_mass_data, saved_species)
+    labels = _stage4_species_labels(body_mass_data, saved_species)
+    linear_inspected = bool(st.session_state.get(STAGE4_BODY_MASS_LINEAR_INSPECTED_KEY, False))
+    furniture_inspected = bool(st.session_state.get(STAGE4_BODY_MASS_FURNITURE_INSPECTED_KEY, False))
+    log_revealed = bool(st.session_state.get(STAGE4_BODY_MASS_LOG_REVEALED_KEY, False))
+    comparison_inspected = bool(st.session_state.get(STAGE4_BODY_MASS_COMPARISON_INSPECTED_KEY, False))
+
+    st.write(
+        "On Screen 1, a mouse and an elephant showed how enormous the body-mass range can be. "
+        f"Now use the {len(saved_species)} graph-ready animals you chose on Screen 2 as anchors."
+    )
+    if not saved_body_mass_species.empty:
+        saved_labels = [labels.get(species, species) for species in saved_body_mass_species["Scientific name"]]
+        st.caption("Your animals: " + "; ".join(saved_labels))
+
+    smallest = body_mass_data["body mass (kg)"].min()
+    largest = body_mass_data["body mass (kg)"].max()
+    st.subheader("The range in the dataset")
+    smallest_column, largest_column = st.columns(2)
+    smallest_column.metric("Smallest positive body mass", _format_stage4_mass_kg(smallest))
+    largest_column.metric("Largest positive body mass", _format_stage4_mass_kg(largest))
+    st.caption("These are species-level AnimalTraits values. We have not changed the scale yet.")
+
+    st.subheader("First, use an ordinary linear scale")
+    st.caption("What can you see? What is hard to see? Look for your animals marked as orange triangles.")
+    st.plotly_chart(
+        histogram(
+            body_mass_data,
+            "body mass (kg)",
+            bins=25,
+            log_x=False,
+            learner_selected_data=saved_body_mass_species,
+        ),
+        width="stretch",
+    )
+    st.button(
+        "I have inspected the linear graph",
+        key="stage4_body_mass_inspect_linear",
+        on_click=lambda: st.session_state.__setitem__(STAGE4_BODY_MASS_LINEAR_INSPECTED_KEY, True),
+    )
+
+    if linear_inspected:
+        st.subheader("Read the graph furniture")
+        st.markdown("**Reading the graph**")
+        st.write(
+            "The graph shows species-level body mass in kilograms. The horizontal axis is an ordinary "
+            "linear scale: equal distances show equal differences in kilograms."
+        )
+        st.caption("Look for: Find the variable, its unit (kg), and the linear scale on the horizontal axis.")
+        st.button(
+            "I can identify the variable, units and linear scale",
+            key="stage4_body_mass_inspect_furniture",
+            on_click=lambda: st.session_state.__setitem__(STAGE4_BODY_MASS_FURNITURE_INSPECTED_KEY, True),
+        )
+
+    if furniture_inspected:
+        st.button(
+            "Show the same evidence on a log scale",
+            type="primary",
+            key="stage4_body_mass_show_log",
+            on_click=lambda: st.session_state.__setitem__(STAGE4_BODY_MASS_LOG_REVEALED_KEY, True),
+        )
+
+    if log_revealed:
+        st.subheader("Now use a logarithmic (log) scale")
+        st.caption("The orange triangles mark the same animals, with the same body-mass values.")
+        st.plotly_chart(
+            histogram(
+                body_mass_data,
+                "body mass (kg)",
+                bins=25,
+                log_x=True,
+                learner_selected_data=saved_body_mass_species,
+            ),
+            width="stretch",
+        )
+        st.markdown("**Reading the graph**")
+        st.write(
+            "On this logarithmic scale, each major step is 10 times the one before it. "
+            "Powers-of-ten labels are a compact way to show those values; you do not need to calculate logarithms."
+        )
+        st.caption(
+            "Look for: Notice how the smaller body masses are spread out while the values themselves stay the same."
+        )
+        st.button(
+            "Compare what stayed the same and what changed",
+            key="stage4_body_mass_compare_representations",
+            on_click=lambda: st.session_state.__setitem__(STAGE4_BODY_MASS_COMPARISON_INSPECTED_KEY, True),
+        )
+
+    if comparison_inspected:
+        same_column, changed_column = st.columns(2)
+        with same_column:
+            st.markdown("**Stayed the same**")
+            st.write("The animals, their body-mass values, the variable, and the units.")
+        with changed_column:
+            st.markdown("**Changed**")
+            st.write("The spacing of the horizontal axis: it now uses a logarithmic scale.")
+        st.success(
+            "When values span a huge range, changing the scale can make patterns easier to see without changing the data."
+        )
+
+    completion_gate(
+        _stage4_body_mass_ready(
+            linear_inspected, furniture_inspected, log_revealed, comparison_inspected
+        )
+    )
+
+
 def render(data: pd.DataFrame) -> None:
     """Render the first structural pass of the two-lesson Stage 4 experience."""
     screen_index = int(st.session_state.get("stage4_screen", 0))
@@ -455,6 +603,8 @@ def render(data: pd.DataFrame) -> None:
         _render_start_with_scale(data)
     elif screen_index == 1:
         _render_find_your_animals(data)
+    elif screen_index == 2:
+        _render_body_mass(data)
     else:
         st.write(screen.framing)
     if screen_index == 4:

@@ -1,5 +1,7 @@
 """Structural contract for the canonical Stage 4 learning journey."""
 
+import inspect
+
 import pandas as pd
 import pytest
 
@@ -17,8 +19,12 @@ from experiences.year8 import (
     _stage4_saved_species_after_adding,
     _stage4_saved_species_after_removing,
     _stage4_mass_in_kg,
+    _stage4_body_mass_evidence,
+    _stage4_body_mass_ready,
     _stage4_usable_species,
 )
+from charts import histogram
+from data import selected_species_body_mass, species_traits_from_observations
 
 
 def test_stage4_has_the_canonical_ten_screen_sequence():
@@ -74,7 +80,7 @@ def test_stage4_only_offers_species_with_both_later_graph_measurements():
 
 def test_stage4_requires_four_graph_ready_species_before_continuing():
     assert STAGE4_ANIMAL_COLLECTION_MIN_SELECTION == 4
-    assert STAGE4_ANIMAL_COLLECTION_MAX_SELECTION == 5
+    assert STAGE4_ANIMAL_COLLECTION_MAX_SELECTION == 8
     for count in range(STAGE4_ANIMAL_COLLECTION_MIN_SELECTION):
         assert not _stage4_animal_collection_ready(
             [f"Species {index}" for index in range(count)]
@@ -82,11 +88,54 @@ def test_stage4_requires_four_graph_ready_species_before_continuing():
     assert _stage4_animal_collection_ready(
         ["Species 1", "Species 2", "Species 3", "Species 4"]
     )
-    assert _stage4_animal_collection_ready(
-        ["Species 1", "Species 2", "Species 3", "Species 4", "Species 5"]
-    )
+    for count in range(STAGE4_ANIMAL_COLLECTION_MIN_SELECTION, 9):
+        assert _stage4_animal_collection_ready([f"Species {index}" for index in range(count)])
+    assert not _stage4_animal_collection_ready([f"Species {index}" for index in range(9)])
 
 
 def test_stage4_has_no_zero_selection_continuation_path():
     assert not hasattr(year8, "_continue_stage4_without_animals")
     assert not hasattr(year8, "_finish_stage4_animal_collection")
+
+
+def test_stage4_body_mass_resolves_saved_scientific_names_in_order():
+    species_data = species_traits_from_observations(load_data())
+    selected = selected_species_body_mass(
+        species_data,
+        ["Corvus brachyrhynchos", "Mus musculus", "Unknown species", "Corvus brachyrhynchos"],
+    )
+    assert selected["Scientific name"].tolist() == ["Corvus brachyrhynchos", "Mus musculus"]
+    assert selected["body mass (kg)"].gt(0).all()
+
+
+def test_stage4_body_mass_uses_the_same_evidence_and_selected_anchors_in_both_views():
+    evidence = _stage4_body_mass_evidence(load_data())
+    selected = selected_species_body_mass(evidence, ["Mus musculus", "Canis familiaris"])
+    linear = histogram(evidence, "body mass (kg)", log_x=False, learner_selected_data=selected)
+    logarithmic = histogram(evidence, "body mass (kg)", log_x=True, learner_selected_data=selected)
+
+    assert linear.layout.xaxis.type in (None, "linear")
+    assert logarithmic.layout.xaxis.type == "log"
+    assert linear.data[-1].name == logarithmic.data[-1].name == "Your earlier searches"
+    assert linear.data[-1].customdata[:, 1].tolist() == logarithmic.data[-1].customdata[:, 1].tolist()
+    assert linear.data[-1].x.tolist() == logarithmic.data[-1].x.tolist()
+
+
+def test_stage4_body_mass_sequence_requires_linear_graph_furniture_log_and_comparison():
+    assert year8.STAGE4_BODY_MASS_SEQUENCE == (
+        "linear representation",
+        "graph furniture",
+        "logarithmic representation",
+        "same and changed comparison",
+    )
+    source = inspect.getsource(year8._render_body_mass)
+    assert source.index("ordinary linear scale") < source.index("logarithmic (log) scale")
+    assert "variable, units and linear scale" in source
+    assert "Stayed the same" in source
+    assert "Changed" in source
+
+    assert not _stage4_body_mass_ready(False, True, True, True)
+    assert not _stage4_body_mass_ready(True, False, True, True)
+    assert not _stage4_body_mass_ready(True, True, False, True)
+    assert not _stage4_body_mass_ready(True, True, True, False)
+    assert _stage4_body_mass_ready(True, True, True, True)
