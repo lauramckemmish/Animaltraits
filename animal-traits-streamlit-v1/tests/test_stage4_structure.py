@@ -23,6 +23,7 @@ from experiences.year8 import (
     _stage4_body_mass_ready,
     _stage4_body_brain_ready,
     _stage4_animal_groups_ready,
+    _stage4_mammal_model_ready,
     _stage4_selected_animal_classes,
     _stage4_selected_animal_groups,
     _stage4_usable_species,
@@ -32,10 +33,13 @@ from data import body_brain_orientation, selected_species_body_brain, selected_s
 from charts import body_brain_group_scatter, body_brain_scatter
 from data import (
     body_brain_animal_groups,
+    body_brain_model_comparison_candidates,
+    body_brain_model_evidence,
     selected_species_taxonomy,
     taxonomy_group_size_summary,
     usable_body_brain_species,
 )
+from models import fit_relationship, power_law_scale_factor
 
 
 def test_stage4_has_the_canonical_ten_screen_sequence():
@@ -258,6 +262,46 @@ def test_stage4_animal_groups_gate_requires_grouped_evidence_comparison_and_mamm
     assert _stage4_animal_groups_ready(True, correct_comparison, "Mammal evidence")
 
 
+def test_stage4_model_candidates_use_stable_ids_and_the_ten_species_display_rule():
+    usable = usable_body_brain_species(species_traits_from_observations(load_data()))
+    candidates = body_brain_model_comparison_candidates(usable)
+
+    assert candidates.iloc[0]["Model id"] == "all"
+    assert candidates.iloc[0]["Rank"] == "Pooled evidence"
+    assert "class:Mammalia" not in candidates["Model id"].tolist()
+    assert candidates.loc[candidates["Model id"].ne("all"), "Usable species"].ge(10).all()
+    assert candidates["Label"].str.contains("species").all()
+    assert body_brain_model_evidence(usable, "all").equals(usable)
+    assert len(body_brain_model_evidence(usable, "order:Primates")) == 86
+
+
+def test_stage4_mammal_model_scaling_comes_from_the_shared_power_law_fit():
+    usable = usable_body_brain_species(species_traits_from_observations(load_data()))
+    mammal_fit = fit_relationship(
+        usable[usable["class"].eq("Mammalia")],
+        "body mass (kg)",
+        "brain size (kg)",
+        log_x=True,
+        log_y=True,
+    )
+
+    assert mammal_fit is not None
+    assert power_law_scale_factor(mammal_fit, 10) == pytest.approx(10 ** mammal_fit.slope)
+    assert power_law_scale_factor(mammal_fit, 100) == pytest.approx(100 ** mammal_fit.slope)
+    assert power_law_scale_factor(mammal_fit, 100) > 10
+
+
+def test_stage4_mammal_model_gate_requires_model_meaning_distinct_comparisons_and_interpretation():
+    correct_interpretation = (
+        "Changing which animals are used as evidence can change the fitted relationship and prediction."
+    )
+    assert not _stage4_mammal_model_ready(False, "More than 10×", "all", "order:Primates", True, correct_interpretation)
+    assert not _stage4_mammal_model_ready(True, "About 10×", "all", "order:Primates", True, correct_interpretation)
+    assert not _stage4_mammal_model_ready(True, "More than 10×", "all", "all", True, correct_interpretation)
+    assert not _stage4_mammal_model_ready(True, "More than 10×", "all", "order:Primates", False, correct_interpretation)
+    assert _stage4_mammal_model_ready(True, "More than 10×", "all", "order:Primates", True, correct_interpretation)
+
+
 def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_six_remains_a_skeleton():
     screen_five = inspect.getsource(year8._render_animal_groups)
     render_source = inspect.getsource(year8.render)
@@ -268,5 +312,6 @@ def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_six_remains_a_skel
     assert "useful analytical choice here, not a universal best grouping level" in screen_five
     assert "not a taxonomic class" in screen_five
     assert "elif screen_index == 4:" in render_source
+    assert "elif screen_index == 5:\n        _render_mammal_model(data)" in render_source
     assert "st.info(\"Lesson 1 ends here.\")" in render_source
-    assert "elif screen_index == 5:\n        _render" not in render_source
+    assert "elif screen_index == 6:\n        _render" not in render_source

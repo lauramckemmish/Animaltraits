@@ -73,6 +73,7 @@ TAXONOMY_DISPLAY_NAMES = {
     "genus": "Genus",
     "species": "Species",
 }
+STAGE4_MODEL_COMPARISON_RANKS = ("class", "order", "family", "genus")
 
 STUDENT_FIELDS = [
     "Common name",
@@ -365,6 +366,64 @@ def taxonomy_group_size_summary(
     return pd.DataFrame(
         records, columns=["Rank", "Groups", "Typical group size", "Largest group size"]
     )
+
+
+def body_brain_model_comparison_candidates(
+    usable_species: pd.DataFrame, minimum_species: int = 10
+) -> pd.DataFrame:
+    """Return stable, sufficiently sized evidence groups for model comparison.
+
+    ``usable_species`` is intentionally supplied by the caller so the same
+    species-level positive paired evidence can be used across an experience.
+    The threshold is an interaction choice, not a claim of statistical sufficiency.
+    """
+    if minimum_species < 1:
+        raise ValueError("minimum_species must be positive.")
+
+    records = [
+        {
+            "Model id": "all",
+            "Label": f"All animals · pooled evidence · {len(usable_species):,} species",
+            "Rank": "Pooled evidence",
+            "Group": "All animals",
+            "Usable species": len(usable_species),
+        }
+    ]
+    for rank in STAGE4_MODEL_COMPARISON_RANKS:
+        if rank not in usable_species.columns:
+            raise ValueError(f"AnimalTraits data is missing taxonomy rank: {rank}.")
+        counts = usable_species[rank].value_counts()
+        for group_name, count in counts[counts.ge(minimum_species)].items():
+            if rank == "class" and group_name == "Mammalia":
+                continue
+            display_name = CLASS_LABELS.get(group_name, group_name) if rank == "class" else group_name
+            records.append(
+                {
+                    "Model id": f"{rank}:{group_name}",
+                    "Label": f"{display_name} · {rank} · {count:,} species",
+                    "Rank": TAXONOMY_DISPLAY_NAMES[rank].lower(),
+                    "Group": group_name,
+                    "Usable species": int(count),
+                }
+            )
+    return pd.DataFrame(
+        records, columns=["Model id", "Label", "Rank", "Group", "Usable species"]
+    )
+
+
+def body_brain_model_evidence(usable_species: pd.DataFrame, model_id: str) -> pd.DataFrame:
+    """Reconstruct one model's evidence from its stable Stage 4 identifier."""
+    if model_id == "all":
+        return usable_species.copy()
+    try:
+        rank, group_name = model_id.split(":", maxsplit=1)
+    except ValueError as error:
+        raise ValueError(f"Invalid body-brain model identifier: {model_id}.") from error
+    if rank not in STAGE4_MODEL_COMPARISON_RANKS:
+        raise ValueError(f"Unsupported body-brain model rank: {rank}.")
+    if rank not in usable_species.columns:
+        raise ValueError(f"AnimalTraits data is missing taxonomy rank: {rank}.")
+    return usable_species[usable_species[rank].eq(group_name)].copy()
 
 
 def selected_species_body_mass(data: pd.DataFrame, scientific_names: list[str]) -> pd.DataFrame:

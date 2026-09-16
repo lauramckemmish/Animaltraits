@@ -34,6 +34,13 @@ def predict_power_law(fit: FitResult, x_value: float) -> float:
     return float(10 ** fit.intercept * float(x_value) ** fit.slope)
 
 
+def power_law_scale_factor(fit: FitResult, body_mass_factor: float) -> float:
+    """Return the predicted brain-mass multiplier for a body-mass multiplier."""
+    if body_mass_factor <= 0:
+        raise ValueError("body_mass_factor must be positive.")
+    return float(float(body_mass_factor) ** fit.slope)
+
+
 def _transform(values: np.ndarray, use_log: bool) -> np.ndarray:
     return np.log10(values) if use_log else values
 
