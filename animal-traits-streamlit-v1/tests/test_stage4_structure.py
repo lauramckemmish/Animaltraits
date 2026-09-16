@@ -6,7 +6,12 @@ import pandas as pd
 import pytest
 
 from experiences import year8
-from data import comparison_reference_masses, load_data, load_external_comparison_animals
+from data import (
+    comparison_reference_masses,
+    external_comparison_taxonomy,
+    load_data,
+    load_external_comparison_animals,
+)
 from experiences.year8 import (
     LESSON_LABELS,
     STAGE4_SCREENS,
@@ -25,6 +30,8 @@ from experiences.year8 import (
     _stage4_animal_groups_ready,
     _stage4_cat_model_ready,
     _clear_stage4_cat_comparison_state,
+    _stage4_elephant_model_ready,
+    _clear_stage4_elephant_comparison_state,
     _stage4_mammal_model_ready,
     _stage4_selected_animal_classes,
     _stage4_selected_animal_groups,
@@ -345,13 +352,70 @@ def test_stage4_cat_model_changes_invalidate_only_the_changed_comparison_state()
     assert state["stage4_cat_comparison_2_revealed"] is True
 
 
+def test_stage4_external_test_animal_taxonomy_is_identity_tied_and_compact():
+    assert external_comparison_taxonomy("Felis catus") == {
+        "Class": "Mammalia",
+        "Order": "Carnivora",
+        "Family": "Felidae",
+        "Genus": "Felis",
+    }
+    assert external_comparison_taxonomy("Loxodonta africana") == {
+        "Class": "Mammalia",
+        "Order": "Proboscidea",
+        "Family": "Elephantidae",
+        "Genus": "Loxodonta",
+    }
+
+
+def test_stage4_elephant_uses_the_checked_in_external_record_and_extrapolates_mammal_fit():
+    usable = usable_body_brain_species(species_traits_from_observations(load_data()))
+    elephant = load_external_comparison_animals().query(
+        "scientific_name == 'Loxodonta africana'"
+    ).iloc[0]
+    mammal_fit = fit_relationship(
+        usable[usable["class"].eq("Mammalia")],
+        "body mass (kg)",
+        "brain size (kg)",
+        log_x=True,
+        log_y=True,
+    )
+
+    assert (elephant["body_mass_kg"], elephant["brain_mass_kg"]) == (5550, 4.871)
+    assert mammal_fit is not None
+    assert prediction_range_status(mammal_fit, float(elephant["body_mass_kg"])) == "extrapolation"
+
+
+def test_stage4_elephant_model_changes_invalidate_only_the_changed_comparison_state():
+    state = {
+        "stage4_elephant_comparison_1_judgement": "Better",
+        "stage4_elephant_comparison_1_reason": "It includes large mammals.",
+        "stage4_elephant_comparison_1_revealed": True,
+        "stage4_elephant_comparison_2_judgement": "Worse",
+        "stage4_elephant_comparison_2_reason": "It is a narrow group.",
+        "stage4_elephant_comparison_2_revealed": True,
+    }
+
+    _clear_stage4_elephant_comparison_state(state, 2)
+
+    assert state["stage4_elephant_comparison_1_revealed"] is True
+    assert state["stage4_elephant_comparison_2_judgement"] is None
+    assert state["stage4_elephant_comparison_2_reason"] == ""
+    assert state["stage4_elephant_comparison_2_revealed"] is False
+
+
 def test_stage4_cat_gate_requires_both_current_comparison_reveals_and_takeaway():
     assert not _stage4_cat_model_ready(True, False, True, True)
     assert not _stage4_cat_model_ready(True, True, True, False)
     assert _stage4_cat_model_ready(True, True, True, True)
 
 
-def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_eight_remains_a_skeleton():
+def test_stage4_elephant_gate_requires_both_current_comparison_reveals_and_takeaway():
+    assert not _stage4_elephant_model_ready(True, True, False, True)
+    assert not _stage4_elephant_model_ready(True, True, True, False)
+    assert _stage4_elephant_model_ready(True, True, True, True)
+
+
+def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_nine_remains_a_skeleton():
     screen_five = inspect.getsource(year8._render_animal_groups)
     render_source = inspect.getsource(year8.render)
 
@@ -363,5 +427,6 @@ def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_eight_remains_a_sk
     assert "elif screen_index == 4:" in render_source
     assert "elif screen_index == 5:\n        _render_mammal_model(data)" in render_source
     assert "elif screen_index == 6:\n        _render_cat_model_testing(data)" in render_source
+    assert "elif screen_index == 7:\n        _render_elephant_model_testing(data)" in render_source
     assert "st.info(\"Lesson 1 ends here.\")" in render_source
-    assert "elif screen_index == 7:\n        _render" not in render_source
+    assert "elif screen_index == 8:\n        _render" not in render_source

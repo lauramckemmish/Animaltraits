@@ -33,6 +33,23 @@ EXTERNAL_COMPARISON_ANIMAL_FIELDS = [
     "source_verification_status",
 ]
 
+# Compact taxonomy context for the separately sourced test animals.  These
+# identities remain external comparison records, not AnimalTraits observations.
+EXTERNAL_COMPARISON_TAXONOMY = {
+    "Felis catus": {
+        "Class": "Mammalia",
+        "Order": "Carnivora",
+        "Family": "Felidae",
+        "Genus": "Felis",
+    },
+    "Loxodonta africana": {
+        "Class": "Mammalia",
+        "Order": "Proboscidea",
+        "Family": "Elephantidae",
+        "Genus": "Loxodonta",
+    },
+}
+
 CLASS_LABELS = {
     "Amphibia": "Amphibian",
     "Arachnida": "Arachnid",
@@ -200,6 +217,14 @@ def load_external_comparison_animals(
     if (comparisons[["body_mass_kg", "brain_mass_kg"]] <= 0).any().any():
         raise ValueError("External comparison masses must be positive.")
     return comparisons
+
+
+def external_comparison_taxonomy(scientific_name: str) -> dict[str, str]:
+    """Return compact taxonomy context for a checked-in external test animal."""
+    try:
+        return EXTERNAL_COMPARISON_TAXONOMY[scientific_name].copy()
+    except KeyError as error:
+        raise ValueError(f"No external comparison taxonomy is recorded for {scientific_name}.") from error
 
 
 def comparison_reference_masses(data: pd.DataFrame) -> tuple[float, float]:
