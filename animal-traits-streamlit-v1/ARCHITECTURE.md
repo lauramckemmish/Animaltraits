@@ -52,7 +52,7 @@ An experience should not contain reusable regression mathematics or general data
 ## V1 experience boundaries
 
 1. **CURIOUS** — enabled compact facilitated outreach experience.
-2. **Stage 4** — enabled canonical two-lesson teacher-deliverable pathway, implemented through the legacy Year 8 route/module. Its 10-screen structure is recorded in `experiences/STAGE4_DESIGN.md`.
+2. **Stage 4** — enabled canonical two-lesson teacher-deliverable pathway, implemented through the legacy Year 8 route/module. Its 11-screen structure is recorded in `experiences/STAGE4_DESIGN.md`.
 3. **Data Exploration Playground** — enabled open-exploration pathway. Uses one-, two- and three-variable exploration, an animal-class-only filter, and optional fitting in the two-variable view.
 4. **Find Your Animal** — separate inactive/future pathway. Do not implement until it becomes the active slice.
 

@@ -97,6 +97,15 @@ STAGE4_ELEPHANT_MAMMAL_PREDICTION_REVEALED_KEY = "stage4_elephant_mammal_predict
 STAGE4_ELEPHANT_EXTERNAL_EVIDENCE_REVEALED_KEY = "stage4_elephant_external_evidence_revealed"
 STAGE4_ELEPHANT_COMPARISON_SIGNATURE_KEY = "stage4_elephant_comparison_signature"
 STAGE4_ELEPHANT_TAKEAWAY_ACKNOWLEDGED_KEY = "stage4_elephant_takeaway_acknowledged"
+STAGE4_MODEL_JUDGEMENT_RANGE_CHOICE_KEY = "stage4_model_judgement_range_choice"
+STAGE4_MODEL_JUDGEMENT_RANGE_COMMITTED_KEY = "stage4_model_judgement_range_committed"
+STAGE4_MODEL_JUDGEMENT_EVIDENCE_CHOICE_KEY = "stage4_model_judgement_evidence_choice"
+STAGE4_MODEL_JUDGEMENT_EVIDENCE_COMMITTED_KEY = "stage4_model_judgement_evidence_committed"
+STAGE4_MODEL_JUDGEMENT_TESTING_CHOICE_KEY = "stage4_model_judgement_testing_choice"
+STAGE4_MODEL_JUDGEMENT_TESTING_COMMITTED_KEY = "stage4_model_judgement_testing_committed"
+STAGE4_MODEL_JUDGEMENT_RANGE_ANSWER = "The elephant prediction"
+STAGE4_MODEL_JUDGEMENT_EVIDENCE_ANSWER = "It depends"
+STAGE4_MODEL_JUDGEMENT_TESTING_ANSWER = "Not by itself"
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
 )
@@ -143,9 +152,14 @@ STAGE4_SCREENS = (
         "Judge trust before comparison evidence and reason about extrapolation.",
     ),
     Stage4Screen(
-        "Model limits",
-        "Ask what a body-mass and brain-mass model can show—and what it cannot establish.",
-        "Identify what the model captures and its scientific limits.",
+        "Judge model confidence",
+        "Use the cat and elephant tests to decide what evidence should affect confidence in a prediction.",
+        "Identify evidence range, evidence choice and independent testing as reasons for confidence.",
+    ),
+    Stage4Screen(
+        "Predict when the answer is unknown",
+        "Apply the model-judgement ideas when there is no answer to reveal.",
+        "Choose a defensible model and judge confidence without an answer key.",
     ),
     Stage4Screen(
         "Data Science",
@@ -161,9 +175,8 @@ def _lesson_for_screen(screen_index: int) -> int:
 
 
 def _lesson_screen_range(lesson_index: int) -> range:
-    """Return the five canonical screen indexes for a lesson."""
-    start = lesson_index * 5
-    return range(start, start + 5)
+    """Return the canonical screen indexes for one Stage 4 lesson."""
+    return range(0, 5) if lesson_index == 0 else range(5, len(STAGE4_SCREENS))
 
 
 def _screen_labels(screen_indexes: range) -> list[str]:
@@ -1645,6 +1658,144 @@ def _render_elephant_model_testing(data: pd.DataFrame) -> None:
     )
 
 
+def _commit_stage4_model_judgement(choice_key: str, committed_key: str) -> None:
+    """Record one Screen 9 judgement only when the learner chooses to check it."""
+    st.session_state[committed_key] = st.session_state.get(choice_key)
+
+
+def _stage4_model_judgement_ready(
+    evidence_range_judgement: str | None,
+    evidence_choice_judgement: str | None,
+    independent_testing_judgement: str | None,
+) -> bool:
+    """Return whether all three Screen 9 disciplinary judgements are complete."""
+    return (
+        evidence_range_judgement == STAGE4_MODEL_JUDGEMENT_RANGE_ANSWER
+        and evidence_choice_judgement == STAGE4_MODEL_JUDGEMENT_EVIDENCE_ANSWER
+        and independent_testing_judgement == STAGE4_MODEL_JUDGEMENT_TESTING_ANSWER
+    )
+
+
+def _render_model_judgement() -> None:
+    """Render Screen 9's sequential synthesis of evidence for model confidence."""
+    st.write("You tested the same modelling idea in two very different situations.")
+    st.write(
+        "**Cat:** the mammal prediction was interpolation, and you could compare it with separate evidence."
+    )
+    st.write(
+        "**Elephant:** the mammal prediction was extrapolation, and you could again compare it with separate evidence."
+    )
+    st.caption("Your other models also made their own predictions.")
+
+    range_judgement = st.session_state.get(STAGE4_MODEL_JUDGEMENT_RANGE_COMMITTED_KEY)
+    if range_judgement != STAGE4_MODEL_JUDGEMENT_RANGE_ANSWER:
+        st.radio(
+            "Which prediction gives you more reason to be cautious?",
+            ["The cat prediction", "The elephant prediction", "I'd be equally cautious"],
+            key=STAGE4_MODEL_JUDGEMENT_RANGE_CHOICE_KEY,
+            persist_state="session",
+        )
+        st.button(
+            "Check this judgement",
+            type="primary",
+            key="stage4_model_judgement_range_check",
+            on_click=_commit_stage4_model_judgement,
+            args=(
+                STAGE4_MODEL_JUDGEMENT_RANGE_CHOICE_KEY,
+                STAGE4_MODEL_JUDGEMENT_RANGE_COMMITTED_KEY,
+            ),
+        )
+        if range_judgement is not None:
+            st.caption(
+                "Compare where the cat and elephant sit relative to the body-mass evidence range used to build the mammal model, then try again."
+            )
+        completion_gate(False)
+        return
+
+    st.success(
+        "Yes — there's an extra reason for caution. The elephant's body mass is beyond the range of the mammal evidence used to build the model. That is extrapolation. Extrapolation can still give a useful prediction, but the evidence gives us less support for what happens that far beyond the measured range."
+    )
+
+    evidence_judgement = st.session_state.get(STAGE4_MODEL_JUDGEMENT_EVIDENCE_COMMITTED_KEY)
+    if evidence_judgement != STAGE4_MODEL_JUDGEMENT_EVIDENCE_ANSWER:
+        st.radio(
+            "A model uses more animals than another model. Does that automatically make it more useful for predicting a new mammal?",
+            ["Yes", "No", "It depends"],
+            key=STAGE4_MODEL_JUDGEMENT_EVIDENCE_CHOICE_KEY,
+            persist_state="session",
+        )
+        st.button(
+            "Check this judgement",
+            type="primary",
+            key="stage4_model_judgement_evidence_check",
+            on_click=_commit_stage4_model_judgement,
+            args=(
+                STAGE4_MODEL_JUDGEMENT_EVIDENCE_CHOICE_KEY,
+                STAGE4_MODEL_JUDGEMENT_EVIDENCE_COMMITTED_KEY,
+            ),
+        )
+        if evidence_judgement is not None:
+            st.caption(
+                "More data can help, but consider whether the evidence used to build each model is relevant to the new mammal before trying again."
+            )
+        completion_gate(False)
+        return
+
+    st.success(
+        "Exactly. More data can help — but what data they are matters. A model is built from particular evidence. For a new prediction, we should ask whether that evidence is relevant to the case we are trying to predict."
+    )
+
+    testing_judgement = st.session_state.get(STAGE4_MODEL_JUDGEMENT_TESTING_COMMITTED_KEY)
+    if testing_judgement != STAGE4_MODEL_JUDGEMENT_TESTING_ANSWER:
+        st.radio(
+            "One of your models happened to predict the cat very closely. Does that prove it is the model you should use for the next animal?",
+            ["Yes", "No", "Not by itself"],
+            key=STAGE4_MODEL_JUDGEMENT_TESTING_CHOICE_KEY,
+            persist_state="session",
+        )
+        st.button(
+            "Check this judgement",
+            type="primary",
+            key="stage4_model_judgement_testing_check",
+            on_click=_commit_stage4_model_judgement,
+            args=(
+                STAGE4_MODEL_JUDGEMENT_TESTING_CHOICE_KEY,
+                STAGE4_MODEL_JUDGEMENT_TESTING_COMMITTED_KEY,
+            ),
+        )
+        if testing_judgement is not None:
+            st.caption(
+                "A close prediction for one case is useful evidence. Think about what further tests against new, independent evidence would tell us, then try again."
+            )
+        completion_gate(False)
+        return
+
+    st.success(
+        "Right. One successful prediction is useful evidence, but it is only one test. We gain more confidence when a model continues to make useful predictions when we test it against new, independent evidence."
+    )
+    st.markdown("## So what makes a prediction more defensible?")
+    st.write("When scientists decide how much confidence to place in a model prediction, they ask:")
+    st.markdown("**Is the evidence relevant?**  ")
+    st.write("Was the model built from evidence that makes sense for this new case?")
+    st.markdown("**Are we inside the evidence range?**  ")
+    st.write("Are we predicting where we already have evidence, or extrapolating beyond it?")
+    st.markdown("**Is there enough appropriate evidence?**  ")
+    st.write("More useful evidence can strengthen a model, but quantity alone is not enough.")
+    st.markdown("**Has the model survived testing?**  ")
+    st.write("How has it performed when its predictions were compared with new, independent evidence?")
+    st.write(
+        "None of these guarantees that the prediction is right. They give us reasons for how much confidence to place in it."
+    )
+    st.write("Next challenge: what do you do when there is no answer to reveal?")
+    completion_gate(
+        _stage4_model_judgement_ready(
+            range_judgement,
+            evidence_judgement,
+            testing_judgement,
+        )
+    )
+
+
 def render(data: pd.DataFrame) -> None:
     """Render the first structural pass of the two-lesson Stage 4 experience."""
     screen_index = int(st.session_state.get("stage4_screen", 0))
@@ -1690,7 +1841,7 @@ def render(data: pd.DataFrame) -> None:
     scroll_to_top_if_requested("stage4_scroll_to_top")
     screen = STAGE4_SCREENS[screen_index]
     st.caption(
-        f"{LESSON_LABELS[_lesson_for_screen(screen_index)]} · Screen {screen_index + 1} of 10"
+        f"{LESSON_LABELS[_lesson_for_screen(screen_index)]} · Screen {screen_index + 1} of {len(STAGE4_SCREENS)}"
     )
     st.header(f"{screen_index + 1}. {screen.title}")
     if screen_index == 0:
@@ -1709,6 +1860,8 @@ def render(data: pd.DataFrame) -> None:
         _render_cat_model_testing(data)
     elif screen_index == 7:
         _render_elephant_model_testing(data)
+    elif screen_index == 8:
+        _render_model_judgement()
     else:
         st.write(screen.framing)
     if screen_index == 4:

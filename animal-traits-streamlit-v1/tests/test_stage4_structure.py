@@ -33,6 +33,7 @@ from experiences.year8 import (
     _stage4_elephant_model_ready,
     _clear_stage4_elephant_comparison_state,
     _stage4_mammal_model_ready,
+    _stage4_model_judgement_ready,
     _stage4_selected_animal_classes,
     _stage4_selected_animal_groups,
     _stage4_usable_species,
@@ -56,18 +57,19 @@ from models import (
 )
 
 
-def test_stage4_has_the_canonical_ten_screen_sequence():
+def test_stage4_has_the_canonical_eleven_screen_sequence():
     assert [screen.title for screen in STAGE4_SCREENS] == [
         "Start with scale", "Find your animals", "Body mass", "Body + brain", "Animal groups",
-        "Mammal model", "Test the model: cat", "Test the model: elephant", "Model limits", "Data Science",
+        "Mammal model", "Test the model: cat", "Test the model: elephant", "Judge model confidence",
+        "Predict when the answer is unknown", "Data Science",
     ]
 
 
 def test_stage4_lesson_boundary_is_after_screen_five():
     assert LESSON_LABELS == ("Lesson 1 — Seeing structure in data", "Lesson 2 — Using and trusting a model")
     assert list(_lesson_screen_range(0)) == [0, 1, 2, 3, 4]
-    assert list(_lesson_screen_range(1)) == [5, 6, 7, 8, 9]
-    assert [_lesson_for_screen(index) for index in range(10)] == [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+    assert list(_lesson_screen_range(1)) == [5, 6, 7, 8, 9, 10]
+    assert [_lesson_for_screen(index) for index in range(11)] == [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
 
 
 def test_stage4_scale_estimates_use_a_common_kilogram_unit():
@@ -415,7 +417,7 @@ def test_stage4_elephant_gate_requires_both_current_comparison_reveals_and_takea
     assert _stage4_elephant_model_ready(True, True, True, True)
 
 
-def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_nine_remains_a_skeleton():
+def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_nine_is_implemented():
     screen_five = inspect.getsource(year8._render_animal_groups)
     render_source = inspect.getsource(year8.render)
 
@@ -428,5 +430,27 @@ def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_nine_remains_a_ske
     assert "elif screen_index == 5:\n        _render_mammal_model(data)" in render_source
     assert "elif screen_index == 6:\n        _render_cat_model_testing(data)" in render_source
     assert "elif screen_index == 7:\n        _render_elephant_model_testing(data)" in render_source
+    assert "elif screen_index == 8:\n        _render_model_judgement()" in render_source
     assert "st.info(\"Lesson 1 ends here.\")" in render_source
-    assert "elif screen_index == 8:\n        _render" not in render_source
+
+
+def test_stage4_model_judgement_requires_three_intended_responses():
+    assert not _stage4_model_judgement_ready("The cat prediction", "It depends", "Not by itself")
+    assert not _stage4_model_judgement_ready("The elephant prediction", "No", "Not by itself")
+    assert not _stage4_model_judgement_ready("The elephant prediction", "It depends", "No")
+    assert _stage4_model_judgement_ready(
+        "The elephant prediction", "It depends", "Not by itself"
+    )
+
+
+def test_stage4_model_judgement_is_sequential_and_screen_ten_and_eleven_stay_placeholders():
+    source = inspect.getsource(year8._render_model_judgement)
+
+    assert source.index("Which prediction gives you more reason to be cautious?") < source.index(
+        "A model uses more animals than another model"
+    ) < source.index("One of your models happened to predict the cat very closely")
+    assert source.index("So what makes a prediction more defensible?") > source.index(
+        "One of your models happened to predict the cat very closely"
+    )
+    assert "elif screen_index == 9:\n        _render" not in inspect.getsource(year8.render)
+    assert "elif screen_index == 10:\n        _render" not in inspect.getsource(year8.render)
