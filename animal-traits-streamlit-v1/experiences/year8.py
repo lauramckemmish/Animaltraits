@@ -1395,7 +1395,7 @@ def _render_cat_model_testing(data: pd.DataFrame) -> None:
     both_comparisons_revealed = comparison_one_revealed and comparison_two_revealed
     if both_comparisons_revealed:
         st.write(
-            "Different fitted models can give different predictions for the same cat. Biological relevance, evidence range and the evidence included in the fit all matter when judging confidence."
+            "Different models can make different predictions for the same new animal. Testing those predictions against independent evidence gives us information about how the models perform."
         )
         takeaway_acknowledged = st.checkbox(
             "I can see why being closest for one cat does not prove a model is universally best.",
@@ -1625,7 +1625,7 @@ def _render_elephant_model_testing(data: pd.DataFrame) -> None:
     both_comparisons_revealed = comparison_one_revealed and comparison_two_revealed
     if both_comparisons_revealed:
         st.write(
-            "The same testing process works for another animal. Model relevance and evidence range both matter, and extrapolation can reduce confidence without guaranteeing failure."
+            "You have now tested the same models in two very different situations: a cat within the mammal evidence range and an elephant beyond it. The predictions did not all behave in the same way."
         )
         takeaway_acknowledged = st.checkbox(
             "I can see why extrapolation calls for caution and one close prediction does not prove a model is universally best.",
