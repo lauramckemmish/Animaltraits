@@ -23,13 +23,19 @@ from experiences.year8 import (
     _stage4_body_mass_ready,
     _stage4_body_brain_ready,
     _stage4_animal_groups_ready,
+    _stage4_selected_animal_classes,
     _stage4_selected_animal_groups,
     _stage4_usable_species,
 )
 from charts import histogram
 from data import body_brain_orientation, selected_species_body_brain, selected_species_body_mass, species_traits_from_observations
 from charts import body_brain_group_scatter, body_brain_scatter
-from data import body_brain_animal_groups, usable_body_brain_species
+from data import (
+    body_brain_animal_groups,
+    selected_species_taxonomy,
+    taxonomy_group_size_summary,
+    usable_body_brain_species,
+)
 
 
 def test_stage4_has_the_canonical_ten_screen_sequence():
@@ -203,6 +209,35 @@ def test_stage4_animal_groups_keep_saved_animals_visible_by_scientific_name():
     assert figure.data[-1].customdata[:, 1].tolist() == ["Rattus norvegicus", "Canis familiaris"]
 
 
+def test_stage4_taxonomy_details_keep_scientific_identity_and_dataset_provided_ranks():
+    data = species_traits_from_observations(load_data())
+    taxonomy = selected_species_taxonomy(
+        data, ["Rattus norvegicus", "Canis familiaris"]
+    )
+    selected_classes = _stage4_selected_animal_classes(
+        data, ["Rattus norvegicus", "Canis familiaris"]
+    )
+
+    assert taxonomy["Scientific name"].tolist() == ["Rattus norvegicus", "Canis familiaris"]
+    assert taxonomy["Class"].tolist() == ["Mammal", "Mammal"]
+    assert taxonomy[["Order", "Family", "Genus"]].notna().all().all()
+    assert selected_classes.columns.tolist() == ["Animal", "Scientific name", "Class"]
+
+
+def test_stage4_taxonomy_summary_uses_the_same_usable_paired_evidence():
+    usable = usable_body_brain_species(species_traits_from_observations(load_data()))
+    summary = taxonomy_group_size_summary(usable)
+    by_rank = summary.set_index("Rank")
+
+    assert len(usable) == 1196
+    assert by_rank.loc["Phylum", ["Groups", "Largest group size"]].tolist() == [4, 1145]
+    assert by_rank.loc["Class", ["Groups", "Typical group size"]].tolist() == [8, 23.5]
+    assert by_rank.loc["Order", ["Groups", "Typical group size"]].tolist() == [64, 4.0]
+    assert by_rank.loc["Family", ["Groups", "Typical group size"]].tolist() == [229, 2.0]
+    assert by_rank.loc["Genus", ["Groups", "Typical group size"]].tolist() == [668, 1.0]
+    assert by_rank.loc["Species", ["Groups", "Typical group size"]].tolist() == [1196, 1.0]
+
+
 def test_stage4_animal_groups_compare_mammals_and_reptiles_without_a_model_line():
     data = species_traits_from_observations(load_data())
     groups = body_brain_animal_groups(usable_body_brain_species(data))
@@ -230,6 +265,8 @@ def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_six_remains_a_skel
     assert "broadly similar body masses" in screen_five
     assert "does not establish a cause" in screen_five
     assert "We have not made a model yet" in screen_five
+    assert "useful analytical choice here, not a universal best grouping level" in screen_five
+    assert "not a taxonomic class" in screen_five
     assert "elif screen_index == 4:" in render_source
     assert "st.info(\"Lesson 1 ends here.\")" in render_source
     assert "elif screen_index == 5:\n        _render" not in render_source

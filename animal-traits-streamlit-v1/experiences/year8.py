@@ -16,8 +16,10 @@ from data import (
     search_student_animals,
     selected_species_body_mass,
     selected_species_body_brain,
+    selected_species_taxonomy,
     species_traits_from_observations,
     student_facing_data,
+    taxonomy_group_size_summary,
     usable_body_brain_species,
 )
 from ui_helpers import (
@@ -251,6 +253,22 @@ def _render_stage4_provenance() -> None:
         )
 
 
+def _render_stage4_taxonomy_details(
+    species_data: pd.DataFrame, scientific_names: list[str], heading: str
+) -> None:
+    """Offer optional dataset-provided taxonomy context without changing Screen 2's task."""
+    taxonomy = selected_species_taxonomy(species_data, scientific_names)
+    if taxonomy.empty:
+        return
+    with st.expander(heading):
+        st.write(
+            "AnimalTraits records several nested groups for each species: "
+            "Class → Order → Family → Genus → Species. The scientific name is the species identity."
+        )
+        st.dataframe(taxonomy, hide_index=True, width="stretch")
+        st.caption("These are dataset-provided taxonomy fields; you do not need to memorise the ranks.")
+
+
 def _render_find_your_animals(data: pd.DataFrame) -> None:
     """Render Stage 4's bounded exploration and carried-forward animal choice."""
     saved_species = _stage4_saved_species_from_session()
@@ -280,6 +298,11 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
             if len(matches) > 25:
                 st.caption("Showing the first 25 matches.")
             _render_stage4_measurement_summary(matches)
+            _render_stage4_taxonomy_details(
+                species_data,
+                matches["Scientific name"].tolist(),
+                "Where do these animals fit?",
+            )
 
             usable_matches = _stage4_usable_species(matches)
             if usable_matches.empty:
@@ -326,6 +349,9 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
                 on_click=_remove_stage4_species,
                 args=(scientific_name,),
             )
+        _render_stage4_taxonomy_details(
+            species_data, saved_species, "Where do your saved animals fit?"
+        )
 
     _render_stage4_provenance()
     st.divider()
@@ -697,6 +723,16 @@ def _stage4_selected_animal_groups(
     )
 
 
+def _stage4_selected_animal_classes(
+    species_data: pd.DataFrame, scientific_names: list[str]
+) -> pd.DataFrame:
+    """Return saved identities with the dataset-provided class used in Screen 5."""
+    taxonomy = selected_species_taxonomy(species_data, scientific_names)
+    return taxonomy[["Common name", "Scientific name", "Class"]].rename(
+        columns={"Common name": "Animal"}
+    )
+
+
 def _stage4_animal_groups_ready(
     grouped_evidence_inspected: bool, comparison: str | None, mammal_evidence: str | None
 ) -> bool:
@@ -715,6 +751,11 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
     usable_species = usable_body_brain_species(species_data)
     groups = body_brain_animal_groups(usable_species)
     selected_species = selected_species_body_brain(species_data, saved_species)
+    rank_summary = taxonomy_group_size_summary(usable_species)
+    other_invertebrate_counts = groups["Other invertebrates"]["class"].value_counts()
+    other_invertebrate_summary = "; ".join(
+        f"{animal_class} ({count})" for animal_class, count in other_invertebrate_counts.items()
+    )
     grouped_evidence_inspected = bool(
         st.session_state.get(STAGE4_ANIMAL_GROUPS_GROUPED_INSPECTED_KEY, False)
     )
@@ -723,9 +764,42 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
         "On Screen 4, the full evidence suggested that brain mass generally increases as body mass increases. "
         "Do all kinds of animals follow that relationship in the same way?"
     )
+    st.subheader("Choose a useful level for grouping")
+    st.write(
+        "AnimalTraits records nested taxonomic levels: Phylum → Class → Order → Family → Genus → Species. "
+        "The same species can be grouped more broadly or more narrowly."
+    )
+    st.write(
+        "At what level should we group these animals for this body–brain investigation? "
+        "Grouping too broadly can hide structure; grouping too finely can leave too few species to compare."
+    )
+    st.dataframe(
+        rank_summary[["Rank", "Groups", "Typical group size", "Largest group size"]],
+        column_config={
+            "Typical group size": st.column_config.NumberColumn(
+                "Typical group size", format="%.1f species"
+            ),
+            "Largest group size": st.column_config.NumberColumn(
+                "Largest group", format="%d species"
+            ),
+        },
+        hide_index=True,
+        width="stretch",
+    )
+    phylum_largest = int(
+        rank_summary.loc[rank_summary["Rank"].eq("Phylum"), "Largest group size"].item()
+    )
+    st.caption(
+        f"At phylum level, the largest group contains {phylum_largest:,} of {len(usable_species):,} usable species."
+    )
+    st.success(
+        "For this body–brain question and this dataset, class gives a useful balance: biologically meaningful groups that still contain enough evidence to compare."
+    )
+    st.caption("That is a useful analytical choice here, not a universal best grouping level.")
+
     st.caption("Your graph-ready animals remain part of the evidence. Their stable identities are their scientific names.")
     st.dataframe(
-        _stage4_selected_animal_groups(groups, selected_species),
+        _stage4_selected_animal_classes(species_data, saved_species),
         hide_index=True,
         width="stretch",
     )
@@ -740,11 +814,19 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
     )
 
     if grouped_evidence_inspected:
+        st.write("This graph principally groups species by taxonomic class.")
         st.plotly_chart(
             body_brain_group_scatter(groups, learner_selected_data=selected_species),
             width="stretch",
         )
-        st.caption("Orange points mark your earlier searches. Group colours reveal structure without drawing a model line.")
+        st.caption(
+            "Orange points mark your earlier searches. Group colours reveal structure without drawing a model line. "
+            "Small classes remain visible, but one- or few-species groups do not support strong trend claims."
+        )
+        st.info(
+            "‘Other invertebrates’ is a display grouping for readability, not a taxonomic class. "
+            f"In the usable evidence, it combines these classes: {other_invertebrate_summary}."
+        )
         st.write("What changes when you compare groups rather than treating every animal as one cloud?")
 
         st.subheader("Compare mammals and reptiles")

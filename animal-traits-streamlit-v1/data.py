@@ -64,6 +64,16 @@ BODY_BRAIN_GROUP_CLASSES = {
     ],
 }
 
+TAXONOMY_RANKS = ("phylum", "class", "order", "family", "genus", "species")
+TAXONOMY_DISPLAY_NAMES = {
+    "phylum": "Phylum",
+    "class": "Class",
+    "order": "Order",
+    "family": "Family",
+    "genus": "Genus",
+    "species": "Species",
+}
+
 STUDENT_FIELDS = [
     "Common name",
     "Scientific name",
@@ -274,6 +284,87 @@ def student_facing_data(data: pd.DataFrame) -> pd.DataFrame:
     prepared["Brain size (kg)"] = pd.to_numeric(prepared["brain size (kg)"], errors="coerce")
     prepared["Metabolic rate (W)"] = pd.to_numeric(prepared["metabolic rate (W)"], errors="coerce")
     return prepared[STUDENT_FIELDS].copy()
+
+
+def selected_species_taxonomy(data: pd.DataFrame, scientific_names: list[str]) -> pd.DataFrame:
+    """Resolve ordered scientific identities to dataset-provided taxonomy fields.
+
+    The supplied data is normally the established species-level aggregation. The
+    taxonomy remains dataset-provided: this helper does not look up, correct, or
+    infer ranks beyond the existing learner-friendly class label.
+    """
+    saved_order = []
+    for species in scientific_names:
+        if isinstance(species, str) and species.strip() and species.strip() not in saved_order:
+            saved_order.append(species.strip())
+
+    columns = ["Common name", "Scientific name", "Class", "Order", "Family", "Genus"]
+    if not saved_order:
+        return pd.DataFrame(columns=columns)
+
+    required = set(TAXONOMY_RANKS)
+    missing_columns = required.difference(data.columns)
+    if missing_columns:
+        raise ValueError(
+            "AnimalTraits data is missing taxonomy fields required for species details: "
+            f"{', '.join(sorted(missing_columns))}."
+        )
+
+    prepared = data.copy()
+    prepared["Scientific name"] = prepared["species"].fillna("").astype(str).str.strip()
+    prepared["Common name"] = resolve_common_names(prepared["Scientific name"])
+    prepared["Class"] = prepared["class"].map(CLASS_LABELS).fillna(prepared["class"])
+    prepared = prepared.rename(
+        columns={"order": "Order", "family": "Family", "genus": "Genus"}
+    )
+    prepared = prepared[prepared["Scientific name"].isin(saved_order)].drop_duplicates(
+        subset=["Scientific name"]
+    )
+    by_species = prepared.set_index("Scientific name")
+    records = []
+    for species in saved_order:
+        if species in by_species.index:
+            record = by_species.loc[species]
+            records.append(
+                {
+                    "Common name": record["Common name"],
+                    "Scientific name": species,
+                    "Class": record["Class"],
+                    "Order": record["Order"],
+                    "Family": record["Family"],
+                    "Genus": record["Genus"],
+                }
+            )
+    return pd.DataFrame(records, columns=columns)
+
+
+def taxonomy_group_size_summary(
+    species_data: pd.DataFrame, ranks: tuple[str, ...] = TAXONOMY_RANKS
+) -> pd.DataFrame:
+    """Summarise how supplied species evidence divides across taxonomy ranks.
+
+    Callers choose the analytical population. For Stage 4, that is the positive
+    paired body-mass/brain-mass species evidence, rather than all source rows.
+    """
+    records = []
+    for rank in ranks:
+        if rank not in TAXONOMY_RANKS:
+            raise ValueError(f"Unsupported taxonomy rank: {rank}.")
+        if rank not in species_data.columns:
+            raise ValueError(f"AnimalTraits data is missing taxonomy rank: {rank}.")
+        values = species_data[rank].fillna("").astype(str).str.strip()
+        counts = values[values.ne("")].value_counts()
+        records.append(
+            {
+                "Rank": TAXONOMY_DISPLAY_NAMES[rank],
+                "Groups": int(len(counts)),
+                "Typical group size": float(counts.median()) if not counts.empty else 0.0,
+                "Largest group size": int(counts.max()) if not counts.empty else 0,
+            }
+        )
+    return pd.DataFrame(
+        records, columns=["Rank", "Groups", "Typical group size", "Largest group size"]
+    )
 
 
 def selected_species_body_mass(data: pd.DataFrame, scientific_names: list[str]) -> pd.DataFrame:
