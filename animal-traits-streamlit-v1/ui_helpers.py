@@ -309,6 +309,35 @@ def completion_gate(is_complete: bool) -> bool:
     return is_complete
 
 
+def bounded_prediction_with_reason(
+    prompt: str,
+    key_prefix: str,
+    *,
+    reason_label: str = "Why?",
+) -> tuple[str | None, str, bool]:
+    """Collect a bounded prediction and a brief reason before an evidence reveal.
+
+    The caller owns the surrounding evidence and reveal sequence.  Keys are
+    namespaced so a caller can independently invalidate one prediction without
+    disturbing another.
+    """
+    judgement = st.segmented_control(
+        prompt,
+        ["Better", "Worse", "About the same"],
+        default=None,
+        key=f"{key_prefix}_judgement",
+        persist_state="session",
+        width="stretch",
+    )
+    reason = st.text_input(
+        reason_label,
+        key=f"{key_prefix}_reason",
+        placeholder="A few words is enough",
+        persist_state="session",
+    )
+    return judgement, reason, judgement is not None and bool(reason.strip())
+
+
 def hard_reveal(
     prompt: str,
     key: str,

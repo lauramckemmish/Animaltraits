@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from experiences import year8
-from data import comparison_reference_masses, load_data
+from data import comparison_reference_masses, load_data, load_external_comparison_animals
 from experiences.year8 import (
     LESSON_LABELS,
     STAGE4_SCREENS,
@@ -23,6 +23,8 @@ from experiences.year8 import (
     _stage4_body_mass_ready,
     _stage4_body_brain_ready,
     _stage4_animal_groups_ready,
+    _stage4_cat_model_ready,
+    _clear_stage4_cat_comparison_state,
     _stage4_mammal_model_ready,
     _stage4_selected_animal_classes,
     _stage4_selected_animal_groups,
@@ -39,7 +41,12 @@ from data import (
     taxonomy_group_size_summary,
     usable_body_brain_species,
 )
-from models import fit_relationship, power_law_scale_factor
+from models import (
+    fit_relationship,
+    power_law_scale_factor,
+    predict_power_law,
+    prediction_range_status,
+)
 
 
 def test_stage4_has_the_canonical_ten_screen_sequence():
@@ -302,7 +309,49 @@ def test_stage4_mammal_model_gate_requires_model_meaning_distinct_comparisons_an
     assert _stage4_mammal_model_ready(True, "More than 10×", "all", "order:Primates", True, correct_interpretation)
 
 
-def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_six_remains_a_skeleton():
+def test_stage4_cat_uses_the_external_comparison_record_and_model_specific_ranges():
+    usable = usable_body_brain_species(species_traits_from_observations(load_data()))
+    cat = load_external_comparison_animals().query("scientific_name == 'Felis catus'").iloc[0]
+    mammal_fit = fit_relationship(
+        usable[usable["class"].eq("Mammalia")],
+        "body mass (kg)",
+        "brain size (kg)",
+        log_x=True,
+        log_y=True,
+    )
+
+    assert (cat["body_mass_kg"], cat["brain_mass_kg"]) == (4.0, 0.0284)
+    assert mammal_fit is not None
+    assert predict_power_law(mammal_fit, float(cat["body_mass_kg"])) > 0
+    assert prediction_range_status(mammal_fit, float(cat["body_mass_kg"])) == "interpolation"
+
+
+def test_stage4_cat_model_changes_invalidate_only_the_changed_comparison_state():
+    state = {
+        "stage4_cat_comparison_1_judgement": "Better",
+        "stage4_cat_comparison_1_reason": "It is more biologically similar.",
+        "stage4_cat_comparison_1_revealed": True,
+        "stage4_cat_comparison_2_judgement": "Worse",
+        "stage4_cat_comparison_2_reason": "It has different evidence.",
+        "stage4_cat_comparison_2_revealed": True,
+    }
+
+    _clear_stage4_cat_comparison_state(state, 1)
+
+    assert state["stage4_cat_comparison_1_judgement"] is None
+    assert state["stage4_cat_comparison_1_reason"] == ""
+    assert state["stage4_cat_comparison_1_revealed"] is False
+    assert state["stage4_cat_comparison_2_judgement"] == "Worse"
+    assert state["stage4_cat_comparison_2_revealed"] is True
+
+
+def test_stage4_cat_gate_requires_both_current_comparison_reveals_and_takeaway():
+    assert not _stage4_cat_model_ready(True, False, True, True)
+    assert not _stage4_cat_model_ready(True, True, True, False)
+    assert _stage4_cat_model_ready(True, True, True, True)
+
+
+def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_eight_remains_a_skeleton():
     screen_five = inspect.getsource(year8._render_animal_groups)
     render_source = inspect.getsource(year8.render)
 
@@ -313,5 +362,6 @@ def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_six_remains_a_skel
     assert "not a taxonomic class" in screen_five
     assert "elif screen_index == 4:" in render_source
     assert "elif screen_index == 5:\n        _render_mammal_model(data)" in render_source
+    assert "elif screen_index == 6:\n        _render_cat_model_testing(data)" in render_source
     assert "st.info(\"Lesson 1 ends here.\")" in render_source
-    assert "elif screen_index == 6:\n        _render" not in render_source
+    assert "elif screen_index == 7:\n        _render" not in render_source

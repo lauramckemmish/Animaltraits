@@ -41,6 +41,14 @@ def power_law_scale_factor(fit: FitResult, body_mass_factor: float) -> float:
     return float(float(body_mass_factor) ** fit.slope)
 
 
+def prediction_range_status(fit: FitResult, x_value: float) -> str:
+    """Classify an input as interpolation or extrapolation for one fitted model."""
+    if x_value <= 0:
+        raise ValueError("x_value must be positive.")
+    lower, upper = float(np.min(fit.x_line)), float(np.max(fit.x_line))
+    return "interpolation" if lower <= float(x_value) <= upper else "extrapolation"
+
+
 def _transform(values: np.ndarray, use_log: bool) -> np.ndarray:
     return np.log10(values) if use_log else values
 

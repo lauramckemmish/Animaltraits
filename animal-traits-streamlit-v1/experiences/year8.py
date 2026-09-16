@@ -15,6 +15,7 @@ from data import (
     body_brain_model_evidence,
     body_brain_orientation,
     comparison_reference_masses,
+    load_external_comparison_animals,
     search_student_animals,
     selected_species_body_mass,
     selected_species_body_brain,
@@ -24,8 +25,14 @@ from data import (
     taxonomy_group_size_summary,
     usable_body_brain_species,
 )
-from models import fit_relationship, power_law_scale_factor
+from models import (
+    fit_relationship,
+    power_law_scale_factor,
+    predict_power_law,
+    prediction_range_status,
+)
 from ui_helpers import (
+    bounded_prediction_with_reason,
     completion_gate,
     page_header,
     scroll_to_top_if_requested,
@@ -81,6 +88,10 @@ STAGE4_MAMMAL_MODEL_COMPARISON_INSPECTED_KEY = "stage4_mammal_model_comparison_i
 STAGE4_MAMMAL_MODEL_INTERPRETATION_KEY = "stage4_mammal_model_interpretation"
 STAGE4_CARRIED_MODELS_KEY = "stage4_carried_models"
 STAGE4_MAMMAL_MODEL_COMPARISON_SIGNATURE_KEY = "stage4_mammal_model_comparison_signature"
+STAGE4_CAT_MAMMAL_PREDICTION_REVEALED_KEY = "stage4_cat_mammal_prediction_revealed"
+STAGE4_CAT_EXTERNAL_EVIDENCE_REVEALED_KEY = "stage4_cat_external_evidence_revealed"
+STAGE4_CAT_COMPARISON_SIGNATURE_KEY = "stage4_cat_comparison_signature"
+STAGE4_CAT_TAKEAWAY_ACKNOWLEDGED_KEY = "stage4_cat_takeaway_acknowledged"
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
 )
@@ -953,6 +964,42 @@ def _stage4_mammal_model_ready(
     )
 
 
+def _stage4_comparison_model_selectors(
+    candidates: pd.DataFrame,
+    *,
+    on_change_one=None,
+    on_change_two=None,
+) -> tuple[str, str, dict[str, str]]:
+    """Render the shared editable Stage 4 comparison-model selectors."""
+    candidate_ids = candidates["Model id"].tolist()
+    candidate_labels = candidates.set_index("Model id")["Label"].to_dict()
+    for state_key in [STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY, STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY]:
+        if st.session_state.get(state_key, "") not in candidate_ids:
+            st.session_state[state_key] = ""
+    if st.session_state.get(STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY) == st.session_state.get(
+        STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY
+    ):
+        st.session_state[STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY] = ""
+
+    comparison_one = st.selectbox(
+        "First comparison model",
+        [""] + candidate_ids,
+        format_func=lambda model_id: "Choose a comparison group…" if not model_id else candidate_labels[model_id],
+        key=STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY,
+        persist_state="session",
+        on_change=on_change_one,
+    )
+    comparison_two = st.selectbox(
+        "Second comparison model",
+        [""] + [model_id for model_id in candidate_ids if model_id != comparison_one],
+        format_func=lambda model_id: "Choose a comparison group…" if not model_id else candidate_labels[model_id],
+        key=STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY,
+        persist_state="session",
+        on_change=on_change_two,
+    )
+    return comparison_one, comparison_two, candidate_labels
+
+
 def _render_mammal_model(data: pd.DataFrame) -> None:
     """Render Screen 6's evidence-grounded mammal model and comparison choices."""
     species_data = species_traits_from_observations(data)
@@ -1024,30 +1071,7 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
         "that is a practical display rule here, not a universal statistical threshold."
     )
     candidates = body_brain_model_comparison_candidates(usable_species)
-    candidate_ids = candidates["Model id"].tolist()
-    candidate_labels = candidates.set_index("Model id")["Label"].to_dict()
-    for state_key in [STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY, STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY]:
-        if st.session_state.get(state_key, "") not in candidate_ids:
-            st.session_state[state_key] = ""
-    if st.session_state.get(STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY) == st.session_state.get(
-        STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY
-    ):
-        st.session_state[STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY] = ""
-
-    comparison_one = st.selectbox(
-        "First comparison model",
-        [""] + candidate_ids,
-        format_func=lambda model_id: "Choose a comparison group…" if not model_id else candidate_labels[model_id],
-        key=STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY,
-        persist_state="session",
-    )
-    comparison_two = st.selectbox(
-        "Second comparison model",
-        [""] + [model_id for model_id in candidate_ids if model_id != comparison_one],
-        format_func=lambda model_id: "Choose a comparison group…" if not model_id else candidate_labels[model_id],
-        key=STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY,
-        persist_state="session",
-    )
+    comparison_one, comparison_two, candidate_labels = _stage4_comparison_model_selectors(candidates)
 
     comparison_signature = (comparison_one, comparison_two)
     if st.session_state.get(STAGE4_MAMMAL_MODEL_COMPARISON_SIGNATURE_KEY) != comparison_signature:
@@ -1149,6 +1173,233 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
     )
 
 
+def _stage4_cat_comparison_prefix(slot: int) -> str:
+    """Return the stable, independently invalidated state namespace for one cat model."""
+    if slot not in (1, 2):
+        raise ValueError("Stage 4 cat comparison slots must be 1 or 2.")
+    return f"stage4_cat_comparison_{slot}"
+
+
+def _clear_stage4_cat_comparison_state(state, slot: int) -> None:
+    """Clear one changed comparison model's prediction, reason and result only."""
+    prefix = _stage4_cat_comparison_prefix(slot)
+    state[f"{prefix}_judgement"] = None
+    state[f"{prefix}_reason"] = ""
+    state[f"{prefix}_revealed"] = False
+
+
+def _sync_stage4_cat_comparison_state(comparison_one: str, comparison_two: str) -> None:
+    """Invalidate only the changed cat-model result when carried choices change."""
+    current = (comparison_one, comparison_two)
+    previous = st.session_state.get(STAGE4_CAT_COMPARISON_SIGNATURE_KEY)
+    if previous is not None:
+        if previous[0] != comparison_one:
+            _clear_stage4_cat_comparison_state(st.session_state, 1)
+        if previous[1] != comparison_two:
+            _clear_stage4_cat_comparison_state(st.session_state, 2)
+    st.session_state[STAGE4_CAT_COMPARISON_SIGNATURE_KEY] = current
+
+
+def _stage4_cat_model_ready(
+    external_evidence_revealed: bool,
+    comparison_one_revealed: bool,
+    comparison_two_revealed: bool,
+    takeaway_acknowledged: bool,
+) -> bool:
+    """Return whether Screen 7 has completed its prediction-to-evidence sequence."""
+    return (
+        external_evidence_revealed
+        and comparison_one_revealed
+        and comparison_two_revealed
+        and takeaway_acknowledged
+    )
+
+
+def _render_stage4_cat_comparison(
+    *,
+    slot: int,
+    model_id: str,
+    model_label: str,
+    usable_species: pd.DataFrame,
+    cat_body_mass: float,
+    cat_brain_mass: float,
+    mammal_prediction: float,
+) -> bool:
+    """Render one independently gated comparison-model prediction for the cat."""
+    prefix = _stage4_cat_comparison_prefix(slot)
+    evidence = body_brain_model_evidence(usable_species, model_id)
+    fit = _stage4_model_fit(evidence)
+    if fit is None:
+        st.warning(f"{model_label} no longer has enough usable evidence to build a model.")
+        return False
+
+    with st.container(border=True):
+        st.markdown(f"**{model_label}**")
+        judgement, reason, committed = bounded_prediction_with_reason(
+            "Compared with the mammal model, will this model predict the cat's brain mass…",
+            prefix,
+            reason_label="Why?",
+        )
+        if not committed:
+            st.caption("Choose Better, Worse or About the same and add a few words before revealing this model's prediction.")
+            return False
+
+        revealed_key = f"{prefix}_revealed"
+        if not st.session_state.get(revealed_key, False):
+            st.button(
+                "Reveal this model's cat prediction",
+                type="primary",
+                key=f"{prefix}_reveal_button",
+                on_click=lambda: st.session_state.__setitem__(revealed_key, True),
+            )
+            return False
+
+        predicted_brain_mass = predict_power_law(fit, cat_body_mass)
+        range_status = prediction_range_status(fit, cat_body_mass)
+        st.success(
+            f"**Model-derived cat prediction:** {predicted_brain_mass * 1000:.1f} g brain mass."
+        )
+        st.write(
+            f"For this model, the cat's body mass is **{range_status}**: it is "
+            + ("inside" if range_status == "interpolation" else "outside")
+            + " the body-mass range of the evidence used to fit this model."
+        )
+        st.caption(
+            f"**Separate external cat brain-mass evidence:** {cat_brain_mass * 1000:.1f} g. "
+            f"The mammal model predicted {mammal_prediction * 1000:.1f} g."
+        )
+        st.write("This one case does not prove which model is universally best.")
+    return True
+
+
+def _render_cat_model_testing(data: pd.DataFrame) -> None:
+    """Render Screen 7's domestic-cat prediction and model-testing sequence."""
+    species_data = species_traits_from_observations(data)
+    usable_species = usable_body_brain_species(species_data)
+    mammal_evidence = usable_species[usable_species["class"].eq("Mammalia")].copy()
+    mammal_fit = _stage4_model_fit(mammal_evidence)
+    cat_records = load_external_comparison_animals().query("scientific_name == 'Felis catus'")
+    if mammal_fit is None or cat_records.empty:
+        st.warning("The mammal model or separate domestic-cat comparison record is unavailable.")
+        completion_gate(False)
+        return
+
+    cat = cat_records.iloc[0]
+    cat_body_mass = float(cat["body_mass_kg"])
+    cat_brain_mass = float(cat["brain_mass_kg"])
+    mammal_prediction = predict_power_law(mammal_fit, cat_body_mass)
+    mammal_range_status = prediction_range_status(mammal_fit, cat_body_mass)
+
+    st.write("A domestic cat is a mammal. First, use the mammal model as a worked example before returning to the two other models you chose.")
+    st.write(f"**Cat body mass (input to the model): {cat_body_mass:.1f} kg.**")
+    st.caption("The AnimalTraits mammal evidence built this model. The separate cat brain-mass evidence stays hidden until after the prediction.")
+    st.plotly_chart(
+        body_brain_group_fit_scatter(
+            species_data,
+            groups={"Mammal": mammal_evidence},
+            fits={"Mammal": mammal_fit},
+            title="Mammal model used for the domestic-cat prediction",
+        ),
+        width="stretch",
+    )
+
+    if not st.session_state.get(STAGE4_CAT_MAMMAL_PREDICTION_REVEALED_KEY, False):
+        st.button(
+            "Use the mammal model to predict the cat's brain mass",
+            type="primary",
+            key="stage4_cat_mammal_prediction_button",
+            on_click=lambda: st.session_state.__setitem__(
+                STAGE4_CAT_MAMMAL_PREDICTION_REVEALED_KEY, True
+            ),
+        )
+        completion_gate(False)
+        return
+
+    st.success(f"**Mammal-model prediction:** {mammal_prediction * 1000:.1f} g brain mass.")
+    st.write(
+        f"This is **{mammal_range_status}** because the cat's {cat_body_mass:.1f} kg body mass is "
+        + ("inside" if mammal_range_status == "interpolation" else "outside")
+        + " the body-mass range used to build the mammal model. Interpolation does not guarantee accuracy."
+    )
+    if not st.session_state.get(STAGE4_CAT_EXTERNAL_EVIDENCE_REVEALED_KEY, False):
+        st.button(
+            "Reveal the separate cat brain-mass evidence",
+            type="primary",
+            key="stage4_cat_external_evidence_button",
+            on_click=lambda: st.session_state.__setitem__(
+                STAGE4_CAT_EXTERNAL_EVIDENCE_REVEALED_KEY, True
+            ),
+        )
+        completion_gate(False)
+        return
+
+    st.info(
+        f"**Separate external cat brain-mass evidence:** {cat_brain_mass * 1000:.1f} g. "
+        "This value was not used to build any of these AnimalTraits models."
+    )
+    st.caption("Source: Translating Time scientific database; Workman et al. (2013).")
+
+    st.subheader("Test the two other models you built")
+    st.write("You also built two other models. They begin with your Screen 6 choices, and you can still change either one.")
+    candidates = body_brain_model_comparison_candidates(usable_species)
+    comparison_one, comparison_two, candidate_labels = _stage4_comparison_model_selectors(
+        candidates,
+        on_change_one=lambda: _clear_stage4_cat_comparison_state(st.session_state, 1),
+        on_change_two=lambda: _clear_stage4_cat_comparison_state(st.session_state, 2),
+    )
+    _sync_stage4_cat_comparison_state(comparison_one, comparison_two)
+    st.session_state[STAGE4_CARRIED_MODELS_KEY] = {
+        "mammal": "class:Mammalia",
+        "comparison_one": comparison_one,
+        "comparison_two": comparison_two,
+    }
+
+    comparison_one_revealed = False
+    comparison_two_revealed = False
+    if comparison_one:
+        comparison_one_revealed = _render_stage4_cat_comparison(
+            slot=1,
+            model_id=comparison_one,
+            model_label=candidate_labels[comparison_one],
+            usable_species=usable_species,
+            cat_body_mass=cat_body_mass,
+            cat_brain_mass=cat_brain_mass,
+            mammal_prediction=mammal_prediction,
+        )
+    if comparison_two:
+        comparison_two_revealed = _render_stage4_cat_comparison(
+            slot=2,
+            model_id=comparison_two,
+            model_label=candidate_labels[comparison_two],
+            usable_species=usable_species,
+            cat_body_mass=cat_body_mass,
+            cat_brain_mass=cat_brain_mass,
+            mammal_prediction=mammal_prediction,
+        )
+
+    both_comparisons_revealed = comparison_one_revealed and comparison_two_revealed
+    if both_comparisons_revealed:
+        st.write(
+            "Different fitted models can give different predictions for the same cat. Biological relevance, evidence range and the evidence included in the fit all matter when judging confidence."
+        )
+        takeaway_acknowledged = st.checkbox(
+            "I can see why being closest for one cat does not prove a model is universally best.",
+            key=STAGE4_CAT_TAKEAWAY_ACKNOWLEDGED_KEY,
+            persist_state="session",
+        )
+    else:
+        takeaway_acknowledged = False
+
+    completion_gate(
+        _stage4_cat_model_ready(
+            True,
+            comparison_one_revealed,
+            comparison_two_revealed,
+            takeaway_acknowledged,
+        )
+    )
+
+
 def render(data: pd.DataFrame) -> None:
     """Render the first structural pass of the two-lesson Stage 4 experience."""
     screen_index = int(st.session_state.get("stage4_screen", 0))
@@ -1209,6 +1460,8 @@ def render(data: pd.DataFrame) -> None:
         _render_animal_groups(data)
     elif screen_index == 5:
         _render_mammal_model(data)
+    elif screen_index == 6:
+        _render_cat_model_testing(data)
     else:
         st.write(screen.framing)
     if screen_index == 4:
