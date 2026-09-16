@@ -3,11 +3,15 @@
 import pandas as pd
 import pytest
 
+from experiences import year8
 from data import comparison_reference_masses, load_data
 from experiences.year8 import (
     LESSON_LABELS,
     STAGE4_SCREENS,
+    STAGE4_ANIMAL_COLLECTION_MAX_SELECTION,
+    STAGE4_ANIMAL_COLLECTION_MIN_SELECTION,
     _format_stage4_mass_kg,
+    _stage4_animal_collection_ready,
     _lesson_for_screen,
     _lesson_screen_range,
     _stage4_saved_species_after_adding,
@@ -52,7 +56,7 @@ def test_stage4_carried_forward_animals_use_bounded_scientific_name_identities()
 
     for index in range(10):
         saved = _stage4_saved_species_after_adding(saved, f"Species {index}")
-    assert len(saved) == 5
+    assert len(saved) == STAGE4_ANIMAL_COLLECTION_MAX_SELECTION
 
 
 def test_stage4_only_offers_species_with_both_later_graph_measurements():
@@ -66,3 +70,23 @@ def test_stage4_only_offers_species_with_both_later_graph_measurements():
     )
 
     assert _stage4_usable_species(matches)["Scientific name"].tolist() == ["Both values"]
+
+
+def test_stage4_requires_four_graph_ready_species_before_continuing():
+    assert STAGE4_ANIMAL_COLLECTION_MIN_SELECTION == 4
+    assert STAGE4_ANIMAL_COLLECTION_MAX_SELECTION == 5
+    for count in range(STAGE4_ANIMAL_COLLECTION_MIN_SELECTION):
+        assert not _stage4_animal_collection_ready(
+            [f"Species {index}" for index in range(count)]
+        )
+    assert _stage4_animal_collection_ready(
+        ["Species 1", "Species 2", "Species 3", "Species 4"]
+    )
+    assert _stage4_animal_collection_ready(
+        ["Species 1", "Species 2", "Species 3", "Species 4", "Species 5"]
+    )
+
+
+def test_stage4_has_no_zero_selection_continuation_path():
+    assert not hasattr(year8, "_continue_stage4_without_animals")
+    assert not hasattr(year8, "_finish_stage4_animal_collection")

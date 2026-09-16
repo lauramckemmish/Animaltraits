@@ -37,7 +37,7 @@ STAGE4_MASS_UNIT_TO_KG = {
     "tonnes": 1000.0,
 }
 STAGE4_SAVED_SPECIES_KEY = "stage4_saved_species"
-STAGE4_ANIMAL_COLLECTION_DECIDED_KEY = "stage4_animal_collection_decided"
+STAGE4_ANIMAL_COLLECTION_MIN_SELECTION = 4
 STAGE4_ANIMAL_COLLECTION_MAX_SELECTION = 5
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
@@ -154,6 +154,11 @@ def _stage4_saved_species_after_removing(
     return [species for species in saved_species if species != scientific_name]
 
 
+def _stage4_animal_collection_ready(saved_species: list[str]) -> bool:
+    """Return whether Stage 4 has enough graph-ready evidence to continue."""
+    return STAGE4_ANIMAL_COLLECTION_MIN_SELECTION <= len(saved_species) <= STAGE4_ANIMAL_COLLECTION_MAX_SELECTION
+
+
 def _stage4_saved_species_from_session() -> list[str]:
     """Return Stage 4's bounded, ordered carried-forward scientific names."""
     saved = st.session_state.setdefault(STAGE4_SAVED_SPECIES_KEY, [])
@@ -181,19 +186,6 @@ def _remove_stage4_species(scientific_name: str) -> None:
     )
 
 
-def _finish_stage4_animal_collection() -> None:
-    st.session_state[STAGE4_ANIMAL_COLLECTION_DECIDED_KEY] = True
-
-
-def _continue_stage4_without_animals() -> None:
-    st.session_state[STAGE4_SAVED_SPECIES_KEY] = []
-    st.session_state[STAGE4_ANIMAL_COLLECTION_DECIDED_KEY] = True
-
-
-def _change_stage4_animal_collection() -> None:
-    st.session_state[STAGE4_ANIMAL_COLLECTION_DECIDED_KEY] = False
-
-
 def _stage4_species_labels(data: pd.DataFrame, species_names: list[str]) -> dict[str, str]:
     """Resolve carried-forward scientific identities to current learner-facing labels."""
     student_data = student_facing_data(data)
@@ -213,8 +205,8 @@ def _render_stage4_measurement_summary(matches: pd.DataFrame) -> None:
     )
     if both_count != total_count:
         st.info(
-            "A missing value means this dataset does not contain that measurement for the species. "
-            "It does not mean the animal lacks a body or a brain."
+            "We found some species, but we do not have all the measurements needed for the next comparison. "
+            "A missing value means this dataset does not contain that measurement; it does not mean the animal lacks a body or a brain."
         )
 
 
@@ -232,31 +224,9 @@ def _render_stage4_provenance() -> None:
 
 def _render_find_your_animals(data: pd.DataFrame) -> None:
     """Render Stage 4's bounded exploration and carried-forward animal choice."""
-    collection_decided = bool(
-        st.session_state.get(STAGE4_ANIMAL_COLLECTION_DECIDED_KEY, False)
-    )
     saved_species = _stage4_saved_species_from_session()
+    collection_ready = _stage4_animal_collection_ready(saved_species)
     species_data = species_traits_from_observations(data)
-
-    if collection_decided:
-        labels = _stage4_species_labels(species_data, saved_species)
-        if saved_species:
-            st.success(
-                "You will carry forward: "
-                + ", ".join(labels.get(species, species) for species in saved_species)
-                + "."
-            )
-        else:
-            st.success("You chose to continue without saving animals.")
-        st.info("What did you notice about what this dataset does and does not contain?")
-        _render_stage4_provenance()
-        st.button(
-            "Change my choices",
-            key="stage4_change_animal_collection",
-            on_click=_change_stage4_animal_collection,
-        )
-        completion_gate(True)
-        return
 
     st.write("Search for animals you are curious about. Try more than one if you like.")
     animal_query = st.text_input(
@@ -289,9 +259,13 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
                     "You can still search for another animal."
                 )
             else:
+                st.success(
+                    f"{len(usable_matches):,} matching species have both body-mass and brain-mass evidence. "
+                    "They are graph-ready for the next comparison."
+                )
                 st.subheader("Carry animals forward")
                 st.caption(
-                    f"Choose up to {STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} species with both measurements for later graphs."
+                    f"Save {STAGE4_ANIMAL_COLLECTION_MIN_SELECTION}–{STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} graph-ready species for later graphs."
                 )
                 labels = _stage4_species_labels(
                     species_data, usable_matches["Scientific name"].tolist()
@@ -313,7 +287,7 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
         labels = _stage4_species_labels(species_data, saved_species)
         st.subheader("Your animals")
         st.caption(
-            f"{len(saved_species)} of {STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} saved for later Stage 4 graphs."
+            f"{len(saved_species)} of {STAGE4_ANIMAL_COLLECTION_MIN_SELECTION}–{STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} graph-ready species saved for later Stage 4 graphs."
         )
         for scientific_name in saved_species:
             label = labels.get(scientific_name, scientific_name)
@@ -326,19 +300,18 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
 
     _render_stage4_provenance()
     st.divider()
-    if saved_species:
-        st.button(
-            "Use these animals",
-            type="primary",
-            key="stage4_finish_animal_collection",
-            on_click=_finish_stage4_animal_collection,
+    if collection_ready:
+        st.success(
+            "Your graph-ready evidence set is ready for the next comparison."
         )
-    st.button(
-        "Continue without saving animals",
-        key="stage4_continue_without_animals",
-        on_click=_continue_stage4_without_animals,
-    )
-    completion_gate(False)
+        st.info("What did you notice about what this dataset does and does not contain?")
+    else:
+        remaining = STAGE4_ANIMAL_COLLECTION_MIN_SELECTION - len(saved_species)
+        st.info(
+            f"Keep searching and save {remaining} more graph-ready species before continuing. "
+            "No-match and incomplete results still help us understand this dataset's scope and evidence."
+        )
+    completion_gate(collection_ready)
 
 
 def _render_start_with_scale(data: pd.DataFrame) -> None:
