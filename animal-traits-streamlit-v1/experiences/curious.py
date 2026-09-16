@@ -18,6 +18,8 @@ from charts import (
     histogram,
 )
 from data import (
+    BODY_BRAIN_GROUP_CLASSES,
+    body_brain_animal_groups,
     comparison_reference_masses,
     body_brain_orientation,
     load_external_comparison_animals,
@@ -26,6 +28,7 @@ from data import (
     selected_species_body_brain,
     species_traits_from_observations,
     student_facing_data,
+    usable_body_brain_species,
     with_common_class_names,
 )
 from models import fit_relationship, predict_power_law
@@ -61,20 +64,7 @@ SEARCH_DISPLAY_COLUMNS = [
     "Brain size (kg)",
 ]
 
-CURIOUS_GROUP_CLASSES = {
-    "Mammal": ["Mammal"],
-    "Bird": ["Bird"],
-    "Reptile": ["Reptile"],
-    "Amphibian": ["Amphibian"],
-    "Insect": ["Insect"],
-    "Other invertebrates": [
-        "Arachnid",
-        "Centipede",
-        "Crustacean",
-        "Segmented worm",
-        "Snail / slug",
-    ],
-}
+CURIOUS_GROUP_CLASSES = BODY_BRAIN_GROUP_CLASSES
 CURIOUS_TREND_MINIMUM_SPECIES = 10
 CURIOUS_SAVED_SPECIES_KEY = "curious_saved_species"
 CURIOUS_ENCOUNTERED_ELIGIBLE_SPECIES_KEY = "curious_exploration_eligible_species"
@@ -244,22 +234,12 @@ def _start_reference_masses(data: pd.DataFrame) -> tuple[float, float]:
 
 def _curious_usable_body_brain_species(data: pd.DataFrame) -> pd.DataFrame:
     """Return CURIOUS's positive paired species-level body/brain data."""
-    usable = with_common_class_names(data)
-    for column in ["body mass (kg)", "brain size (kg)"]:
-        usable[column] = pd.to_numeric(usable[column], errors="coerce")
-    return usable[
-        usable["Animal class"].notna()
-        & (usable["body mass (kg)"] > 0)
-        & (usable["brain size (kg)"] > 0)
-    ].copy()
+    return usable_body_brain_species(data)
 
 
 def _curious_animal_groups(usable_species: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """Return CURIOUS-local learner groups from species-level data."""
-    return {
-        group_name: usable_species[usable_species["Animal class"].isin(class_names)].copy()
-        for group_name, class_names in CURIOUS_GROUP_CLASSES.items()
-    }
+    return body_brain_animal_groups(usable_species)
 
 
 def _curious_group_has_trend(group_name: str, group_data: pd.DataFrame) -> bool:

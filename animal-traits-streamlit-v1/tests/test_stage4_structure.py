@@ -22,11 +22,14 @@ from experiences.year8 import (
     _stage4_body_mass_evidence,
     _stage4_body_mass_ready,
     _stage4_body_brain_ready,
+    _stage4_animal_groups_ready,
+    _stage4_selected_animal_groups,
     _stage4_usable_species,
 )
 from charts import histogram
 from data import body_brain_orientation, selected_species_body_brain, selected_species_body_mass, species_traits_from_observations
-from charts import body_brain_scatter
+from charts import body_brain_group_scatter, body_brain_scatter
+from data import body_brain_animal_groups, usable_body_brain_species
 
 
 def test_stage4_has_the_canonical_ten_screen_sequence():
@@ -170,3 +173,63 @@ def test_stage4_body_brain_gate_requires_prediction_evidence_claim_and_reasoning
     assert not _stage4_body_brain_ready("Generally increase", True, "Every larger animal has a larger brain.", correct_reasoning)
     assert not _stage4_body_brain_ready("Generally increase", True, correct_claim, "Every point lies on one exact line.")
     assert _stage4_body_brain_ready("Generally increase", True, correct_claim, correct_reasoning)
+
+
+def test_stage4_animal_groups_use_valid_paired_species_and_established_learner_labels():
+    usable = usable_body_brain_species(species_traits_from_observations(load_data()))
+    groups = body_brain_animal_groups(usable)
+
+    assert list(groups) == [
+        "Mammal", "Bird", "Reptile", "Amphibian", "Insect", "Other invertebrates"
+    ]
+    assert all(
+        group_data[["body mass (kg)", "brain size (kg)"]].gt(0).all().all()
+        for group_data in groups.values()
+    )
+    assert not groups["Mammal"].empty
+    assert not groups["Reptile"].empty
+
+
+def test_stage4_animal_groups_keep_saved_animals_visible_by_scientific_name():
+    data = species_traits_from_observations(load_data())
+    selected = selected_species_body_brain(data, ["Rattus norvegicus", "Canis familiaris"])
+    groups = body_brain_animal_groups(usable_body_brain_species(data))
+    saved_groups = _stage4_selected_animal_groups(groups, selected)
+    figure = body_brain_group_scatter(groups, learner_selected_data=selected)
+
+    assert saved_groups["Scientific name"].tolist() == ["Rattus norvegicus", "Canis familiaris"]
+    assert saved_groups["Group"].tolist() == ["Mammal", "Mammal"]
+    assert figure.data[-1].name == "Your earlier searches"
+    assert figure.data[-1].customdata[:, 1].tolist() == ["Rattus norvegicus", "Canis familiaris"]
+
+
+def test_stage4_animal_groups_compare_mammals_and_reptiles_without_a_model_line():
+    data = species_traits_from_observations(load_data())
+    groups = body_brain_animal_groups(usable_body_brain_species(data))
+    figure = body_brain_group_scatter(
+        {"Mammal": groups["Mammal"], "Reptile": groups["Reptile"]}
+    )
+
+    assert figure.layout.xaxis.type == figure.layout.yaxis.type == "log"
+    assert [trace.name.split(" (")[0] for trace in figure.data] == ["Mammal", "Reptile"]
+    assert all(trace.mode != "lines" for trace in figure.data)
+
+
+def test_stage4_animal_groups_gate_requires_grouped_evidence_comparison_and_mammal_evidence():
+    correct_comparison = "Mammals tend to have larger brain masses than reptiles."
+    assert not _stage4_animal_groups_ready(False, correct_comparison, "Mammal evidence")
+    assert not _stage4_animal_groups_ready(True, "Every mammal has a larger brain mass than every reptile.", "Mammal evidence")
+    assert not _stage4_animal_groups_ready(True, correct_comparison, "All animal groups together")
+    assert _stage4_animal_groups_ready(True, correct_comparison, "Mammal evidence")
+
+
+def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_six_remains_a_skeleton():
+    screen_five = inspect.getsource(year8._render_animal_groups)
+    render_source = inspect.getsource(year8.render)
+
+    assert "broadly similar body masses" in screen_five
+    assert "does not establish a cause" in screen_five
+    assert "We have not made a model yet" in screen_five
+    assert "elif screen_index == 4:" in render_source
+    assert "st.info(\"Lesson 1 ends here.\")" in render_source
+    assert "elif screen_index == 5:\n        _render" not in render_source

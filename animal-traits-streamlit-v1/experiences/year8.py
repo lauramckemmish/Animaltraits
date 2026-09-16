@@ -8,8 +8,9 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from charts import body_brain_scatter, histogram
+from charts import body_brain_group_scatter, body_brain_scatter, histogram
 from data import (
+    body_brain_animal_groups,
     body_brain_orientation,
     comparison_reference_masses,
     search_student_animals,
@@ -17,6 +18,7 @@ from data import (
     selected_species_body_brain,
     species_traits_from_observations,
     student_facing_data,
+    usable_body_brain_species,
 )
 from ui_helpers import (
     completion_gate,
@@ -63,6 +65,9 @@ STAGE4_BODY_BRAIN_FULL_EVIDENCE_KEY = "stage4_body_brain_full_evidence_inspected
 STAGE4_BODY_BRAIN_CLAIM_KEY = "stage4_body_brain_claim"
 STAGE4_BODY_BRAIN_EVIDENCE_KEY = "stage4_body_brain_evidence_reasoning"
 STAGE4_BODY_BRAIN_PREDICTION_KEY = "stage4_body_brain_prediction"
+STAGE4_ANIMAL_GROUPS_GROUPED_INSPECTED_KEY = "stage4_animal_groups_grouped_inspected"
+STAGE4_ANIMAL_GROUPS_COMPARISON_KEY = "stage4_animal_groups_comparison"
+STAGE4_ANIMAL_GROUPS_MAMMAL_EVIDENCE_KEY = "stage4_animal_groups_mammal_evidence"
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
 )
@@ -676,6 +681,153 @@ def _render_body_brain(data: pd.DataFrame) -> None:
     )
 
 
+def _stage4_selected_animal_groups(
+    groups: dict[str, pd.DataFrame], selected_species: pd.DataFrame
+) -> pd.DataFrame:
+    """Attach the current learner-facing group label to each saved scientific identity."""
+    group_by_species = {
+        scientific_name: group_name
+        for group_name, group_data in groups.items()
+        for scientific_name in group_data["species"].fillna("").astype(str)
+    }
+    selected = selected_species.copy()
+    selected["Group"] = selected["Scientific name"].map(group_by_species).fillna("Not in this grouping")
+    return selected[["Common name", "Scientific name", "Group"]].rename(
+        columns={"Common name": "Animal"}
+    )
+
+
+def _stage4_animal_groups_ready(
+    grouped_evidence_inspected: bool, comparison: str | None, mammal_evidence: str | None
+) -> bool:
+    """Return whether the Lesson 1 group-comparison reasoning is complete."""
+    return (
+        grouped_evidence_inspected
+        and comparison == "Mammals tend to have larger brain masses than reptiles."
+        and mammal_evidence == "Mammal evidence"
+    )
+
+
+def _render_animal_groups(data: pd.DataFrame) -> None:
+    """Render Screen 5's grouped evidence comparison without fitting a model."""
+    saved_species = _stage4_saved_species_from_session()
+    species_data = species_traits_from_observations(data)
+    usable_species = usable_body_brain_species(species_data)
+    groups = body_brain_animal_groups(usable_species)
+    selected_species = selected_species_body_brain(species_data, saved_species)
+    grouped_evidence_inspected = bool(
+        st.session_state.get(STAGE4_ANIMAL_GROUPS_GROUPED_INSPECTED_KEY, False)
+    )
+
+    st.write(
+        "On Screen 4, the full evidence suggested that brain mass generally increases as body mass increases. "
+        "Do all kinds of animals follow that relationship in the same way?"
+    )
+    st.caption("Your graph-ready animals remain part of the evidence. Their stable identities are their scientific names.")
+    st.dataframe(
+        _stage4_selected_animal_groups(groups, selected_species),
+        hide_index=True,
+        width="stretch",
+    )
+
+    st.button(
+        "Inspect the grouped body–brain evidence",
+        type="primary",
+        key="stage4_animal_groups_inspect_grouped_evidence",
+        on_click=lambda: st.session_state.__setitem__(
+            STAGE4_ANIMAL_GROUPS_GROUPED_INSPECTED_KEY, True
+        ),
+    )
+
+    if grouped_evidence_inspected:
+        st.plotly_chart(
+            body_brain_group_scatter(groups, learner_selected_data=selected_species),
+            width="stretch",
+        )
+        st.caption("Orange points mark your earlier searches. Group colours reveal structure without drawing a model line.")
+        st.write("What changes when you compare groups rather than treating every animal as one cloud?")
+
+        st.subheader("Compare mammals and reptiles")
+        st.write(
+            "Look at mammals and reptiles with broadly similar body masses. Do not expect an exact match: compare the two clouds over overlapping parts of the body-mass range."
+        )
+        st.plotly_chart(
+            body_brain_group_scatter(
+                {"Mammal": groups["Mammal"], "Reptile": groups["Reptile"]},
+                learner_selected_data=selected_species,
+                title="Mammals and reptiles at broadly similar body masses",
+            ),
+            width="stretch",
+        )
+        comparison = st.selectbox(
+            "What does this comparison support?",
+            [
+                "Choose a claim",
+                "Mammals tend to have larger brain masses than reptiles.",
+                "Every mammal has a larger brain mass than every reptile.",
+                "Being a mammal causes a larger brain mass.",
+                "Mammals and reptiles follow exactly the same relationship.",
+            ],
+            key=STAGE4_ANIMAL_GROUPS_COMPARISON_KEY,
+            persist_state="session",
+        )
+        if comparison == "Mammals tend to have larger brain masses than reptiles.":
+            st.success(
+                "Yes. At broadly similar body masses, mammals tend to have larger brain masses than reptiles. "
+                "This is not true in exactly the same way for every individual species, and the graph does not establish a cause."
+            )
+        elif comparison != "Choose a claim":
+            st.caption("Compare the overlapping clouds: look for a tendency, not an exact rule or a cause.")
+
+        with st.expander("Optional: look at other groups"):
+            optional_groups = st.multiselect(
+                "Choose groups to inspect",
+                list(groups),
+                default=["Bird", "Amphibian"],
+                key="stage4_animal_groups_optional_groups",
+            )
+            if optional_groups:
+                st.plotly_chart(
+                    body_brain_group_scatter(
+                        {group_name: groups[group_name] for group_name in optional_groups},
+                        learner_selected_data=selected_species,
+                        title="Selected animal groups",
+                    ),
+                    width="stretch",
+                )
+            st.caption(
+                "Some groups have fewer usable paired measurements. ‘Other invertebrates’ is a mixed collection, not one homogeneous biological group."
+            )
+
+        if comparison == "Mammals tend to have larger brain masses than reptiles.":
+            mammal_evidence = st.selectbox(
+                "Which evidence should we use for later cat and elephant predictions?",
+                ["Choose evidence", "Mammal evidence", "All animal groups together", "Reptile evidence"],
+                key=STAGE4_ANIMAL_GROUPS_MAMMAL_EVIDENCE_KEY,
+                persist_state="session",
+            )
+            if mammal_evidence == "Mammal evidence":
+                st.info(
+                    "Cat and elephant are mammals, so mammal evidence is the relevant comparison. We have not made a model yet."
+                )
+            elif mammal_evidence != "Choose evidence":
+                st.caption("Choose the biological group that includes both the cat and the elephant.")
+        else:
+            mammal_evidence = None
+    else:
+        comparison = None
+        mammal_evidence = None
+
+    if _stage4_animal_groups_ready(grouped_evidence_inspected, comparison, mammal_evidence):
+        st.success(
+            "Lesson 1 conclusion: grouping changed the relationship we could see. Next lesson, we will use mammal evidence to make a model."
+        )
+
+    completion_gate(
+        _stage4_animal_groups_ready(grouped_evidence_inspected, comparison, mammal_evidence)
+    )
+
+
 def render(data: pd.DataFrame) -> None:
     """Render the first structural pass of the two-lesson Stage 4 experience."""
     screen_index = int(st.session_state.get("stage4_screen", 0))
@@ -732,6 +884,8 @@ def render(data: pd.DataFrame) -> None:
         _render_body_mass(data)
     elif screen_index == 3:
         _render_body_brain(data)
+    elif screen_index == 4:
+        _render_animal_groups(data)
     else:
         st.write(screen.framing)
     if screen_index == 4:

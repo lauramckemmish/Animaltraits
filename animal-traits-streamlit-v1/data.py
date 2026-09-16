@@ -46,6 +46,24 @@ CLASS_LABELS = {
     "Reptilia": "Reptile",
 }
 
+# These are learner-facing comparison groups, rather than a replacement for the
+# source taxonomy.  They keep the mixed invertebrate records visibly distinct
+# from the vertebrate groups used in the body-mass/brain-mass activity.
+BODY_BRAIN_GROUP_CLASSES = {
+    "Mammal": ["Mammal"],
+    "Bird": ["Bird"],
+    "Reptile": ["Reptile"],
+    "Amphibian": ["Amphibian"],
+    "Insect": ["Insect"],
+    "Other invertebrates": [
+        "Arachnid",
+        "Centipede",
+        "Crustacean",
+        "Segmented worm",
+        "Snail / slug",
+    ],
+}
+
 STUDENT_FIELDS = [
     "Common name",
     "Scientific name",
@@ -209,6 +227,26 @@ def with_common_class_names(data: pd.DataFrame) -> pd.DataFrame:
     prepared["Animal class"] = prepared["class"].map(CLASS_LABELS)
     prepared["common name"] = resolve_common_names(prepared["species"])
     return prepared
+
+
+def usable_body_brain_species(data: pd.DataFrame) -> pd.DataFrame:
+    """Return positive paired species-level body and brain evidence with class labels."""
+    usable = with_common_class_names(data)
+    for column in ["body mass (kg)", "brain size (kg)"]:
+        usable[column] = pd.to_numeric(usable[column], errors="coerce")
+    return usable[
+        usable["Animal class"].notna()
+        & usable["body mass (kg)"].gt(0)
+        & usable["brain size (kg)"].gt(0)
+    ].copy()
+
+
+def body_brain_animal_groups(usable_species: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Split usable paired evidence into the established learner-facing groups."""
+    return {
+        group_name: usable_species[usable_species["Animal class"].isin(class_names)].copy()
+        for group_name, class_names in BODY_BRAIN_GROUP_CLASSES.items()
+    }
 
 
 def load_common_name_mapping(path: str | Path = COMMON_NAME_MAPPING_PATH) -> pd.DataFrame:

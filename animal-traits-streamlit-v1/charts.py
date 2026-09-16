@@ -812,6 +812,92 @@ def body_brain_group_fit_scatter(
     return fig
 
 
+def body_brain_group_scatter(
+    groups: dict[str, pd.DataFrame],
+    *,
+    learner_selected_data: pd.DataFrame | None = None,
+    title: str = "Body mass vs brain mass by animal group",
+):
+    """Plot supplied body/brain groups without adding a fitted relationship.
+
+    Group construction and learner pacing remain with the experience.  This helper
+    only renders positive paired species evidence and optional saved-species markers.
+    """
+    x_field = "body mass (kg)"
+    y_field = "brain size (kg)"
+    palette = px.colors.qualitative.Plotly
+    fig = go.Figure()
+    axis_values: list[pd.DataFrame] = []
+
+    for index, (group_name, group_data) in enumerate(groups.items()):
+        plot_data = with_common_class_names(group_data).copy()
+        for column in [x_field, y_field]:
+            plot_data[column] = pd.to_numeric(plot_data[column], errors="coerce")
+        plot_data = plot_data.dropna(subset=[x_field, y_field])
+        plot_data = plot_data[plot_data[x_field].gt(0) & plot_data[y_field].gt(0)]
+        if plot_data.empty:
+            continue
+        axis_values.append(plot_data)
+        common_names = plot_data.get("common name", pd.Series("", index=plot_data.index)).fillna("")
+        species = plot_data.get("species", pd.Series("", index=plot_data.index)).fillna("")
+        fig.add_trace(
+            go.Scatter(
+                x=plot_data[x_field],
+                y=plot_data[y_field],
+                mode="markers",
+                name=f"{group_name} ({len(plot_data):,} species)",
+                marker=dict(size=8, color=palette[index % len(palette)], opacity=0.58),
+                customdata=np.column_stack([common_names.astype(str), species.astype(str)]),
+                hovertemplate=(
+                    "Animal: %{customdata[0]}<br>"
+                    "Scientific name: %{customdata[1]}<br>"
+                    "Body mass: %{x}<br>Brain mass: %{y}<extra></extra>"
+                ),
+            )
+        )
+
+    if learner_selected_data is not None:
+        selected = learner_selected_data.copy()
+        selected[x_field] = pd.to_numeric(selected.get(x_field), errors="coerce")
+        selected[y_field] = pd.to_numeric(selected.get(y_field), errors="coerce")
+        selected["Scientific name"] = selected.get("Scientific name", "").fillna("").astype(str)
+        selected = selected.dropna(subset=[x_field, y_field])
+        selected = selected[
+            selected["Scientific name"].ne("") & selected[x_field].gt(0) & selected[y_field].gt(0)
+        ].drop_duplicates(subset=["Scientific name"])
+        if not selected.empty:
+            common_names = selected.get("Common name", selected["Scientific name"]).fillna("").astype(str)
+            common_names = common_names.mask(common_names.eq(""), selected["Scientific name"])
+            fig.add_trace(
+                go.Scatter(
+                    x=selected[x_field],
+                    y=selected[y_field],
+                    mode="markers",
+                    name="Your earlier searches",
+                    marker=dict(size=11, color="#d95f02", line=dict(color="#7f2704", width=1.5)),
+                    customdata=np.column_stack([common_names, selected["Scientific name"]]),
+                    hovertemplate=(
+                        "Animal: %{customdata[0]}<br>"
+                        "Scientific name: %{customdata[1]}<br>"
+                        "Body mass: %{x}<br>Brain mass: %{y}<extra></extra>"
+                    ),
+                )
+            )
+
+    fig.update_layout(
+        title=title,
+        xaxis_title="Body mass (kg)",
+        yaxis_title="Brain size (kg)",
+        legend_title="Animal groups",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, title=None),
+    )
+    if axis_values:
+        all_values = pd.concat(axis_values, ignore_index=True)
+        _apply_scientific_log_axis(fig, "x", all_values[x_field], "Body mass (kg)")
+        _apply_scientific_log_axis(fig, "y", all_values[y_field], "Brain size (kg)")
+    return fig
+
+
 # -----------------------------------------------------------------------------
 # Data Exploration Playground charts. Unchanged by the CURIOUS refinement.
 # -----------------------------------------------------------------------------
