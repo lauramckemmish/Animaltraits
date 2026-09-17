@@ -425,11 +425,10 @@ def test_stage4_mammal_model_gate_requires_model_meaning_distinct_comparisons_an
     correct_interpretation = (
         "Changing which animals are used as evidence can change the fitted relationship and prediction."
     )
-    assert not _stage4_mammal_model_ready(False, "More than 10×", "all", "order:Primates", True, correct_interpretation)
-    assert not _stage4_mammal_model_ready(True, "About 10×", "all", "order:Primates", True, correct_interpretation)
-    assert not _stage4_mammal_model_ready(True, "More than 10×", "all", "all", True, correct_interpretation)
-    assert not _stage4_mammal_model_ready(True, "More than 10×", "all", "order:Primates", False, correct_interpretation)
-    assert _stage4_mammal_model_ready(True, "More than 10×", "all", "order:Primates", True, correct_interpretation)
+    assert not _stage4_mammal_model_ready("About 10×", "all", "order:Primates", True, correct_interpretation)
+    assert not _stage4_mammal_model_ready("More than 10×", "all", "all", True, correct_interpretation)
+    assert not _stage4_mammal_model_ready("More than 10×", "all", "order:Primates", False, correct_interpretation)
+    assert _stage4_mammal_model_ready("More than 10×", "all", "order:Primates", True, correct_interpretation)
 
 
 def test_stage4_cat_uses_the_external_comparison_record_and_model_specific_ranges():

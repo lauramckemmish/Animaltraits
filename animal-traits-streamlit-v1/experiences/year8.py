@@ -94,7 +94,6 @@ STAGE4_BODY_BRAIN_PREDICTION_KEY = "stage4_body_brain_prediction"
 STAGE4_ANIMAL_GROUPS_GROUPED_INSPECTED_KEY = "stage4_animal_groups_grouped_inspected"
 STAGE4_ANIMAL_GROUPS_COMPARISON_KEY = "stage4_animal_groups_comparison"
 STAGE4_ANIMAL_GROUPS_MAMMAL_EVIDENCE_KEY = "stage4_animal_groups_mammal_evidence"
-STAGE4_MAMMAL_MODEL_INSPECTED_KEY = "stage4_mammal_model_inspected"
 STAGE4_MAMMAL_MODEL_100X_REASONING_KEY = "stage4_mammal_model_100x_reasoning"
 STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY = "stage4_mammal_model_comparison_one"
 STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY = "stage4_mammal_model_comparison_two"
@@ -1049,7 +1048,6 @@ def _stage4_model_fit(data: pd.DataFrame):
 
 
 def _stage4_mammal_model_ready(
-    mammal_inspected: bool,
     hundredfold_reasoning: str | None,
     comparison_one: str,
     comparison_two: str,
@@ -1058,8 +1056,7 @@ def _stage4_mammal_model_ready(
 ) -> bool:
     """Return whether learners have completed Screen 6's evidence-model reasoning."""
     return (
-        mammal_inspected
-        and hundredfold_reasoning == "More than 10×"
+        hundredfold_reasoning == "More than 10×"
         and bool(comparison_one)
         and bool(comparison_two)
         and comparison_one != comparison_two
@@ -1181,7 +1178,7 @@ def _stage4_comparison_model_selectors(
     ):
         st.session_state[STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY] = ""
     comparison_one = _render_stage4_comparison_model_selector(
-        "First comparison model",
+        "First evidence set",
         candidates,
         STAGE4_MAMMAL_MODEL_COMPARISON_ONE_KEY,
         STAGE4_MAMMAL_MODEL_COMPARISON_ONE_LEVEL_KEY,
@@ -1189,7 +1186,7 @@ def _stage4_comparison_model_selectors(
         on_change_one,
     )
     comparison_two = _render_stage4_comparison_model_selector(
-        "Second comparison model",
+        "Second evidence set",
         candidates,
         STAGE4_MAMMAL_MODEL_COMPARISON_TWO_KEY,
         STAGE4_MAMMAL_MODEL_COMPARISON_TWO_LEVEL_KEY,
@@ -1205,17 +1202,10 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
     usable_species = usable_body_brain_species(species_data)
     mammal_evidence = usable_species[usable_species["class"].eq("Mammalia")].copy()
     mammal_fit = _stage4_model_fit(mammal_evidence)
-    mouse_mass_kg, elephant_mass_kg = comparison_reference_masses(data)
-
     st.write(
-        "We began by comparing a mouse and an elephant and asking how body size relates to brain size. "
-        "Last lesson, the evidence showed a broad relationship—and that animal groups do not all follow it in exactly the same way."
+        "Last lesson, grouping the animals changed what we could see. Now we can test the next question: does changing the evidence also change the model?"
     )
-    st.caption(
-        f"Screen 1 used a mouse reference of {_format_stage4_mass_kg(mouse_mass_kg)} and an elephant body-mass reference of "
-        f"{_format_stage4_mass_kg(elephant_mass_kg)}. AnimalTraits species evidence will build the models; later, those body masses can be inputs to predictions."
-    )
-    st.write("Now we will turn selected evidence into models that can make predictions.")
+    st.write("Let’s turn the evidence into a model.")
 
     if mammal_fit is None:
         st.warning("There are not enough usable mammal species to build this model.")
@@ -1224,8 +1214,7 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
 
     st.subheader("A model built from mammal evidence")
     st.write(
-        "Cats and elephants are mammals, so the mammal model is the fixed model we will carry forward. "
-        "Its line summarizes the broad mammal pattern; individual species do not sit exactly on it."
+        "Cat and elephant are mammals, so mammal evidence is a sensible place to start. The fitted line summarises the broad mammal pattern; individual species do not sit exactly on it."
     )
     st.plotly_chart(
         body_brain_group_fit_scatter(
@@ -1237,15 +1226,10 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
         width="stretch",
     )
     st.caption("The model is not an exact rule for every mammal, and the relationship does not show that body mass causes brain mass.")
-    st.button(
-        "I have inspected the mammal model",
-        key="stage4_mammal_model_inspect",
-        on_click=lambda: st.session_state.__setitem__(STAGE4_MAMMAL_MODEL_INSPECTED_KEY, True),
-    )
 
     tenfold_factor = power_law_scale_factor(mammal_fit, 10)
     hundredfold_factor = power_law_scale_factor(mammal_fit, 100)
-    st.subheader("Read the model as a multiplicative prediction")
+    st.subheader("What does this model actually predict?")
     st.write(f"The mammal model predicts that if body mass is 10× larger, brain mass is about **{_format_stage4_approximate_factor(tenfold_factor)}** larger.")
     hundredfold_reasoning = st.selectbox(
         "If body mass is 100× larger, will the mammal model predict brain mass is…",
@@ -1255,7 +1239,7 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
     )
     if hundredfold_reasoning == "More than 10×":
         st.success(
-            f"Yes. The mammal model predicts about **{_format_stage4_approximate_factor(hundredfold_factor)}** larger brain mass for a 100× body-mass increase."
+            f"Exactly. A 100× change in body mass pushes the prediction farther than the 10× case: about **{_format_stage4_approximate_factor(hundredfold_factor)}** larger brain mass."
         )
     elif hundredfold_reasoning != "Choose a prediction":
         st.caption("Use the 10× prediction as a clue: the model's fitted relationship rises by more than a factor of ten over a 100× body-mass change.")
@@ -1264,11 +1248,11 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
         st.write(f"For the mammal evidence, the fitted power-law equation is **{_format_stage4_model_equation(mammal_fit)}**.")
         st.caption("This is supplementary maths. You do not need to calculate logarithms or fit the line yourself.")
 
-    st.subheader("Compare models built from different evidence")
+    st.subheader("Now change the evidence")
     st.write(
-        "Keep the mammal model. Then choose two other evidence groups. Each option has at least 10 usable paired measurements; "
-        "that is a practical display rule here, not a universal statistical threshold."
+        "Keep the mammal model as our anchor. Choose two other evidence sets and see what happens to the fitted relationship."
     )
+    st.caption("For this activity, comparison options have at least 10 usable paired measurements. That is a practical display rule here, not a universal statistical threshold.")
     candidates = body_brain_model_comparison_candidates(usable_species)
     comparison_one, comparison_two, candidate_labels = _stage4_comparison_model_selectors(candidates)
 
@@ -1317,7 +1301,7 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
             + "."
         )
         st.button(
-            "I have inspected the three models",
+            "Compare what changed",
             key="stage4_mammal_model_inspect_comparisons",
             on_click=lambda: st.session_state.__setitem__(
                 STAGE4_MAMMAL_MODEL_COMPARISON_INSPECTED_KEY, True
@@ -1339,7 +1323,8 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
                 persist_state="session",
             )
             if interpretation == "Changing which animals are used as evidence can change the fitted relationship and prediction.":
-                st.success("Yes. A model summarizes the evidence used to build it; it is not an exact rule or causal proof.")
+                st.success("There it is: change the evidence, and the fitted relationship can change with it.")
+                st.caption("A model summarises the evidence used to build it. It is not an exact rule or proof of cause.")
             elif interpretation != "Choose an interpretation":
                 st.caption("Look at what changes when the evidence group changes—not just the colour of the lines.")
         else:
@@ -1348,9 +1333,7 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
         comparison_inspected = False
         interpretation = None
 
-    mammal_inspected = bool(st.session_state.get(STAGE4_MAMMAL_MODEL_INSPECTED_KEY, False))
     if _stage4_mammal_model_ready(
-        mammal_inspected,
         hundredfold_reasoning,
         comparison_one,
         comparison_two,
@@ -1358,11 +1341,10 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
         interpretation,
     ):
         st.success(
-            "We now have three models. Next we can give each model a new animal and ask what it predicts—and how much we should trust that prediction."
+            "Same question. Different evidence. Different models — and potentially different predictions.\n\nNext, let’s test them on a real animal."
         )
     completion_gate(
         _stage4_mammal_model_ready(
-            mammal_inspected,
             hundredfold_reasoning,
             comparison_one,
             comparison_two,
