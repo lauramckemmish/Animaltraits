@@ -2266,26 +2266,25 @@ def _render_data_science_closure() -> None:
     """Close Stage 4 by naming the completed reasoning as data science."""
     st.markdown("## You’ve just done data science.")
     st.write(
-        "You used real animal data to find patterns, chose evidence to build models, "
-        "tested predictions against new evidence, and decided how much confidence to place "
-        "in a prediction when there was no answer to reveal."
+        "You found patterns in real animal data, chose which evidence to build models from, "
+        "tested those models against new evidence, and decided how much confidence to place "
+        "in a prediction when there was no answer key."
     )
     st.image(DATA_SCIENCE_INFOGRAPHIC_PATH, width="stretch")
-    st.write("The details change, but the process appears in many kinds of data science.")
+    st.write("The animals change. The questions change. The same reasoning turns up all over data science.")
     st.write(
-        "Weather forecasts, sport predictions, recommendation systems and language AI all learn "
-        "from previous data to make predictions about new cases."
+        "Weather forecasts, sport models, recommendation systems and language AI all use patterns "
+        "in existing data to say something about new cases."
     )
-    st.write(
-        "Sometimes we can test a prediction against new evidence straight away. Sometimes, as with "
-        "your final animal, we have to make the best-supported prediction we can and be clear about "
-        "how much confidence we place in it."
-    )
+    st.write("Sometimes we can test a prediction against new evidence straight away. Sometimes we can’t.")
+    st.write("Your cat and elephant predictions could be tested. Your final animal could not — at least not with the evidence available here.")
+    st.write("That does not make the final prediction meaningless. It changes what we can claim about it.")
     st.markdown("**A prediction is not the end of the story.**")
-    st.write(
-        "Ask what evidence the model learned from, whether the new case is similar to that evidence, "
-        "how the model has been tested, and how much confidence the prediction deserves."
-    )
+    st.write("What evidence was the model built from?")
+    st.write("Is this new case similar to that evidence?")
+    st.write("How has the model been tested?")
+    st.write("How much confidence does the prediction deserve?")
+    st.write("Those questions matter long after the animal data are gone.")
 
 
 def render(data: pd.DataFrame) -> None:

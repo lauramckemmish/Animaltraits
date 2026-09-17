@@ -634,8 +634,18 @@ def test_stage4_data_science_closure_reuses_the_transfer_infographic_without_a_g
 
     assert "You’ve just done data science." in source
     assert "DATA_SCIENCE_INFOGRAPHIC_PATH" in source
-    assert "Sometimes we can test a prediction" in source
+    assert "You found patterns in real animal data, chose which evidence to build models from" in source
+    assert "The animals change. The questions change. The same reasoning turns up all over data science." in source
+    assert "Weather forecasts, sport models, recommendation systems and language AI all use patterns" in source
+    assert "Sometimes we can test a prediction against new evidence straight away. Sometimes we can’t." in source
+    assert "Your cat and elephant predictions could be tested. Your final animal could not" in source
+    assert "That does not make the final prediction meaningless. It changes what we can claim about it." in source
     assert "A prediction is not the end of the story." in source
+    assert "What evidence was the model built from?" in source
+    assert "Is this new case similar to that evidence?" in source
+    assert "How has the model been tested?" in source
+    assert "How much confidence does the prediction deserve?" in source
+    assert "Those questions matter long after the animal data are gone." in source
     assert "completion_gate" not in source
 
 
