@@ -124,6 +124,7 @@ STAGE4_PREDICTION_MODEL_KEY = "stage4_prediction_model"
 STAGE4_PREDICTION_MODEL_SIGNATURE_KEY = "stage4_prediction_model_signature"
 STAGE4_PREDICTION_CONFIDENCE_KEY = "stage4_prediction_confidence"
 STAGE4_PREDICTION_REASONS_KEY = "stage4_prediction_reasons"
+STAGE4_PREDICTION_OTHER_REASON_KEY = "stage4_prediction_other_reason"
 STAGE4_PREDICTION_REVEALED_KEY = "stage4_prediction_revealed"
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
@@ -2008,6 +2009,19 @@ def _clear_stage4_prediction_downstream_state(state) -> None:
         STAGE4_PREDICTION_MODEL_SIGNATURE_KEY: None,
         STAGE4_PREDICTION_CONFIDENCE_KEY: "Choose your confidence…",
         STAGE4_PREDICTION_REASONS_KEY: [],
+        STAGE4_PREDICTION_OTHER_REASON_KEY: "",
+        STAGE4_PREDICTION_REVEALED_KEY: False,
+    }.items():
+        state[key] = value
+
+
+def _clear_stage4_prediction_model_dependent_state(state) -> None:
+    """Clear only the Screen 10 judgement that depends on a selected evidence set."""
+    for key, value in {
+        STAGE4_PREDICTION_MODEL_SIGNATURE_KEY: None,
+        STAGE4_PREDICTION_CONFIDENCE_KEY: "Choose your confidence…",
+        STAGE4_PREDICTION_REASONS_KEY: [],
+        STAGE4_PREDICTION_OTHER_REASON_KEY: "",
         STAGE4_PREDICTION_REVEALED_KEY: False,
     }.items():
         state[key] = value
@@ -2026,10 +2040,24 @@ def _reset_stage4_prediction() -> None:
 
 
 def _stage4_prediction_ready(
-    scientific_name: str, model_id: str, confidence: str, reasons: list[str]
+    scientific_name: str,
+    model_id: str,
+    confidence: str,
+    reasons: list[str],
+    other_reason: str = "",
 ) -> bool:
-    """Return whether the no-answer-key prediction can be revealed."""
-    return bool(scientific_name and model_id and confidence in {"High confidence", "Some confidence", "Low confidence"} and reasons)
+    """Return whether the no-answer-key prediction has a confidence judgement and reason."""
+    selected_reasons = set(reasons)
+    has_named_reason = bool(selected_reasons - {"Another reason."})
+    has_explained_other_reason = (
+        "Another reason." in selected_reasons and bool(other_reason.strip())
+    )
+    return bool(
+        scientific_name
+        and model_id
+        and confidence in {"High confidence", "Some confidence", "Low confidence"}
+        and (has_named_reason or has_explained_other_reason)
+    )
 
 
 def _render_stage4_prediction_animal_cards(choices: pd.DataFrame) -> None:
@@ -2052,6 +2080,8 @@ def _render_stage4_prediction_animal_cards(choices: pd.DataFrame) -> None:
 def _render_predict_when_unknown(data: pd.DataFrame) -> None:
     """Render Screen 10's evidence-first prediction with no answer-key reveal."""
     species_data = species_traits_from_observations(data)
+    st.write("This time, there is no answer to reveal.")
+    st.write("Choose an animal. You’ll have its body mass, but you’ll have to decide which evidence to trust.")
     tag = st.segmented_control(
         "Find an animal you want to investigate",
         STAGE4_PREDICTION_TAGS,
@@ -2063,7 +2093,7 @@ def _render_predict_when_unknown(data: pd.DataFrame) -> None:
     chosen_name = st.session_state.get(STAGE4_PREDICTION_ANIMAL_KEY, "")
 
     if not chosen_name:
-        st.write("Choose a route, explore its animals, and select one when you are ready.")
+        st.write("Pick an animal you want to investigate.")
         choices = stage4_prediction_animal_choices(species_data, None if tag == "Surprise me" else tag)
         if tag == "Surprise me":
             unique_choices = stage4_prediction_animal_choices(species_data)
@@ -2117,19 +2147,37 @@ def _render_predict_when_unknown(data: pd.DataFrame) -> None:
         st.session_state[STAGE4_PREDICTION_MODEL_KEY] = ""
         current_model = ""
     st.subheader("Choose a model using its evidence")
-    st.write("Inspect the available evidence groups. You will not see a numerical brain-mass prediction until you have made your judgement.")
+    st.write("Before you choose, compare what each model was built from.")
+    summary_columns = st.columns(min(3, len(candidates)))
+    for index, (_, candidate) in enumerate(candidates.iterrows()):
+        candidate_id = str(candidate["Model id"])
+        candidate_evidence = body_brain_model_evidence(usable_species, candidate_id)
+        candidate_fit = _stage4_model_fit(candidate_evidence)
+        if candidate_fit is None:
+            continue
+        candidate_status = prediction_range_status(candidate_fit, body_mass)
+        range_summary = "Inside this evidence range" if candidate_status == "interpolation" else "Beyond this evidence range"
+        with summary_columns[index % len(summary_columns)]:
+            with st.container(border=True):
+                st.markdown(f"**{labels[candidate_id]}**")
+                st.caption(f"Usable paired species: {len(candidate_evidence):,}")
+                st.caption(range_summary)
+    st.write("No prediction yet. First decide which evidence you want your prediction to rely on.")
     model_id = st.radio(
-        "Which model would you use to make your prediction?",
+        "Which evidence would you use to make this prediction?",
         [""] + list(labels),
         format_func=lambda value: "Choose a model…" if not value else labels[value],
         key=STAGE4_PREDICTION_MODEL_KEY,
         persist_state="session",
+        on_change=_clear_stage4_prediction_model_dependent_state,
+        args=(st.session_state,),
     )
     signature = (chosen_name, model_id)
     if st.session_state.get(STAGE4_PREDICTION_MODEL_SIGNATURE_KEY) != signature:
         st.session_state[STAGE4_PREDICTION_MODEL_SIGNATURE_KEY] = signature
         st.session_state[STAGE4_PREDICTION_CONFIDENCE_KEY] = "Choose your confidence…"
         st.session_state[STAGE4_PREDICTION_REASONS_KEY] = []
+        st.session_state[STAGE4_PREDICTION_OTHER_REASON_KEY] = ""
         st.session_state[STAGE4_PREDICTION_REVEALED_KEY] = False
 
     if not model_id:
@@ -2150,52 +2198,67 @@ def _render_predict_when_unknown(data: pd.DataFrame) -> None:
         ),
         width="stretch",
     )
-    range_text = "inside the evidence range" if status == "interpolation" else "beyond the evidence range"
-    st.info(f"Your animal's body mass is **{range_text}** for this model.")
+    if status == "interpolation":
+        st.info("Your animal sits inside this model’s body-mass evidence range.")
+    else:
+        st.info("Here’s the complication: your animal sits beyond this model’s body-mass evidence range.")
+        st.write("That makes this an extrapolation — one reason to be more cautious.")
 
     confidence = st.selectbox(
-        "How much confidence do you have in this prediction?",
+        "How much confidence would you place in this prediction?",
         ["Choose your confidence…", "High confidence", "Some confidence", "Low confidence"],
         key=STAGE4_PREDICTION_CONFIDENCE_KEY,
         persist_state="session",
     )
+    range_reason = (
+        "My animal’s body mass is inside this evidence range."
+        if status == "interpolation"
+        else "My animal’s body mass is beyond this evidence range."
+    )
     reasons = st.multiselect(
-        "What evidence supports your judgement? Choose at least one.",
+        "What evidence or reasoning is your confidence judgement based on? Choose at least one.",
         [
-            "The evidence comes from animals like mine.",
-            "The body mass is inside the evidence range.",
-            "The body mass is beyond the evidence range.",
-            "There is a lot of relevant evidence.",
-            "The available evidence is broad or less specific.",
+            "I think this evidence group is biologically relevant to my animal.",
+            range_reason,
+            "The amount of usable evidence influenced my confidence.",
+            "How broad or specific the evidence group is influenced my confidence.",
             "Another reason.",
         ],
         key=STAGE4_PREDICTION_REASONS_KEY,
         persist_state="session",
     )
-    ready = _stage4_prediction_ready(chosen_name, model_id, confidence, reasons)
+    other_reason = ""
+    if "Another reason." in reasons:
+        other_reason = st.text_input(
+            "What else influenced your judgement?",
+            key=STAGE4_PREDICTION_OTHER_REASON_KEY,
+            persist_state="session",
+        )
+    ready = _stage4_prediction_ready(chosen_name, model_id, confidence, reasons, other_reason)
     if ready and not st.session_state.get(STAGE4_PREDICTION_REVEALED_KEY, False):
         st.button(
-            "Reveal this model's prediction",
+            "Make the prediction",
             type="primary",
             key="stage4_prediction_reveal_button",
             on_click=lambda: st.session_state.__setitem__(STAGE4_PREDICTION_REVEALED_KEY, True),
         )
     elif not ready:
-        st.caption("Choose a model, confidence level and at least one evidence reason before revealing the prediction.")
+        st.caption("Choose evidence, a confidence level and at least one reason before making the prediction.")
 
     if st.session_state.get(STAGE4_PREDICTION_REVEALED_KEY, False):
         prediction = predict_power_law(fit, body_mass)
-        st.success(f"**Model-derived prediction:** {_format_stage4_model_prediction_mass(prediction)} brain mass.")
-        st.write(f"You chose the **{labels[model_id]}** evidence group with **{confidence.lower()}**.")
-        st.write("Your evidence reasons: " + "; ".join(reasons))
+        st.write(f"**Your model predicts: {_format_stage4_model_prediction_mass(prediction)} brain mass.**")
+        st.write(f"You chose the **{labels[model_id]}** evidence with **{confidence.lower()}**.")
+        st.write("Your evidence or reasoning: " + "; ".join(reasons))
+        if "Another reason." in reasons and other_reason.strip():
+            st.write(f"What else influenced your judgement: {other_reason.strip()}")
         if status == "extrapolation":
-            st.caption("This is biologically specific evidence, but using it beyond its body-mass range is a reason for caution.")
-        elif model_id == "all":
-            st.caption("This prediction is supported over the body-mass range, though the evidence group is broad rather than biologically specific.")
+            st.caption("This prediction is an extrapolation, so the model is being used beyond the body-mass range of its evidence.")
         else:
-            st.caption("This reflects the evidence available for this animal in this dataset; it is a model-based estimate, not a measurement.")
+            st.caption("This prediction stays within the body-mass range of the evidence used to build the model.")
         st.write("AnimalTraits does not give us a brain-mass value for this species to reveal.")
-        st.write("Sometimes data science ends with the best-supported prediction we can make — and a judgement about how much confidence to place in it.")
+        st.write("So this time, there is no satisfying reveal.")
+        st.write("We have a prediction, the evidence behind it, and reasons for how much confidence to place in it. Sometimes that is where the science actually stands.")
     completion_gate(bool(st.session_state.get(STAGE4_PREDICTION_REVEALED_KEY, False)))
 
 

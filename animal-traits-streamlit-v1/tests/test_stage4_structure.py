@@ -46,6 +46,7 @@ from experiences.year8 import (
     _stage4_model_judgement_ready,
     _stage4_prediction_ready,
     _clear_stage4_prediction_downstream_state,
+    _clear_stage4_prediction_model_dependent_state,
     _stage4_selected_animal_classes,
     _stage4_selected_animal_groups,
     _stage4_usable_species,
@@ -662,7 +663,13 @@ def test_stage4_unknown_prediction_only_offers_applicable_live_models():
 def test_stage4_unknown_prediction_gate_and_reset_are_bounded_to_screen_ten():
     assert not _stage4_prediction_ready("Vulpes zerda", "all", "Some confidence", [])
     assert _stage4_prediction_ready(
-        "Vulpes zerda", "all", "Some confidence", ["The available evidence is broad or less specific."]
+        "Vulpes zerda", "all", "Some confidence", ["The amount of usable evidence influenced my confidence."]
+    )
+    assert not _stage4_prediction_ready(
+        "Vulpes zerda", "all", "Some confidence", ["Another reason."]
+    )
+    assert _stage4_prediction_ready(
+        "Vulpes zerda", "all", "Some confidence", ["Another reason."], "Its habitat also matters to me."
     )
     state = {
         "stage4_prediction_model": "all",
@@ -677,6 +684,23 @@ def test_stage4_unknown_prediction_gate_and_reset_are_bounded_to_screen_ten():
     assert state["stage4_prediction_revealed"] is False
     assert state["stage4_saved_species"] == ["Mus musculus"]
 
+    model_change_state = {
+        "stage4_prediction_model": "class:Mammalia",
+        "stage4_prediction_confidence": "High confidence",
+        "stage4_prediction_reasons": ["Another reason."],
+        "stage4_prediction_other_reason": "A reason tied to the first model.",
+        "stage4_prediction_revealed": True,
+        "stage4_saved_species": ["Mus musculus"],
+    }
+    _clear_stage4_prediction_model_dependent_state(model_change_state)
+
+    assert model_change_state["stage4_prediction_model"] == "class:Mammalia"
+    assert model_change_state["stage4_prediction_confidence"] == "Choose your confidence…"
+    assert model_change_state["stage4_prediction_reasons"] == []
+    assert model_change_state["stage4_prediction_other_reason"] == ""
+    assert model_change_state["stage4_prediction_revealed"] is False
+    assert model_change_state["stage4_saved_species"] == ["Mus musculus"]
+
 
 def test_stage4_unknown_prediction_chooser_is_a_compact_grid_before_taxonomy_context():
     chooser_source = inspect.getsource(year8._render_stage4_prediction_animal_cards)
@@ -686,3 +710,48 @@ def test_stage4_unknown_prediction_chooser_is_a_compact_grid_before_taxonomy_con
     assert "width=\"stretch\"" in chooser_source
     assert "breadcrumb" not in chooser_source
     assert "← Choose a different animal" in screen_source
+
+
+def test_stage4_unknown_prediction_is_evidence_first_with_no_answer_key():
+    source = inspect.getsource(year8._render_predict_when_unknown)
+
+    assert "This time, there is no answer to reveal." in source
+    assert "Choose an animal. You’ll have its body mass, but you’ll have to decide which evidence to trust." in source
+    assert "Pick an animal you want to investigate." in source
+    assert "AnimalTraits gives us a body-mass value for this species:" in source
+    assert "It does not give us a brain-mass value." in source
+    assert "Before you choose, compare what each model was built from." in source
+    assert "Usable paired species:" in source
+    assert "Inside this evidence range" in source
+    assert "Beyond this evidence range" in source
+    assert "Which evidence would you use to make this prediction?" in source
+    assert source.index("Usable paired species:") < source.index("Which evidence would you use to make this prediction?")
+    assert source.index("Which evidence would you use to make this prediction?") < source.index(
+        "body_brain_prediction_evidence_scatter"
+    )
+
+
+def test_stage4_unknown_prediction_uses_dynamic_unscored_judgement_reasons():
+    source = inspect.getsource(year8._render_predict_when_unknown)
+
+    assert "How much confidence would you place in this prediction?" in source
+    assert '"High confidence", "Some confidence", "Low confidence"' in source
+    assert "I think this evidence group is biologically relevant to my animal." in source
+    assert "My animal’s body mass is inside this evidence range." in source
+    assert "My animal’s body mass is beyond this evidence range." in source
+    assert "The amount of usable evidence influenced my confidence." in source
+    assert "How broad or specific the evidence group is influenced my confidence." in source
+    assert "What else influenced your judgement?" in source
+    assert "other_reason.strip()" in source
+    assert "correct" not in source.lower()
+
+
+def test_stage4_unknown_prediction_ends_with_a_model_based_uncertainty_statement():
+    source = inspect.getsource(year8._render_predict_when_unknown)
+
+    assert "Make the prediction" in source
+    assert "Your model predicts:" in source
+    assert "This prediction is an extrapolation" in source
+    assert "This prediction stays within the body-mass range" in source
+    assert "So this time, there is no satisfying reveal." in source
+    assert "Sometimes that is where the science actually stands." in source
