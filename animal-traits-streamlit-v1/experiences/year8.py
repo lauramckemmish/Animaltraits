@@ -905,17 +905,15 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
     )
 
     st.write(
-        "On Screen 4, the full evidence suggested that brain mass generally increases as body mass increases. "
-        "Do all kinds of animals follow that relationship in the same way?"
+        "We found a broad body–brain pattern. But do all kinds of animals sit in that pattern in the same way?"
     )
-    st.subheader("Choose a useful level for grouping")
+    st.subheader("How should we group the animals?")
     st.write(
         "AnimalTraits records nested taxonomic levels: Phylum → Class → Order → Family → Genus → Species. "
         "The same species can be grouped more broadly or more narrowly."
     )
     st.write(
-        "At what level should we group these animals for this body–brain investigation? "
-        "Grouping too broadly can hide structure; grouping too finely can leave too few species to compare."
+        "Here’s the problem: group too broadly and useful structure can disappear. Group too finely and there may be too few species left to compare."
     )
     st.dataframe(
         rank_summary[["Rank", "Groups", "Typical group size", "Largest group size"]],
@@ -937,11 +935,11 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
         f"At phylum level, the largest group contains {phylum_largest:,} of {len(usable_species):,} usable species."
     )
     st.success(
-        "For this body–brain question and this dataset, class gives a useful balance: biologically meaningful groups that still contain enough evidence to compare."
+        "For this comparison, class is a useful place to look: the groups are biologically meaningful and still contain enough species to compare."
     )
-    st.caption("That is a useful analytical choice here, not a universal best grouping level.")
+    st.caption("That does not make class the “right” grouping. Different questions may need different evidence.")
 
-    st.caption("Your graph-ready animals remain part of the evidence. Their stable identities are their scientific names.")
+    st.caption("Your animals are still in the dataset. Their scientific names keep their identities stable as we regroup the evidence.")
     st.dataframe(
         _stage4_selected_animal_classes(species_data, saved_species),
         hide_index=True,
@@ -949,7 +947,7 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
     )
 
     st.button(
-        "Inspect the grouped body–brain evidence",
+        "Show the groups",
         type="primary",
         key="stage4_animal_groups_inspect_grouped_evidence",
         on_click=lambda: st.session_state.__setitem__(
@@ -958,7 +956,6 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
     )
 
     if grouped_evidence_inspected:
-        st.write("This graph principally groups species by taxonomic class.")
         st.plotly_chart(
             body_brain_group_scatter(groups, learner_selected_data=selected_species),
             width="stretch",
@@ -998,32 +995,18 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
             persist_state="session",
         )
         if comparison == "Mammals tend to have larger brain masses than reptiles.":
-            st.success(
-                "Yes. At broadly similar body masses, mammals tend to have larger brain masses than reptiles. "
-                "This is not true in exactly the same way for every individual species, and the graph does not establish a cause."
-            )
+            st.success("There it is. At broadly similar body masses, mammals tend to sit higher than reptiles.")
+            st.caption("This is a tendency, not an exact rule for every species, and the graph does not establish a cause.")
         elif comparison != "Choose a claim":
-            st.caption("Compare the overlapping clouds: look for a tendency, not an exact rule or a cause.")
+            st.caption("Compare the overlapping clouds. Look for a tendency, not an exact rule or a cause.")
 
-        with st.expander("Optional: look at other groups"):
-            optional_groups = st.multiselect(
-                "Choose groups to inspect",
-                list(groups),
-                default=["Bird", "Amphibian"],
-                key="stage4_animal_groups_optional_groups",
-            )
-            if optional_groups:
-                st.plotly_chart(
-                    body_brain_group_scatter(
-                        {group_name: groups[group_name] for group_name in optional_groups},
-                        learner_selected_data=selected_species,
-                        title="Selected animal groups",
-                    ),
-                    width="stretch",
-                )
-            st.caption(
-                "Some groups have fewer usable paired measurements. ‘Other invertebrates’ is a mixed collection, not one homogeneous biological group."
-            )
+        st.subheader("Mammals and reptiles differ. Is that just one odd comparison? Try another pair.")
+        group_names = list(groups)
+        first_group = st.selectbox("First group", group_names, key="stage4_animal_groups_first_group")
+        second_group = st.selectbox("Second group", [name for name in group_names if name != first_group], key="stage4_animal_groups_second_group")
+        st.write("Do these groups sit in the body–brain pattern in the same way?")
+        st.plotly_chart(body_brain_group_scatter({first_group: groups[first_group], second_group: groups[second_group]}, learner_selected_data=selected_species, title="Another pair of animal groups"), width="stretch")
+        st.caption("Some groups have fewer usable paired measurements. ‘Other invertebrates’ is a mixed collection, not one homogeneous biological group.")
 
         if comparison == "Mammals tend to have larger brain masses than reptiles.":
             mammal_evidence = st.selectbox(
@@ -1034,7 +1017,7 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
             )
             if mammal_evidence == "Mammal evidence":
                 st.info(
-                    "Cat and elephant are mammals, so mammal evidence is the relevant comparison. We have not made a model yet."
+                    "Cat and elephant are mammals, so mammal evidence is a sensible place to start. We still have not made a model."
                 )
             elif mammal_evidence != "Choose evidence":
                 st.caption("Choose the biological group that includes both the cat and the elephant.")
@@ -1046,7 +1029,7 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
 
     if _stage4_animal_groups_ready(grouped_evidence_inspected, comparison, mammal_evidence):
         st.success(
-            "Lesson 1 conclusion: grouping changed the relationship we could see. Next lesson, we will use mammal evidence to make a model."
+            "Different groups can reveal different structure. That means which animals we use as evidence could matter when we build a model.\n\nCat and elephant are mammals, so next we’ll start with mammal evidence."
         )
 
     completion_gate(

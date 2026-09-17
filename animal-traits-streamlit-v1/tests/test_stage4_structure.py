@@ -537,8 +537,8 @@ def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_nine_is_implemente
 
     assert "broadly similar body masses" in screen_five
     assert "does not establish a cause" in screen_five
-    assert "We have not made a model yet" in screen_five
-    assert "useful analytical choice here, not a universal best grouping level" in screen_five
+    assert "We still have not made a model" in screen_five
+    assert "Different questions may need different evidence" in screen_five
     assert "not a taxonomic class" in screen_five
     assert "elif screen_index == 4:" in render_source
     assert "elif screen_index == 5:\n        _render_mammal_model(data)" in render_source
