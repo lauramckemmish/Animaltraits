@@ -15,6 +15,8 @@ import streamlit as st
 from charts import (
     playground_boxplot,
     playground_categorical_bar,
+    playground_count_heatmap,
+    playground_grouped_boxplot,
     playground_histogram,
     playground_three_variable_scatter,
     playground_two_variable_scatter,
@@ -226,9 +228,10 @@ def _render_one_variable(data: pd.DataFrame) -> None:
 
 def _render_two_variables(data: pd.DataFrame) -> None:
     st.header("Two variables")
-    st.write("Choose two animal traits and look for a relationship between them.")
+    st.write("Choose two variables and investigate whether they appear to be related.")
 
-    labels = list(TRAIT_OPTIONS)
+    options = {**ONE_VARIABLE_NUMERICAL_OPTIONS, **ONE_VARIABLE_CATEGORICAL_OPTIONS}
+    labels = list(options)
     left, right = st.columns(2)
     x_label = left.selectbox(
         "Horizontal variable",
@@ -243,45 +246,51 @@ def _render_two_variables(data: pd.DataFrame) -> None:
         index=y_default,
         key="playground_two_y",
     )
-    x_field, y_field = TRAIT_OPTIONS[x_label], TRAIT_OPTIONS[y_label]
-    graph_support("Each point represents a record with both selected measurements.", "Look for direction, spread and unusual points.")
+    x_field, y_field = options[x_label], options[y_label]
+    x_numeric = x_label in ONE_VARIABLE_NUMERICAL_OPTIONS
+    y_numeric = y_label in ONE_VARIABLE_NUMERICAL_OPTIONS
+    if x_label == y_label:
+        st.info("Choose two different variables to compare.")
+        return
 
-    scale_left, scale_right = st.columns(2)
-    log_x = scale_left.checkbox("Use a logarithmic horizontal axis", value=True, key="playground_two_log_x")
-    log_y = scale_right.checkbox("Use a logarithmic vertical axis", value=True, key="playground_two_log_y")
-
-    show_fit = st.checkbox(
-        "Show best-fit model",
-        value=False,
-        key="playground_two_fit",
-        help="The model is fitted in the coordinate system shown on the graph. On log–log axes this gives a power-law fit.",
-    )
-
-    fit = fit_relationship(data, x_field, y_field, log_x=log_x, log_y=log_y) if show_fit else None
-    fig, count = playground_two_variable_scatter(
-        data,
-        x_field,
-        y_field,
-        x_label,
-        y_label,
-        log_x=log_x,
-        log_y=log_y,
-        fit=fit,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    sample_note(count, len(data), key="playground_two_sample_note")
-
-    if show_fit:
-        if fit is None:
-            st.warning("There are not enough valid records to fit this relationship.")
-        else:
-            r2 = "not defined" if math.isnan(fit.r_squared) else f"{fit.r_squared:.3f}"
-            st.info(
-                f"**{fit.model_name}:** {fit.equation}  \n"
-                f"**R²:** {r2} · **records used:** {fit.n:,}"
-            )
-            if log_x and log_y:
-                st.caption("On log–log axes, the fitted slope is the scaling exponent in the power-law relationship.")
+    if x_numeric and y_numeric:
+        graph_support("Each point represents a record with both selected measurements.", "Look for direction, shape, spread, clusters, gaps and points sitting apart.")
+        scale_left, scale_right = st.columns(2)
+        log_x = scale_left.checkbox("Use a logarithmic horizontal axis", value=True, key="playground_two_log_x")
+        log_y = scale_right.checkbox("Use a logarithmic vertical axis", value=True, key="playground_two_log_y")
+        show_fit = st.checkbox("Show a straight-line summary", value=False, key="playground_two_fit")
+        fit = fit_relationship(data, x_field, y_field, log_x=log_x, log_y=log_y) if show_fit else None
+        fig, count = playground_two_variable_scatter(data, x_field, y_field, x_label, y_label, log_x=log_x, log_y=log_y, fit=fit)
+        st.plotly_chart(fig, width="stretch")
+        sample_note(count, len(data), key="playground_two_sample_note")
+        notice_prompt("What do you notice?")
+        with soft_reveal("What could I look for?"):
+            st.write("Look for direction, shape, spread, clusters, gaps and points sitting apart. Does changing scale make structure easier to see?" + (" Does a straight line seem like a sensible summary of this pattern?" if show_fit else ""))
+    elif x_numeric or y_numeric:
+        numeric_label, numeric_field = (x_label, x_field) if x_numeric else (y_label, y_field)
+        category_label, category_field = (y_label, y_field) if x_numeric else (x_label, x_field)
+        log_y = st.checkbox("Use a logarithmic numerical axis", value=False, key="playground_two_grouped_log")
+        pair_data = data.copy()
+        if category_field == "brain size - method":
+            pair_data[category_field] = pair_data[category_field].replace({"immunostaining and histological recontruction": "immunostaining and histological reconstruction"})
+        fig, count = playground_grouped_boxplot(pair_data, category_field, numeric_field, category_label, numeric_label, log_y=log_y)
+        st.plotly_chart(fig, width="stretch")
+        sample_note(count, len(data), key="playground_two_sample_note")
+        st.caption("The box contains the middle half of the observations. A wider section means those values are more spread out — not that there are more observations there.")
+        notice_prompt("What do you notice?")
+        with soft_reveal("What could I look for?"):
+            st.write("Look for differences between groups, overlap, spread, values sitting apart and group sizes.")
+    else:
+        pair_data = data.copy()
+        for field in [x_field, y_field]:
+            if field == "brain size - method":
+                pair_data[field] = pair_data[field].replace({"immunostaining and histological recontruction": "immunostaining and histological reconstruction"})
+        fig, count = playground_count_heatmap(pair_data, x_field, y_field, x_label, y_label)
+        st.plotly_chart(fig, width="stretch")
+        sample_note(count, len(data), key="playground_two_sample_note")
+        notice_prompt("What do you notice?")
+        with soft_reveal("What could I look for?"):
+            st.write("Look for common, rare or absent combinations, and whether some rows or columns dominate.")
 
 
 def _render_three_variables(data: pd.DataFrame) -> None:

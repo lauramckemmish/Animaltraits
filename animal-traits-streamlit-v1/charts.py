@@ -1008,6 +1008,29 @@ def playground_categorical_bar(counts: pd.DataFrame, label: str):
     return fig
 
 
+def playground_grouped_boxplot(data: pd.DataFrame, category: str, numeric: str, category_label: str, numeric_label: str, *, log_y: bool = False):
+    """Build side-by-side category distributions for the Playground."""
+    plot_data = data[[category, numeric]].copy()
+    plot_data[numeric] = pd.to_numeric(plot_data[numeric], errors="coerce")
+    plot_data = plot_data.dropna()
+    if log_y:
+        plot_data = plot_data[plot_data[numeric] > 0]
+    fig = px.box(plot_data, x=category, y=numeric, points="outliers", title=f"{numeric_label} across {category_label}")
+    fig.update_layout(xaxis_title=category_label, yaxis_title=numeric_label)
+    if log_y:
+        fig.update_yaxes(type="log")
+    return fig, len(plot_data)
+
+
+def playground_count_heatmap(data: pd.DataFrame, x: str, y: str, x_label: str, y_label: str):
+    """Build a raw-count heatmap including absent category combinations."""
+    plot_data = data[[x, y]].dropna().copy()
+    table = pd.crosstab(plot_data[y], plot_data[x])
+    fig = go.Figure(go.Heatmap(z=table.to_numpy(), x=table.columns.tolist(), y=table.index.tolist(), colorscale="Blues", hovertemplate=f"{x_label}: %{{x}}<br>{y_label}: %{{y}}<br>Records: %{{z}}<extra></extra>"))
+    fig.update_layout(title=f"Counts for {x_label} and {y_label}", xaxis_title=x_label, yaxis_title=y_label)
+    return fig, len(plot_data)
+
+
 def playground_two_variable_scatter(
     data: pd.DataFrame,
     x: str,
