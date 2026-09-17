@@ -8,7 +8,13 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from charts import body_brain_group_fit_scatter, body_brain_group_scatter, body_brain_scatter, histogram
+from charts import (
+    body_brain_group_fit_scatter,
+    body_brain_group_scatter,
+    body_brain_prediction_evidence_scatter,
+    body_brain_scatter,
+    histogram,
+)
 from data import (
     body_brain_animal_groups,
     body_brain_model_comparison_candidates,
@@ -21,6 +27,9 @@ from data import (
     selected_species_body_mass,
     selected_species_body_brain,
     selected_species_taxonomy,
+    stage4_prediction_animal_choices,
+    stage4_prediction_model_candidates,
+    STAGE4_PREDICTION_TAGS,
     STAGE4_MODEL_SELECTOR_LEVELS,
     species_traits_from_observations,
     student_facing_data,
@@ -109,6 +118,13 @@ STAGE4_MODEL_JUDGEMENT_TESTING_COMMITTED_KEY = "stage4_model_judgement_testing_c
 STAGE4_MODEL_JUDGEMENT_RANGE_ANSWER = "The elephant prediction"
 STAGE4_MODEL_JUDGEMENT_EVIDENCE_ANSWER = "It depends"
 STAGE4_MODEL_JUDGEMENT_TESTING_ANSWER = "Not by itself"
+STAGE4_PREDICTION_TAG_KEY = "stage4_prediction_tag"
+STAGE4_PREDICTION_ANIMAL_KEY = "stage4_prediction_animal"
+STAGE4_PREDICTION_MODEL_KEY = "stage4_prediction_model"
+STAGE4_PREDICTION_MODEL_SIGNATURE_KEY = "stage4_prediction_model_signature"
+STAGE4_PREDICTION_CONFIDENCE_KEY = "stage4_prediction_confidence"
+STAGE4_PREDICTION_REASONS_KEY = "stage4_prediction_reasons"
+STAGE4_PREDICTION_REVEALED_KEY = "stage4_prediction_revealed"
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
 )
@@ -1893,6 +1909,204 @@ def _render_model_judgement() -> None:
     )
 
 
+def _clear_stage4_prediction_downstream_state(state) -> None:
+    """Clear Screen 10 judgements that are no longer tied to the current choice."""
+    for key, value in {
+        STAGE4_PREDICTION_MODEL_KEY: "",
+        STAGE4_PREDICTION_MODEL_SIGNATURE_KEY: None,
+        STAGE4_PREDICTION_CONFIDENCE_KEY: "Choose your confidence…",
+        STAGE4_PREDICTION_REASONS_KEY: [],
+        STAGE4_PREDICTION_REVEALED_KEY: False,
+    }.items():
+        state[key] = value
+
+
+def _choose_stage4_prediction_animal(scientific_name: str) -> None:
+    """Commit an animal identity and discard only Screen 10's dependent state."""
+    st.session_state[STAGE4_PREDICTION_ANIMAL_KEY] = scientific_name
+    _clear_stage4_prediction_downstream_state(st.session_state)
+
+
+def _reset_stage4_prediction() -> None:
+    """Return to Screen 10's chooser without changing earlier Stage 4 work."""
+    st.session_state[STAGE4_PREDICTION_ANIMAL_KEY] = ""
+    _clear_stage4_prediction_downstream_state(st.session_state)
+
+
+def _stage4_prediction_ready(
+    scientific_name: str, model_id: str, confidence: str, reasons: list[str]
+) -> bool:
+    """Return whether the no-answer-key prediction can be revealed."""
+    return bool(scientific_name and model_id and confidence in {"High confidence", "Some confidence", "Low confidence"} and reasons)
+
+
+def _render_stage4_prediction_animal_cards(choices: pd.DataFrame) -> None:
+    """Render compact, identity-first choices before an animal is committed."""
+    for _, animal in choices.iterrows():
+        common_name = str(animal["Common name"])
+        scientific_name = str(animal["Scientific name"])
+        animal_class = str(animal["Animal class"])
+        breadcrumb = " → ".join(
+            [animal_class, str(animal["order"]), str(animal["family"]), str(animal["genus"])]
+        )
+        with st.container(border=True):
+            st.markdown(f"**{common_name}**")
+            st.caption(f"*{scientific_name}*")
+            st.caption(breadcrumb)
+            st.button(
+                f"Choose {common_name}",
+                key=f"stage4_prediction_choose_{scientific_name}",
+                on_click=_choose_stage4_prediction_animal,
+                args=(scientific_name,),
+            )
+
+
+def _render_predict_when_unknown(data: pd.DataFrame) -> None:
+    """Render Screen 10's evidence-first prediction with no answer-key reveal."""
+    species_data = species_traits_from_observations(data)
+    tag = st.segmented_control(
+        "Find an animal you want to investigate",
+        STAGE4_PREDICTION_TAGS,
+        default=st.session_state.get(STAGE4_PREDICTION_TAG_KEY, "Australian"),
+        key=STAGE4_PREDICTION_TAG_KEY,
+        width="stretch",
+    )
+    tag = tag or "Australian"
+    chosen_name = st.session_state.get(STAGE4_PREDICTION_ANIMAL_KEY, "")
+
+    if not chosen_name:
+        st.write("Choose a route, explore its animals, and select one when you are ready.")
+        choices = stage4_prediction_animal_choices(species_data, None if tag == "Surprise me" else tag)
+        if tag == "Surprise me":
+            unique_choices = stage4_prediction_animal_choices(species_data)
+            surprise_name = st.session_state.get("stage4_prediction_surprise_name", "")
+            if surprise_name not in set(unique_choices["Scientific name"]):
+                surprise_name = str(unique_choices.sample(n=1).iloc[0]["Scientific name"])
+                st.session_state["stage4_prediction_surprise_name"] = surprise_name
+            choices = unique_choices[unique_choices["Scientific name"].eq(surprise_name)]
+            st.button(
+                "Another surprise",
+                key="stage4_prediction_another_surprise",
+                on_click=lambda: st.session_state.__setitem__("stage4_prediction_surprise_name", ""),
+            )
+        _render_stage4_prediction_animal_cards(choices)
+        completion_gate(False)
+        return
+
+    chosen_matches = stage4_prediction_animal_choices(species_data)
+    selected = chosen_matches.loc[chosen_matches["Scientific name"].eq(chosen_name)]
+    if selected.empty:
+        _reset_stage4_prediction()
+        st.warning("Choose an animal from the Screen 10 collection to continue.")
+        completion_gate(False)
+        return
+    animal = selected.iloc[0]
+    common_name = str(animal["Common name"])
+    body_mass = float(animal["body mass (kg)"])
+    breadcrumb = " → ".join([str(animal["Animal class"]), str(animal["order"]), str(animal["family"]), str(animal["genus"])])
+    with st.container(border=True):
+        st.markdown(f"**Your animal: {common_name}**")
+        st.caption(f"*{chosen_name}*")
+        st.caption(breadcrumb)
+        st.write(f"AnimalTraits gives us a body-mass value for this species: **{_format_stage4_mass_kg(body_mass)}**.")
+        st.write("It does not give us a brain-mass value.")
+
+    usable_species = usable_body_brain_species(species_data)
+    candidates = stage4_prediction_model_candidates(usable_species, animal)
+    if candidates.empty:
+        st.warning("There is not enough usable paired evidence to build a model for this animal.")
+        completion_gate(False)
+        return
+
+    labels = candidates.set_index("Model id")["Label"].to_dict()
+    current_model = st.session_state.get(STAGE4_PREDICTION_MODEL_KEY, "")
+    if current_model not in labels:
+        st.session_state[STAGE4_PREDICTION_MODEL_KEY] = ""
+        current_model = ""
+    st.subheader("Choose a model using its evidence")
+    st.write("Inspect the available evidence groups. You will not see a numerical brain-mass prediction until you have made your judgement.")
+    model_id = st.radio(
+        "Which model would you use to make your prediction?",
+        [""] + list(labels),
+        format_func=lambda value: "Choose a model…" if not value else labels[value],
+        key=STAGE4_PREDICTION_MODEL_KEY,
+        persist_state="session",
+    )
+    signature = (chosen_name, model_id)
+    if st.session_state.get(STAGE4_PREDICTION_MODEL_SIGNATURE_KEY) != signature:
+        st.session_state[STAGE4_PREDICTION_MODEL_SIGNATURE_KEY] = signature
+        st.session_state[STAGE4_PREDICTION_CONFIDENCE_KEY] = "Choose your confidence…"
+        st.session_state[STAGE4_PREDICTION_REASONS_KEY] = []
+        st.session_state[STAGE4_PREDICTION_REVEALED_KEY] = False
+
+    if not model_id:
+        completion_gate(False)
+        return
+    evidence = body_brain_model_evidence(usable_species, model_id)
+    fit = _stage4_model_fit(evidence)
+    if fit is None:
+        st.warning("This evidence group no longer supports a model.")
+        completion_gate(False)
+        return
+    status = prediction_range_status(fit, body_mass)
+    st.caption(f"**Evidence group:** {labels[model_id]} · **Usable paired species:** {len(evidence):,}")
+    st.plotly_chart(
+        body_brain_prediction_evidence_scatter(
+            evidence, fit, body_mass, evidence_label=labels[model_id],
+            title=f"{labels[model_id]} evidence and fitted model",
+        ),
+        width="stretch",
+    )
+    range_text = "inside the evidence range" if status == "interpolation" else "beyond the evidence range"
+    st.info(f"Your animal's body mass is **{range_text}** for this model.")
+
+    confidence = st.selectbox(
+        "How much confidence do you have in this prediction?",
+        ["Choose your confidence…", "High confidence", "Some confidence", "Low confidence"],
+        key=STAGE4_PREDICTION_CONFIDENCE_KEY,
+        persist_state="session",
+    )
+    reasons = st.multiselect(
+        "What evidence supports your judgement? Choose at least one.",
+        [
+            "The evidence comes from animals like mine.",
+            "The body mass is inside the evidence range.",
+            "The body mass is beyond the evidence range.",
+            "There is a lot of relevant evidence.",
+            "The available evidence is broad or less specific.",
+            "Another reason.",
+        ],
+        key=STAGE4_PREDICTION_REASONS_KEY,
+        persist_state="session",
+    )
+    ready = _stage4_prediction_ready(chosen_name, model_id, confidence, reasons)
+    if ready and not st.session_state.get(STAGE4_PREDICTION_REVEALED_KEY, False):
+        st.button(
+            "Reveal this model's prediction",
+            type="primary",
+            key="stage4_prediction_reveal_button",
+            on_click=lambda: st.session_state.__setitem__(STAGE4_PREDICTION_REVEALED_KEY, True),
+        )
+    elif not ready:
+        st.caption("Choose a model, confidence level and at least one evidence reason before revealing the prediction.")
+
+    if st.session_state.get(STAGE4_PREDICTION_REVEALED_KEY, False):
+        prediction = predict_power_law(fit, body_mass)
+        st.success(f"**Model-derived prediction:** {prediction * 1000:.3g} g brain mass.")
+        st.write(f"You chose the **{labels[model_id]}** evidence group with **{confidence.lower()}**.")
+        st.write("Your evidence reasons: " + "; ".join(reasons))
+        if status == "extrapolation":
+            st.caption("This is biologically specific evidence, but using it beyond its body-mass range is a reason for caution.")
+        elif model_id == "all":
+            st.caption("This prediction is supported over the body-mass range, though the evidence group is broad rather than biologically specific.")
+        else:
+            st.caption("This reflects the evidence available for this animal in this dataset; it is a model-based estimate, not a measurement.")
+        st.write("AnimalTraits does not give us a brain-mass value for this species to reveal.")
+        st.write("Sometimes data science ends with the best-supported prediction we can make — and a judgement about how much confidence to place in it.")
+        st.button("Choose a different animal", key="stage4_prediction_choose_again", on_click=_reset_stage4_prediction)
+    completion_gate(bool(st.session_state.get(STAGE4_PREDICTION_REVEALED_KEY, False)))
+
+
 def render(data: pd.DataFrame) -> None:
     """Render the first structural pass of the two-lesson Stage 4 experience."""
     screen_index = int(st.session_state.get("stage4_screen", 0))
@@ -1959,6 +2173,8 @@ def render(data: pd.DataFrame) -> None:
         _render_elephant_model_testing(data)
     elif screen_index == 8:
         _render_model_judgement()
+    elif screen_index == 9:
+        _render_predict_when_unknown(data)
     else:
         st.write(screen.framing)
     if screen_index == 4:

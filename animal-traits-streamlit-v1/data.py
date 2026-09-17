@@ -170,6 +170,49 @@ STAGE4_MODEL_SELECTOR_DISPLAY_TAXA = {
     ("family", "Phyllostomatidae"): "Phyllostomidae",
 }
 
+# Screen 10 begins with interest, rather than a biological classification.  The
+# routes intentionally overlap: they are discovery prompts, not evidence groups
+# or a taxonomy activity.  Scientific names remain the durable identity.
+STAGE4_PREDICTION_ANIMAL_TAGS = {
+    "Australian": (
+        "Tachyglossus aculeatus", "Ornithorhynchus anatinus", "Hydromys chrysogaster",
+        "Macroderma gigas", "Phylidonyris pyrrhopterus", "Acrochordus arafurae",
+        "Morelia spilota", "Tiliqua rugosa", "Varanus giganteus",
+    ),
+    "Tiny": (
+        "Perognathus longimembris", "Neurotrichus gibbsii", "Nyctophilus major",
+        "Psaltriparus minimus", "Archilochus alexandri", "Anolis sagrei",
+        "Coleonyx variegatus", "Anniella pulchra",
+    ),
+    "Big": (
+        "Lama glama", "Orycteropus afer", "Oreamnos americanus", "Acinonyx jubatus",
+        "Hydrochaeris hydrochaeris", "Megadyptes antipodes", "Phoebastria immutabilis",
+        "Leucocarbo atriceps", "Liasis olivaceus", "Varanus giganteus",
+    ),
+    "Predators": (
+        "Varanus giganteus", "Acinonyx jubatus", "Proteles cristata", "Martes americana",
+        "Galerella sanguinea", "Macroderma gigas", "Otus scops", "Leucocarbo atriceps",
+        "Aspidites melanocephalus", "Pseudonaja nuchalis",
+    ),
+    "Something weird": (
+        "Condylura cristata", "Orycteropus afer", "Manis javanica", "Cyclopes didactylus",
+        "Elephantulus intufi", "Macroderma gigas", "Ocreatus underwoodii",
+        "Arachnothera longirostra", "Acrochordus arafurae", "Ophisaurus ventralis",
+    ),
+    "Something new": (
+        "Apteryx australis", "Spalacopus cyanus", "Octodontomys gliroides", "Telophorus zeylonus",
+        "Drepanis coccinea", "Auriparus flaviceps", "Aglaeactis cupripennis",
+        "Pseudonaja nuchalis", "Sauromalus hispidus", "Cnemidophorus murinus",
+    ),
+    "Animals you might know": (
+        "Acinonyx jubatus", "Vulpes zerda", "Hydrochaeris hydrochaeris", "Chinchilla lanigera",
+        "Erinaceus concolor", "Tachyglossus aculeatus", "Ornithorhynchus anatinus",
+        "Spheniscus humboldti", "Apteryx australis", "Corvus corax", "Patagona gigas", "Morelia spilota",
+    ),
+}
+STAGE4_PREDICTION_TAGS = tuple(STAGE4_PREDICTION_ANIMAL_TAGS) + ("Surprise me",)
+STAGE4_PREDICTION_COMMON_NAME_OVERRIDES = {"Ornithorhynchus anatinus": "Platypus"}
+
 STUDENT_FIELDS = [
     "Common name",
     "Scientific name",
@@ -353,6 +396,61 @@ def usable_body_brain_species(data: pd.DataFrame) -> pd.DataFrame:
         & usable["body mass (kg)"].gt(0)
         & usable["brain size (kg)"].gt(0)
     ].copy()
+
+
+def stage4_prediction_animal_choices(
+    species_data: pd.DataFrame, tag: str | None = None
+) -> pd.DataFrame:
+    """Return Screen 10's curated no-answer-key animals with usable body mass.
+
+    This validates the curated scientific-name list against the current local
+    dataset without changing the source CSV or silently substituting animals.
+    """
+    requested = (
+        STAGE4_PREDICTION_ANIMAL_TAGS.get(tag, ())
+        if tag and tag != "Surprise me"
+        else tuple(dict.fromkeys(species for names in STAGE4_PREDICTION_ANIMAL_TAGS.values() for species in names))
+    )
+    prepared = species_data.copy()
+    prepared["body mass (kg)"] = pd.to_numeric(prepared["body mass (kg)"], errors="coerce")
+    prepared = prepared[prepared["species"].isin(requested) & prepared["body mass (kg)"].gt(0)].copy()
+    prepared["Common name"] = prepared["species"].map(STAGE4_PREDICTION_COMMON_NAME_OVERRIDES).fillna(
+        resolve_common_names(prepared["species"])
+    )
+    prepared["Scientific name"] = prepared["species"]
+    prepared["Animal class"] = prepared["class"].map(CLASS_LABELS)
+    order = {species: index for index, species in enumerate(requested)}
+    prepared["_screen10_order"] = prepared["species"].map(order)
+    return prepared.sort_values("_screen10_order").drop(columns="_screen10_order")
+
+
+def stage4_prediction_model_candidates(
+    usable_species: pd.DataFrame, chosen_animal: pd.Series
+) -> pd.DataFrame:
+    """Return only Screen 10 models biologically applicable to one animal."""
+    class_name = str(chosen_animal["class"])
+    required = [("all", "All animals")]
+    if class_name in {"Mammalia", "Aves", "Reptilia"}:
+        required.append((f"class:{class_name}", CLASS_LABELS[class_name]))
+    for rank in ("order", "family", "genus"):
+        value = str(chosen_animal[rank])
+        required.append((f"{rank}:{value}", value))
+
+    candidate_universe = body_brain_model_comparison_candidates(usable_species)
+    labels = candidate_universe.set_index("Model id")["Label"].to_dict()
+    records = []
+    for model_id, fallback_label in required:
+        if model_id == "class:Mammalia":
+            evidence = usable_species[usable_species["class"].eq("Mammalia")]
+            if len(evidence) >= 10:
+                records.append({"Model id": model_id, "Label": "Mammal", "Usable species": len(evidence)})
+        elif model_id in labels:
+            records.append({
+                "Model id": model_id,
+                "Label": "All animals" if model_id == "all" else labels[model_id].split(" · ")[0],
+                "Usable species": int(candidate_universe.loc[candidate_universe["Model id"].eq(model_id), "Usable species"].iloc[0]),
+            })
+    return pd.DataFrame(records, columns=["Model id", "Label", "Usable species"])
 
 
 def body_brain_animal_groups(usable_species: pd.DataFrame) -> dict[str, pd.DataFrame]:

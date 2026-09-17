@@ -812,6 +812,52 @@ def body_brain_group_fit_scatter(
     return fig
 
 
+def body_brain_prediction_evidence_scatter(
+    evidence: pd.DataFrame,
+    fit: FitResult,
+    body_mass_kg: float,
+    *,
+    evidence_label: str,
+    title: str = "Evidence used to make this prediction",
+):
+    """Show one fitted evidence group and a chosen animal's known body mass.
+
+    The vertical marker intentionally has no brain-mass coordinate: Screen 10
+    asks learners to judge evidence before the model-derived prediction is shown.
+    """
+    x_field = "body mass (kg)"
+    y_field = "brain size (kg)"
+    plot_data = with_common_class_names(evidence).copy()
+    for column in [x_field, y_field]:
+        plot_data[column] = pd.to_numeric(plot_data[column], errors="coerce")
+    plot_data = plot_data.dropna(subset=[x_field, y_field])
+    plot_data = plot_data[plot_data[x_field].gt(0) & plot_data[y_field].gt(0)]
+    common_names = plot_data.get("common name", pd.Series("", index=plot_data.index)).fillna("")
+    species = plot_data.get("species", pd.Series("", index=plot_data.index)).fillna("")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=plot_data[x_field], y=plot_data[y_field], mode="markers",
+        name=f"{evidence_label} evidence ({len(plot_data):,} species)",
+        marker=dict(size=8, color="#4c78a8", opacity=0.55),
+        customdata=np.column_stack([common_names.astype(str), species.astype(str)]),
+        hovertemplate="Animal: %{customdata[0]}<br>Scientific name: %{customdata[1]}<br>Body mass: %{x} kg<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=fit.x_line, y=fit.y_line, mode="lines", name="Fitted model",
+        line=dict(color="#1f2937", width=3), hoverinfo="skip",
+    ))
+    fig.add_vline(x=body_mass_kg, line_dash="dash", line_color="#d95f02", line_width=3)
+    fig.add_annotation(
+        x=body_mass_kg, y=1, yref="paper", text="Your animal's body mass",
+        showarrow=False, yanchor="bottom", font=dict(color="#9a3412"),
+    )
+    fig.update_layout(title=title, xaxis_title="Body mass (kg)", yaxis_title="Brain size (kg)", legend_title=None)
+    axis_x = pd.concat([plot_data[x_field], pd.Series([body_mass_kg])], ignore_index=True)
+    _apply_scientific_log_axis(fig, "x", axis_x, "Body mass (kg)")
+    _apply_scientific_log_axis(fig, "y", plot_data[y_field], "Brain size (kg)")
+    return fig
+
+
 def body_brain_group_scatter(
     groups: dict[str, pd.DataFrame],
     *,

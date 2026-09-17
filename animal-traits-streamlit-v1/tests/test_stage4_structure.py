@@ -36,6 +36,8 @@ from experiences.year8 import (
     _stage4_model_ids_for_level,
     _stage4_model_level_for_id,
     _stage4_model_judgement_ready,
+    _stage4_prediction_ready,
+    _clear_stage4_prediction_downstream_state,
     _stage4_selected_animal_classes,
     _stage4_selected_animal_groups,
     _stage4_usable_species,
@@ -50,6 +52,8 @@ from data import (
     selected_species_taxonomy,
     taxonomy_group_size_summary,
     usable_body_brain_species,
+    stage4_prediction_animal_choices,
+    stage4_prediction_model_candidates,
 )
 from models import (
     fit_relationship,
@@ -485,7 +489,7 @@ def test_stage4_model_judgement_requires_three_intended_responses():
     )
 
 
-def test_stage4_model_judgement_is_sequential_and_screen_ten_and_eleven_stay_placeholders():
+def test_stage4_model_judgement_is_sequential_and_screen_ten_is_the_no_answer_key_prediction():
     source = inspect.getsource(year8._render_model_judgement)
 
     assert source.index("Which prediction gives you more reason to be cautious?") < source.index(
@@ -494,5 +498,45 @@ def test_stage4_model_judgement_is_sequential_and_screen_ten_and_eleven_stay_pla
     assert source.index("So what makes a prediction more defensible?") > source.index(
         "One of your models happened to predict the cat very closely"
     )
-    assert "elif screen_index == 9:\n        _render" not in inspect.getsource(year8.render)
+    assert "elif screen_index == 9:\n        _render_predict_when_unknown(data)" in inspect.getsource(year8.render)
     assert "elif screen_index == 10:\n        _render" not in inspect.getsource(year8.render)
+
+
+def test_stage4_unknown_prediction_choices_use_stable_names_and_display_platypus():
+    choices = stage4_prediction_animal_choices(species_traits_from_observations(load_data()))
+    platypus = choices.set_index("Scientific name").loc["Ornithorhynchus anatinus"]
+
+    assert choices["Scientific name"].is_unique
+    assert platypus["Common name"] == "Platypus"
+    assert choices["body mass (kg)"].gt(0).all()
+
+
+def test_stage4_unknown_prediction_only_offers_applicable_live_models():
+    species_data = species_traits_from_observations(load_data())
+    choices = stage4_prediction_animal_choices(species_data)
+    fennec = choices.set_index("Scientific name").loc["Vulpes zerda"]
+    candidates = stage4_prediction_model_candidates(usable_body_brain_species(species_data), fennec)
+
+    assert candidates["Model id"].tolist() == [
+        "all", "class:Mammalia", "order:Carnivora", "family:Canidae"
+    ]
+    assert candidates["Usable species"].ge(10).all()
+
+
+def test_stage4_unknown_prediction_gate_and_reset_are_bounded_to_screen_ten():
+    assert not _stage4_prediction_ready("Vulpes zerda", "all", "Some confidence", [])
+    assert _stage4_prediction_ready(
+        "Vulpes zerda", "all", "Some confidence", ["The available evidence is broad or less specific."]
+    )
+    state = {
+        "stage4_prediction_model": "all",
+        "stage4_prediction_confidence": "High confidence",
+        "stage4_prediction_reasons": ["The body mass is inside the evidence range."],
+        "stage4_prediction_revealed": True,
+        "stage4_saved_species": ["Mus musculus"],
+    }
+    _clear_stage4_prediction_downstream_state(state)
+
+    assert state["stage4_prediction_model"] == ""
+    assert state["stage4_prediction_revealed"] is False
+    assert state["stage4_saved_species"] == ["Mus musculus"]
