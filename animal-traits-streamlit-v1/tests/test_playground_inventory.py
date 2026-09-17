@@ -1,8 +1,11 @@
 """Focused tests for the Data Exploration Playground dataset inventory."""
 
 import pandas as pd
+from pathlib import Path
+from streamlit.testing.v1 import AppTest
 
-from data import playground_data
+from charts import playground_count_heatmap, playground_three_variable_scatter
+from data import load_data, playground_data
 
 from experiences.data_exploration_playground import (
     KNOW_YOUR_DATA_FIELDS,
@@ -28,6 +31,85 @@ def test_playground_follow_up_handoff_distinguishes_a_pattern_from_an_explanatio
     assert "What evidence would you need next?" in source
     assert "does not, by itself, tell you why the pattern exists" in source
     assert "text_area" not in source
+
+
+def test_playground_renders_its_simultaneous_notice_prompts_with_stable_unique_keys():
+    app = AppTest.from_file(Path(__file__).parents[1] / "app.py").run(timeout=30)
+    next(button for button in app.sidebar.button if button.label == "Data Exploration Playground").click()
+    app.run(timeout=30)
+
+    assert not app.exception
+    assert [tab.label for tab in app.tabs] == TAB_LABELS
+
+
+def test_playground_heatmap_uses_raw_counts_with_visible_annotations_including_zeroes():
+    data = pd.DataFrame(
+        {
+            "Animal class": ["Mammal", "Mammal", "Bird"],
+            "phylum": ["Chordata", "Chordata", "Chordata"],
+        }
+    )
+    figure, record_count = playground_count_heatmap(
+        data, "Animal class", "phylum", "Animal class", "Phylum"
+    )
+
+    assert record_count == 3
+    assert figure.data[0].z.tolist() == [[1, 2]]
+    annotations = {annotation.text for annotation in figure.layout.annotations}
+    assert annotations == {"1", "2"}
+
+
+def test_playground_heatmap_annotations_preserve_an_absent_combination():
+    data = pd.DataFrame(
+        {
+            "Animal class": ["Mammal", "Bird"],
+            "phylum": ["Chordata", "Arthropoda"],
+        }
+    )
+    figure, _ = playground_count_heatmap(
+        data, "Animal class", "phylum", "Animal class", "Phylum"
+    )
+
+    assert 0 in figure.data[0].z.flatten()
+    assert "0" in {annotation.text for annotation in figure.layout.annotations}
+
+
+def test_playground_animal_class_scatter_uses_shapes_without_changing_colour_groups():
+    data = playground_data(load_data())
+    figure, _ = playground_three_variable_scatter(
+        data,
+        "body mass (kg)",
+        "brain size (kg)",
+        "Animal class",
+        "Body mass (kg)",
+        "Brain size (kg)",
+        "Animal class",
+        log_x=True,
+        log_y=True,
+    )
+
+    assert len(figure.data) > 1
+    assert len({trace.name for trace in figure.data}) == len(figure.data)
+    assert len({trace.marker.symbol for trace in figure.data}) > 1
+    assert all(trace.marker.color is not None for trace in figure.data)
+
+
+def test_playground_numerical_colour_scatter_keeps_its_single_symbol_encoding():
+    data = pd.DataFrame(
+        {
+            "body": [1.0, 2.0, 3.0],
+            "brain": [0.1, 0.2, 0.3],
+            "third": [10.0, 20.0, 30.0],
+            "species": ["one", "two", "three"],
+            "Animal class": ["Mammal", "Bird", "Mammal"],
+        }
+    )
+    figure, _ = playground_three_variable_scatter(
+        data, "body", "brain", "third", "Body", "Brain", "Third"
+    )
+
+    assert len(figure.data) == 1
+    assert figure.data[0].marker.symbol == "circle"
 
 
 def test_know_your_data_inventory_includes_every_classroom_dataset_field():

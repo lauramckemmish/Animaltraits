@@ -208,7 +208,7 @@ def _render_one_variable(data: pd.DataFrame) -> None:
         metrics[1].metric("Median", _format_one_variable_number(summary["median"]))
         metrics[2].metric("Minimum", _format_one_variable_number(summary["min"]))
         metrics[3].metric("Maximum", _format_one_variable_number(summary["max"]))
-        notice_prompt("What do you notice?")
+        notice_prompt("What do you notice?", key="playground_one_notice")
         with soft_reveal("What could I look for?"):
             st.write("Where are most values? How spread out are they? Are there gaps or values sitting apart? Does changing the scale make a pattern easier to see? Are the mean and median similar or quite different?")
         with soft_reveal("Another way to summarise this distribution"):
@@ -218,7 +218,7 @@ def _render_one_variable(data: pd.DataFrame) -> None:
         counts = _one_variable_category_counts(data, field)
         st.plotly_chart(playground_categorical_bar(counts, label), width="stretch")
         st.caption(f"Usable values: {counts['Count'].sum():,} · Missing: {len(data) - counts['Count'].sum():,}")
-        notice_prompt("What do you notice?")
+        notice_prompt("What do you notice?", key="playground_one_notice")
         with soft_reveal("What could I look for?"):
             st.write("Which categories are common? Which are rare? Is the distribution fairly balanced or very uneven? How much of the dataset is missing for this variable?")
 
@@ -260,7 +260,7 @@ def _render_two_variables(data: pd.DataFrame) -> None:
         fig, count = playground_two_variable_scatter(data, x_field, y_field, x_label, y_label, log_x=log_x, log_y=log_y, fit=fit)
         st.plotly_chart(fig, width="stretch")
         sample_note(count, len(data), key="playground_two_sample_note")
-        notice_prompt("What do you notice?")
+        notice_prompt("What do you notice?", key="playground_two_notice")
         with soft_reveal("What could I look for?"):
             st.write("Look for direction, shape, spread, clusters, gaps and points sitting apart. Does changing scale make structure easier to see?" + (" Does a straight line seem like a sensible summary of this pattern?" if show_fit else ""))
     elif x_numeric or y_numeric:
@@ -274,7 +274,7 @@ def _render_two_variables(data: pd.DataFrame) -> None:
         st.plotly_chart(fig, width="stretch")
         sample_note(count, len(data), key="playground_two_sample_note")
         st.caption("The box contains the middle half of the observations. A wider section means those values are more spread out — not that there are more observations there.")
-        notice_prompt("What do you notice?")
+        notice_prompt("What do you notice?", key="playground_two_notice")
         with soft_reveal("What could I look for?"):
             st.write("Look for differences between groups, overlap, spread, values sitting apart and group sizes.")
     else:
@@ -285,7 +285,7 @@ def _render_two_variables(data: pd.DataFrame) -> None:
         fig, count = playground_count_heatmap(pair_data, x_field, y_field, x_label, y_label)
         st.plotly_chart(fig, width="stretch")
         sample_note(count, len(data), key="playground_two_sample_note")
-        notice_prompt("What do you notice?")
+        notice_prompt("What do you notice?", key="playground_two_notice")
         with soft_reveal("What could I look for?"):
             st.write("Look for common, rare or absent combinations, and whether some rows or columns dominate.")
 
@@ -333,9 +333,9 @@ def _render_three_variables(data: pd.DataFrame) -> None:
         log_x=log_x,
         log_y=log_y,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.caption(f"Showing {count:,} records with values available for all selected variables.")
-    notice_prompt("What do you notice?")
+    notice_prompt("What do you notice?", key="playground_three_notice")
     with soft_reveal("What could I look for?"):
         st.write("Do the colours occupy different parts of the graph? Does the pattern look similar for different groups? Does adding colour make it clearer or more complicated? If you filter the data, does your earlier observation still hold?")
 

@@ -251,9 +251,9 @@ def placeholder_callout(label: str, guidance: str) -> None:
     st.info(f"**{label}**  \n{guidance}")
 
 
-def _cognitive_prompt(kind: str, prompt: str) -> None:
+def _cognitive_prompt(kind: str, prompt: str, *, key: str | None = None) -> None:
     """Render a visible, non-blocking prompt for one named cognitive job."""
-    prompt_key = f"{kind.lower()}_prompt"
+    prompt_key = key or f"{kind.lower()}_prompt"
     with st.container(key=prompt_key):
         st.markdown(
             f'<span class="cognitive-prompt__label">{escape(kind)}</span>',
@@ -262,9 +262,9 @@ def _cognitive_prompt(kind: str, prompt: str) -> None:
         st.write(prompt)
 
 
-def notice_prompt(prompt: str) -> None:
+def notice_prompt(prompt: str, *, key: str | None = None) -> None:
     """Ask learners to inspect evidence and identify something they notice."""
-    _cognitive_prompt("Notice", prompt)
+    _cognitive_prompt("Notice", prompt, key=key)
 
 
 def compare_prompt(prompt: str) -> None:

@@ -1026,7 +1026,19 @@ def playground_count_heatmap(data: pd.DataFrame, x: str, y: str, x_label: str, y
     """Build a raw-count heatmap including absent category combinations."""
     plot_data = data[[x, y]].dropna().copy()
     table = pd.crosstab(plot_data[y], plot_data[x])
-    fig = go.Figure(go.Heatmap(z=table.to_numpy(), x=table.columns.tolist(), y=table.index.tolist(), colorscale="Blues", hovertemplate=f"{x_label}: %{{x}}<br>{y_label}: %{{y}}<br>Records: %{{z}}<extra></extra>"))
+    counts = table.to_numpy()
+    fig = go.Figure(go.Heatmap(z=counts, x=table.columns.tolist(), y=table.index.tolist(), colorscale="Blues", hovertemplate=f"{x_label}: %{{x}}<br>{y_label}: %{{y}}<br>Records: %{{z}}<extra></extra>"))
+    high_count_threshold = counts.max() * 0.45 if counts.size else 0
+    for row_index, category_y in enumerate(table.index):
+        for column_index, category_x in enumerate(table.columns):
+            count = int(counts[row_index, column_index])
+            fig.add_annotation(
+                x=category_x,
+                y=category_y,
+                text=str(count),
+                showarrow=False,
+                font={"color": "white" if count >= high_count_threshold else "#1f2937", "size": 12},
+            )
     fig.update_layout(title=f"Counts for {x_label} and {y_label}", xaxis_title=x_label, yaxis_title=y_label)
     return fig, len(plot_data)
 
@@ -1106,15 +1118,20 @@ def playground_three_variable_scatter(
 
     hover_data = [field for field in ["species", "Animal class"] if field in plot_data.columns and field != colour]
     hover_name = "common name" if "common name" in plot_data.columns else None
-    fig = px.scatter(
-        plot_data,
-        x=x,
-        y=y,
-        color=colour,
-        hover_name=hover_name,
-        hover_data=hover_data,
-        title=f"{y_label} and {x_label}, coloured by {colour_label}",
-    )
+    scatter_options = {
+        "x": x,
+        "y": y,
+        "color": colour,
+        "hover_name": hover_name,
+        "hover_data": hover_data,
+        "title": f"{y_label} and {x_label}, coloured by {colour_label}",
+    }
+    if colour == "Animal class":
+        scatter_options.update(
+            symbol=colour,
+            symbol_sequence=["circle", "square", "diamond", "cross", "x", "triangle-up", "triangle-down", "star"],
+        )
+    fig = px.scatter(plot_data, **scatter_options)
     fig.update_layout(xaxis_title=x_label, yaxis_title=y_label, legend_title=colour_label)
     fig.update_traces(marker=dict(size=7, opacity=0.8))
     if log_x:
