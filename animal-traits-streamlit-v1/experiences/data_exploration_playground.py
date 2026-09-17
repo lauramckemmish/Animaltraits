@@ -28,7 +28,16 @@ from data import (
     filter_animal_classes,
 )
 from models import fit_relationship
-from ui_helpers import graph_support, notice_prompt, page_header, sample_note, soft_reveal, variable_card
+from ui_helpers import (
+    facilitator_live_cue,
+    facilitator_preparation,
+    graph_support,
+    notice_prompt,
+    page_header,
+    sample_note,
+    soft_reveal,
+    variable_card,
+)
 
 TAB_LABELS = ["Start here", "Know your data", "One variable", "Two variables", "Another angle", "Follow it further"]
 
@@ -92,6 +101,17 @@ def _trait_index(field: str) -> int:
 
 
 def _render_start(data: pd.DataFrame) -> None:
+    facilitator_preparation(
+        """### Facilitator notes
+
+Your main job is not to explain the graphs. Help learners inspect evidence, say what they notice, and decide what they need to investigate next.
+
+**Protect:** let learners inspect before supplying an interpretation; use prompts to focus attention rather than announce patterns; keep missingness and usable-record limits visible; treat fitted lines as summaries, not laws or causal proof; use colour or filtering to test an earlier observation; end by asking what evidence could come next.
+
+**Enough technical understanding:** this is an observation-level dataset, so species can repeat. Fields include animal traits and study metadata; missing does not mean zero. Log scales change axis spacing, not values. Boxplots support cautious group comparison. Brain-size method is study metadata—you do not need to teach the laboratory methods.
+
+**If time is short:** learners do not need every tab. Preserve: inspect evidence → notice something → compare or test it → identify what evidence might come next."""
+    )
     st.header("Explore the animal-trait data")
     st.write(
         "Know the data, inspect one variable, compare two, then look from another angle to test whether a pattern changes."
@@ -128,6 +148,11 @@ def _know_your_data_inventory(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def _render_know_your_data(data: pd.DataFrame) -> None:
+    facilitator_live_cue(
+        "FACILITATION NOTE",
+        "Clarify trait versus study-information fields only when it matters. A missing value means this record lacks that measurement; it is not zero or evidence that the animal lacks it.",
+        key="playground_know_data",
+    )
     st.header("Know your data")
     st.write("Before making a graph, inspect what this dataset actually contains.")
     st.caption(
@@ -224,6 +249,11 @@ def _render_one_variable(data: pd.DataFrame) -> None:
 
 
 def _render_two_variables(data: pd.DataFrame) -> None:
+    facilitator_live_cue(
+        "FACILITATION NOTE",
+        "Ask what the graph shows before discussing fit, association or cause. A fitted line is a summary, not proof; keep the usable-record note in view when measurements are missing.",
+        key="playground_two_variables",
+    )
     st.header("Two variables")
     st.write("Choose two variables and investigate whether they appear to be related.")
 
@@ -343,6 +373,11 @@ def _render_three_variables(data: pd.DataFrame) -> None:
 def _render_follow_it_further() -> None:
     """Offer a calm, non-persistent handoff from graphs to further inquiry."""
     st.header("Follow something interesting")
+    facilitator_live_cue(
+        "FACILITATION NOTE",
+        "Ask what evidence could test or distinguish possible explanations. Do not require a final causal answer: limitations and unresolved questions are legitimate scientific outcomes.",
+        key="playground_follow_further",
+    )
     st.write("A graph is often the beginning of a scientific question, not the end.")
     st.markdown("### What did you notice?")
     st.write("Name a pattern, difference, unusual value, gap, imbalance or limitation that caught your attention.")

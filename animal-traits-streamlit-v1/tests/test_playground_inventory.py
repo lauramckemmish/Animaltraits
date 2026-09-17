@@ -33,6 +33,18 @@ def test_playground_follow_up_handoff_distinguishes_a_pattern_from_an_explanatio
     assert "text_area" not in source
 
 
+def test_playground_has_one_preparation_note_and_three_contextual_facilitator_cues():
+    import inspect
+    from experiences import data_exploration_playground as playground
+
+    assert "facilitator_preparation" in inspect.getsource(playground._render_start)
+    assert "facilitator_live_cue" in inspect.getsource(playground._render_know_your_data)
+    assert "facilitator_live_cue" in inspect.getsource(playground._render_two_variables)
+    assert "facilitator_live_cue" in inspect.getsource(playground._render_follow_it_further)
+    assert "facilitator_live_cue" not in inspect.getsource(playground._render_one_variable)
+    assert "facilitator_live_cue" not in inspect.getsource(playground._render_three_variables)
+
+
 def test_playground_renders_its_simultaneous_notice_prompts_with_stable_unique_keys():
     app = AppTest.from_file(Path(__file__).parents[1] / "app.py").run(timeout=30)
     next(button for button in app.sidebar.button if button.label == "Data Exploration Playground").click()

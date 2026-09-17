@@ -152,14 +152,14 @@ def facilitator_orientation() -> None:
         )
 
 
-def facilitator_live_cue(label: str, content: str) -> None:
+def facilitator_live_cue(label: str, content: str, *, key: str | None = None) -> None:
     """Render one optional, glanceable facilitator cue for live delivery."""
     if label not in FACILITATOR_LIVE_LABELS:
         allowed = ", ".join(sorted(FACILITATOR_LIVE_LABELS))
         raise ValueError(f"Unknown facilitator live cue: {label}. Use one of: {allowed}.")
     if not facilitator_notes_enabled():
         return
-    cue_key = label.lower().replace(" ", "_")
+    cue_key = key or label.lower().replace(" ", "_")
     with st.container(key=f"facilitator_live_{cue_key}"):
         st.markdown(
             f'<span class="facilitator-live__label">{escape(label)}</span>',
