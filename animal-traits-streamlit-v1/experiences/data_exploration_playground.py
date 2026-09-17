@@ -26,7 +26,23 @@ from data import (
 from models import fit_relationship
 from ui_helpers import graph_support, page_header, sample_note, variable_card
 
-TAB_LABELS = ["Start here", "Variables", "One variable", "Two variables", "Three variables"]
+TAB_LABELS = ["Start here", "Know your data", "One variable", "Two variables", "Three variables"]
+
+KNOW_YOUR_DATA_FIELDS = (
+    ("phylum", "Categorical", "Taxonomy", "A broad taxonomic group for the animal.", "—"),
+    ("class", "Categorical", "Taxonomy", "A taxonomic class, such as Mammalia or Aves.", "—"),
+    ("order", "Categorical", "Taxonomy", "A taxonomic order within a class.", "—"),
+    ("family", "Categorical", "Taxonomy", "A taxonomic family within an order.", "—"),
+    ("genus", "Categorical", "Taxonomy", "A taxonomic genus within a family.", "—"),
+    ("species", "Identifier / categorical label", "Taxonomy / identity", "The scientific-name identity of the species.", "—"),
+    ("study sample sex", "Categorical", "Study information", "The sex recorded for the study sample.", "—"),
+    ("study sample size", "Numerical", "Study information", "How many individuals are represented by the study record.", "Count"),
+    ("body mass (kg)", "Numerical", "Animal trait", "The mass recorded for an animal or study specimen.", "kg"),
+    ("metabolic rate (W)", "Numerical", "Animal trait", "The rate at which an animal uses energy.", "W"),
+    ("mass-specific metabolic rate (W/kg)", "Numerical", "Animal trait", "Metabolic rate relative to body mass.", "W/kg"),
+    ("brain size (kg)", "Numerical", "Animal trait", "Recorded brain mass where it is available.", "kg"),
+    ("brain size - method", "Categorical", "Study information", "The method recorded for the brain-size measurement.", "—"),
+)
 
 
 def _render_filter(data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
@@ -71,19 +87,48 @@ def _render_start(data: pd.DataFrame) -> None:
     st.info("The fitting tools are part of this playground because scaling relationships are an important feature of Animal Traits data.")
 
 
-def _render_variables() -> None:
-    st.header("Variables")
-    st.write("These are the four quantitative traits included in Version 1 of the playground.")
-    rows = [
-        {
-            "Variable": label,
-            "Dataset field": field,
-            "What it tells us": TRAIT_DESCRIPTIONS.get(field, ""),
-        }
-        for label, field in TRAIT_OPTIONS.items()
-    ]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-    st.caption("Animal class is available as a grouping variable and as the playground's only filter.")
+def _know_your_data_inventory(data: pd.DataFrame) -> pd.DataFrame:
+    """Return learner-facing metadata and full-dataset missingness for every field."""
+    rows = []
+    total_records = len(data)
+    for field, field_type, role, meaning, unit in KNOW_YOUR_DATA_FIELDS:
+        missing_count = int(data[field].isna().sum())
+        missing_percentage = 0 if total_records == 0 else missing_count / total_records * 100
+        rows.append(
+            {
+                "Variable": field,
+                "Type": field_type,
+                "Role": role,
+                "What it tells us": meaning,
+                "Unit": unit,
+                "Missing data": f"{missing_count:,} ({missing_percentage:.1f}%)",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _render_know_your_data(data: pd.DataFrame) -> None:
+    st.header("Know your data")
+    st.write("Before making a graph, inspect what this dataset actually contains.")
+    st.caption(
+        "These are the 13 fields in the full AnimalTraits classroom dataset. Missing data are shown for the dataset, not for the current animal-class filter."
+    )
+    inventory = _know_your_data_inventory(data)
+    display_inventory = inventory.assign(
+        **{"Type / role": inventory["Type"] + " · " + inventory["Role"]}
+    )[["Variable", "Type / role", "What it tells us", "Unit", "Missing data"]]
+    st.dataframe(
+        display_inventory,
+        hide_index=True,
+        width="stretch",
+        column_config={
+            "Variable": st.column_config.TextColumn(width="small"),
+            "Type / role": st.column_config.TextColumn(width="medium"),
+            "What it tells us": st.column_config.TextColumn(width="medium"),
+            "Unit": st.column_config.TextColumn(width="small"),
+            "Missing data": st.column_config.TextColumn(width="small"),
+        },
+    )
 
 
 def _render_one_variable(data: pd.DataFrame) -> None:
@@ -230,7 +275,7 @@ def render(data: pd.DataFrame) -> None:
     with tabs[0]:
         _render_start(filtered)
     with tabs[1]:
-        _render_variables()
+        _render_know_your_data(data)
     with tabs[2]:
         _render_one_variable(filtered)
     with tabs[3]:
