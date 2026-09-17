@@ -18,6 +18,9 @@ from experiences.year8 import (
     STAGE4_ANIMAL_COLLECTION_MAX_SELECTION,
     STAGE4_ANIMAL_COLLECTION_MIN_SELECTION,
     _format_stage4_mass_kg,
+    _format_stage4_aggregate_mass_kg,
+    _format_stage4_approximate_factor,
+    _format_stage4_model_prediction_mass,
     _stage4_animal_collection_ready,
     _lesson_for_screen,
     _lesson_screen_range,
@@ -83,6 +86,17 @@ def test_stage4_scale_estimates_use_a_common_kilogram_unit():
     assert _stage4_mass_in_kg(5.55, "tonnes") == pytest.approx(5550)
     assert _format_stage4_mass_kg(0.0321) == "0.0321 kg"
     assert _format_stage4_mass_kg(5550) == "5,550 kg"
+
+
+def test_stage4_aggregate_and_model_values_use_two_significant_figures():
+    assert _format_stage4_aggregate_mass_kg(61.542857) == "62 kg"
+    assert _format_stage4_aggregate_mass_kg(2.496) == "2.5 kg"
+    assert _format_stage4_aggregate_mass_kg(707.75) == "710 kg"
+    assert _format_stage4_model_prediction_mass(6.251) == "6.3 kg"
+    assert _format_stage4_model_prediction_mass(0.011282) == "11 g"
+    assert _format_stage4_model_prediction_mass(0.000837824) == "0.84 g"
+    assert _format_stage4_approximate_factor(5.603) == "5.6×"
+    assert _format_stage4_approximate_factor(31.3979) == "31×"
 
 
 def test_stage4_scale_reuses_the_grounded_mouse_and_external_elephant_references():

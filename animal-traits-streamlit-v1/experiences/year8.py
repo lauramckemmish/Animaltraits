@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -217,6 +218,56 @@ def _format_stage4_mass_kg(value: float) -> str:
     return f"{value:,.4g} kg"
 
 
+def _format_stage4_significant(value: float, significant_figures: int = 2) -> str:
+    """Format a Stage 4 aggregate or model value to a stated precision."""
+    value = float(value)
+    if value == 0:
+        return "0"
+    magnitude = math.floor(math.log10(abs(value)))
+    decimal_places = significant_figures - 1 - magnitude
+    if abs(value) < 1e-4:
+        return f"{value:.{significant_figures - 1}e}"
+    rounded = round(value, decimal_places)
+    if decimal_places <= 0:
+        return f"{rounded:,.0f}"
+    return f"{rounded:,.{decimal_places}f}"
+
+
+def _format_stage4_aggregate_mass_kg(value: float) -> str:
+    """Format a species-level AnimalTraits aggregate for learner-facing display."""
+    return f"{_format_stage4_significant(value)} kg"
+
+
+def _format_stage4_model_prediction_mass(value_kg: float) -> str:
+    """Format a learner-facing model estimate in a readable two-significant-figure unit."""
+    if abs(value_kg) < 1:
+        return f"{_format_stage4_significant(value_kg * 1000)} g"
+    return f"{_format_stage4_significant(value_kg)} kg"
+
+
+def _format_stage4_approximate_factor(value: float) -> str:
+    """Format an approximate model multiplier to two significant figures."""
+    return f"{_format_stage4_significant(value)}×"
+
+
+def _format_stage4_model_equation(fit) -> str:
+    """Give the Stage 4 equation a local learner-facing precision treatment."""
+    coefficient = 10**fit.intercept
+    return f"y = {_format_stage4_significant(coefficient)} × x^{_format_stage4_significant(fit.slope)}"
+
+
+def _stage4_aggregate_traits_for_display(
+    frame: pd.DataFrame, body_column: str, brain_column: str
+) -> pd.DataFrame:
+    """Return a display copy with aggregate trait values formatted for learners."""
+    display = frame.copy()
+    for column in (body_column, brain_column):
+        display[column] = display[column].map(
+            lambda value: "—" if pd.isna(value) else _format_stage4_aggregate_mass_kg(value)
+        )
+    return display
+
+
 def _stage4_usable_species(matches: pd.DataFrame) -> pd.DataFrame:
     """Return matched species with the paired values needed in later Stage 4 graphs."""
     usable = matches.copy()
@@ -358,6 +409,9 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
             display_matches = matches[
                 ["Common name", "Scientific name", "Animal class", "Body mass (kg)", "Brain size (kg)"]
             ].rename(columns={"Brain size (kg)": "Brain mass (kg)"})
+            display_matches = _stage4_aggregate_traits_for_display(
+                display_matches, "Body mass (kg)", "Brain mass (kg)"
+            )
             st.dataframe(display_matches.head(25), hide_index=True)
             if len(matches) > 25:
                 st.caption("Showing the first 25 matches.")
@@ -562,8 +616,8 @@ def _render_body_mass(data: pd.DataFrame) -> None:
     largest = body_mass_data["body mass (kg)"].max()
     st.subheader("The range in the dataset")
     smallest_column, largest_column = st.columns(2)
-    smallest_column.metric("Smallest positive body mass", _format_stage4_mass_kg(smallest))
-    largest_column.metric("Largest positive body mass", _format_stage4_mass_kg(largest))
+    smallest_column.metric("Smallest positive body mass", _format_stage4_aggregate_mass_kg(smallest))
+    largest_column.metric("Largest positive body mass", _format_stage4_aggregate_mass_kg(largest))
     st.caption("These are species-level AnimalTraits values. We have not changed the scale yet.")
 
     st.subheader("First, use an ordinary linear scale")
@@ -680,9 +734,12 @@ def _render_body_brain(data: pd.DataFrame) -> None:
         "Start with familiar examples and the graph-ready animals you chose. Then make a broad prediction before looking at the whole dataset."
     )
     st.subheader("Familiar examples and your animals")
+    orientation_display = orientation[["Animal", "Role", "body mass (kg)", "brain size (kg)"]].rename(
+        columns={"body mass (kg)": "Body mass (kg)", "brain size (kg)": "Brain mass (kg)"}
+    )
     st.dataframe(
-        orientation[["Animal", "Role", "body mass (kg)", "brain size (kg)"]].rename(
-            columns={"body mass (kg)": "Body mass (kg)", "brain size (kg)": "Brain mass (kg)"}
+        _stage4_aggregate_traits_for_display(
+            orientation_display, "Body mass (kg)", "Brain mass (kg)"
         ),
         hide_index=True,
         width="stretch",
@@ -1183,7 +1240,7 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
     tenfold_factor = power_law_scale_factor(mammal_fit, 10)
     hundredfold_factor = power_law_scale_factor(mammal_fit, 100)
     st.subheader("Read the model as a multiplicative prediction")
-    st.write(f"The mammal model predicts that if body mass is 10× larger, brain mass is about **{tenfold_factor:.1f}×** larger.")
+    st.write(f"The mammal model predicts that if body mass is 10× larger, brain mass is about **{_format_stage4_approximate_factor(tenfold_factor)}** larger.")
     hundredfold_reasoning = st.selectbox(
         "If body mass is 100× larger, will the mammal model predict brain mass is…",
         ["Choose a prediction", "Less than 10×", "About 10×", "More than 10×"],
@@ -1192,13 +1249,13 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
     )
     if hundredfold_reasoning == "More than 10×":
         st.success(
-            f"Yes. The mammal model predicts about **{hundredfold_factor:.1f}×** larger brain mass for a 100× body-mass increase."
+            f"Yes. The mammal model predicts about **{_format_stage4_approximate_factor(hundredfold_factor)}** larger brain mass for a 100× body-mass increase."
         )
     elif hundredfold_reasoning != "Choose a prediction":
         st.caption("Use the 10× prediction as a clue: the model's fitted relationship rises by more than a factor of ten over a 100× body-mass change.")
 
     with st.expander("See the maths behind the model"):
-        st.write(f"For the mammal evidence, the fitted power-law equation is **{mammal_fit.equation}**.")
+        st.write(f"For the mammal evidence, the fitted power-law equation is **{_format_stage4_model_equation(mammal_fit)}**.")
         st.caption("This is supplementary maths. You do not need to calculate logarithms or fit the line yourself.")
 
     st.subheader("Compare models built from different evidence")
@@ -1250,7 +1307,7 @@ def _render_mammal_model(data: pd.DataFrame) -> None:
         ]
         st.caption(
             "For a 10× body-mass increase, the models predict: "
-            + "; ".join(f"{label} about {factor:.1f}×" for label, factor in comparison_factors)
+            + "; ".join(f"{label} about {_format_stage4_approximate_factor(factor)}" for label, factor in comparison_factors)
             + "."
         )
         st.button(
@@ -1402,7 +1459,7 @@ def _render_stage4_cat_comparison(
         predicted_brain_mass = predict_power_law(fit, cat_body_mass)
         range_status = prediction_range_status(fit, cat_body_mass)
         st.success(
-            f"**Model-derived cat prediction:** {predicted_brain_mass * 1000:.1f} g brain mass."
+            f"**Model-derived cat prediction:** {_format_stage4_model_prediction_mass(predicted_brain_mass)} brain mass."
         )
         st.write(
             f"For this model, the cat's body mass is **{range_status}**: it is "
@@ -1411,7 +1468,7 @@ def _render_stage4_cat_comparison(
         )
         st.caption(
             f"**Separate external cat brain-mass evidence:** {cat_brain_mass * 1000:.1f} g. "
-            f"The mammal model predicted {mammal_prediction * 1000:.1f} g."
+            f"The mammal model predicted {_format_stage4_model_prediction_mass(mammal_prediction)}."
         )
         st.write("This one case does not prove which model is universally best.")
     return True
@@ -1461,7 +1518,7 @@ def _render_cat_model_testing(data: pd.DataFrame) -> None:
         completion_gate(False)
         return
 
-    st.success(f"**Mammal-model prediction:** {mammal_prediction * 1000:.1f} g brain mass.")
+    st.success(f"**Mammal-model prediction:** {_format_stage4_model_prediction_mass(mammal_prediction)} brain mass.")
     st.write(
         f"This is **{mammal_range_status}** because the cat's {cat_body_mass:.1f} kg body mass is "
         + ("inside" if mammal_range_status == "interpolation" else "outside")
@@ -1630,7 +1687,7 @@ def _render_stage4_elephant_comparison(
         predicted_brain_mass = predict_power_law(fit, elephant_body_mass)
         range_status = prediction_range_status(fit, elephant_body_mass)
         st.success(
-            f"**Model-derived elephant prediction:** {predicted_brain_mass:.3f} kg brain mass."
+            f"**Model-derived elephant prediction:** {_format_stage4_model_prediction_mass(predicted_brain_mass)} brain mass."
         )
         st.write(
             f"For this model, the elephant's body mass is **{range_status}**: it is "
@@ -1639,7 +1696,7 @@ def _render_stage4_elephant_comparison(
         )
         st.caption(
             f"**Separate external elephant brain-mass evidence:** {elephant_brain_mass:.3f} kg. "
-            f"The mammal model predicted {mammal_prediction:.3f} kg."
+            f"The mammal model predicted {_format_stage4_model_prediction_mass(mammal_prediction)}."
         )
         st.write("Extrapolation gives us an extra reason for caution; it does not automatically make a prediction wrong.")
     return True
@@ -1691,7 +1748,7 @@ def _render_elephant_model_testing(data: pd.DataFrame) -> None:
         completion_gate(False)
         return
 
-    st.success(f"**Mammal-model prediction:** {mammal_prediction:.3f} kg brain mass.")
+    st.success(f"**Mammal-model prediction:** {_format_stage4_model_prediction_mass(mammal_prediction)} brain mass.")
     st.write(
         f"This is **{mammal_range_status}** because the elephant's {elephant_body_mass:,.0f} kg body mass is "
         + ("inside" if mammal_range_status == "interpolation" else "outside")
@@ -2009,7 +2066,7 @@ def _render_predict_when_unknown(data: pd.DataFrame) -> None:
         st.markdown(f"**Your animal: {common_name}**")
         st.caption(f"*{chosen_name}*")
         st.caption(breadcrumb)
-        st.write(f"AnimalTraits gives us a body-mass value for this species: **{_format_stage4_mass_kg(body_mass)}**.")
+        st.write(f"AnimalTraits gives us a body-mass value for this species: **{_format_stage4_aggregate_mass_kg(body_mass)}**.")
         st.write("It does not give us a brain-mass value.")
     st.button(
         "← Choose a different animal",
@@ -2098,7 +2155,7 @@ def _render_predict_when_unknown(data: pd.DataFrame) -> None:
 
     if st.session_state.get(STAGE4_PREDICTION_REVEALED_KEY, False):
         prediction = predict_power_law(fit, body_mass)
-        st.success(f"**Model-derived prediction:** {prediction * 1000:.3g} g brain mass.")
+        st.success(f"**Model-derived prediction:** {_format_stage4_model_prediction_mass(prediction)} brain mass.")
         st.write(f"You chose the **{labels[model_id]}** evidence group with **{confidence.lower()}**.")
         st.write("Your evidence reasons: " + "; ".join(reasons))
         if status == "extrapolation":
