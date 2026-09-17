@@ -637,6 +637,7 @@ def test_stage4_data_science_closure_reuses_the_transfer_infographic_without_a_g
     assert "You found patterns in real animal data, chose which evidence to build models from" in source
     assert "The animals change. The questions change. The same reasoning turns up all over data science." in source
     assert "Weather forecasts, sport models, recommendation systems and language AI all use patterns" in source
+    assert "Data science brings together scientific reasoning, statistics, algorithms and computer systems" in source
     assert "Sometimes we can test a prediction against new evidence straight away. Sometimes we can’t." in source
     assert "Your cat and elephant predictions could be tested. Your final animal could not" in source
     assert "That does not make the final prediction meaningless. It changes what we can claim about it." in source

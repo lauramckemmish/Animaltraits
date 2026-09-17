@@ -2273,6 +2273,7 @@ def _render_data_science_closure() -> None:
         "Weather forecasts, sport models, recommendation systems and language AI all use patterns "
         "in existing data to say something about new cases."
     )
+    st.write("Data science brings together scientific reasoning, statistics, algorithms and computer systems to find patterns and make useful predictions from data.")
     st.write("Sometimes we can test a prediction against new evidence straight away. Sometimes we can’t.")
     st.write("Your cat and elephant predictions could be tested. Your final animal could not — at least not with the evidence available here.")
     st.write("That does not make the final prediction meaningless. It changes what we can claim about it.")
