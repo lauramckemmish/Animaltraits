@@ -1896,14 +1896,10 @@ def _stage4_model_judgement_ready(
 
 def _render_model_judgement() -> None:
     """Render Screen 9's sequential synthesis of evidence for model confidence."""
-    st.write("You tested the same modelling idea in two very different situations.")
-    st.write(
-        "**Cat:** the mammal prediction was interpolation, and you could compare it with separate evidence."
-    )
-    st.write(
-        "**Elephant:** the mammal prediction was extrapolation, and you could again compare it with separate evidence."
-    )
-    st.caption("Your other models also made their own predictions.")
+    st.write("The cat and elephant did not give us one simple winner — which is exactly why model judgement matters.")
+    st.write("**Cat:** the mammal-model prediction stayed inside the evidence range — interpolation — and we could test it against independent evidence.")
+    st.write("**Elephant:** the same model had to reach beyond its evidence range — extrapolation — and again we could test what happened.")
+    st.caption("And the other models did not all behave the same way.")
 
     range_judgement = st.session_state.get(STAGE4_MODEL_JUDGEMENT_RANGE_COMMITTED_KEY)
     if range_judgement != STAGE4_MODEL_JUDGEMENT_RANGE_ANSWER:
@@ -1924,15 +1920,12 @@ def _render_model_judgement() -> None:
             ),
         )
         if range_judgement is not None:
-            st.caption(
-                "Compare where the cat and elephant sit relative to the body-mass evidence range used to build the mammal model, then try again."
-            )
+            st.caption("Look again at where the cat and elephant sit relative to the evidence used to build the mammal model.")
         completion_gate(False)
         return
 
-    st.success(
-        "Yes — there's an extra reason for caution. The elephant's body mass is beyond the range of the mammal evidence used to build the model. That is extrapolation. Extrapolation can still give a useful prediction, but the evidence gives us less support for what happens that far beyond the measured range."
-    )
+    st.success("There’s the catch: the elephant pushes us beyond the evidence.")
+    st.caption("That is extrapolation. It does not make the prediction useless — it gives us less direct evidence for trusting what happens that far beyond the measured range.")
 
     evidence_judgement = st.session_state.get(STAGE4_MODEL_JUDGEMENT_EVIDENCE_COMMITTED_KEY)
     if evidence_judgement != STAGE4_MODEL_JUDGEMENT_EVIDENCE_ANSWER:
@@ -1953,15 +1946,12 @@ def _render_model_judgement() -> None:
             ),
         )
         if evidence_judgement is not None:
-            st.caption(
-                "More data can help, but consider whether the evidence used to build each model is relevant to the new mammal before trying again."
-            )
+            st.caption("More evidence can help. But ask what animals supplied that evidence, not just how many.")
         completion_gate(False)
         return
 
-    st.success(
-        "Exactly. More data can help — but what data they are matters. A model is built from particular evidence. For a new prediction, we should ask whether that evidence is relevant to the case we are trying to predict."
-    )
+    st.success("More data sounds reassuring. But more of the wrong evidence does not magically make a better model.")
+    st.caption("What matters is whether the evidence is appropriate for the case we are trying to predict.")
 
     testing_judgement = st.session_state.get(STAGE4_MODEL_JUDGEMENT_TESTING_COMMITTED_KEY)
     if testing_judgement != STAGE4_MODEL_JUDGEMENT_TESTING_ANSWER:
@@ -1982,27 +1972,24 @@ def _render_model_judgement() -> None:
             ),
         )
         if testing_judgement is not None:
-            st.caption(
-                "A close prediction for one case is useful evidence. Think about what further tests against new, independent evidence would tell us, then try again."
-            )
+            st.caption("One close result is evidence. What would another independent test tell us?")
         completion_gate(False)
         return
 
-    st.success(
-        "Right. One successful prediction is useful evidence, but it is only one test. We gain more confidence when a model continues to make useful predictions when we test it against new, independent evidence."
-    )
+    st.success("A close prediction is interesting. One result still cannot crown a model.")
+    st.caption("Confidence grows when a model keeps making useful predictions against new, independent evidence.")
     st.markdown("## So what makes a prediction more defensible?")
     st.write("When scientists decide how much confidence to place in a model prediction, they ask:")
     st.markdown("**Is the evidence relevant?**  ")
     st.write("Was the model built from evidence that makes sense for this new case?")
     st.markdown("**Are we inside the evidence range?**  ")
-    st.write("Are we predicting where we already have evidence, or extrapolating beyond it?")
+    st.write("Are we predicting where we already have evidence, or reaching beyond it?")
     st.markdown("**Is there enough appropriate evidence?**  ")
-    st.write("More useful evidence can strengthen a model, but quantity alone is not enough.")
+    st.write("More useful evidence can strengthen a model. Quantity alone is not enough.")
     st.markdown("**Has the model survived testing?**  ")
-    st.write("How has it performed when its predictions were compared with new, independent evidence?")
+    st.write("What happened when its predictions met new, independent evidence?")
     st.write(
-        "None of these guarantees that the prediction is right. They give us reasons for how much confidence to place in it."
+        "None of these guarantees that a prediction is right. Together, they give us reasons for how much confidence to place in it."
     )
     st.write("Next challenge: what do you do when there is no answer to reveal?")
     completion_gate(

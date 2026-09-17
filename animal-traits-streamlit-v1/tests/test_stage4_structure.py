@@ -619,6 +619,11 @@ def test_stage4_model_judgement_is_sequential_and_later_stage4_screens_are_imple
     assert source.index("So what makes a prediction more defensible?") > source.index(
         "One of your models happened to predict the cat very closely"
     )
+    assert "The cat and elephant did not give us one simple winner" in source
+    assert "There’s the catch: the elephant pushes us beyond the evidence." in source
+    assert "more of the wrong evidence does not magically make a better model" in source
+    assert "One result still cannot crown a model." in source
+    assert "Next challenge: what do you do when there is no answer to reveal?" in source
     assert "elif screen_index == 9:\n        _render_predict_when_unknown(data)" in inspect.getsource(year8.render)
     assert "elif screen_index == 10:\n        _render_data_science_closure()" in inspect.getsource(year8.render)
 
