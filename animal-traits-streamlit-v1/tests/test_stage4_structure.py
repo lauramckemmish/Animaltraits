@@ -214,24 +214,25 @@ def test_stage4_body_mass_uses_the_same_evidence_and_selected_anchors_in_both_vi
     assert linear.data[-1].x.tolist() == logarithmic.data[-1].x.tolist()
 
 
-def test_stage4_body_mass_sequence_requires_linear_graph_furniture_log_and_comparison():
+def test_stage4_body_mass_sequence_requires_problem_log_and_comparison():
     assert year8.STAGE4_BODY_MASS_SEQUENCE == (
         "linear representation",
-        "graph furniture",
+        "representation problem",
         "logarithmic representation",
         "same and changed comparison",
     )
     source = inspect.getsource(year8._render_body_mass)
-    assert source.index("ordinary linear scale") < source.index("logarithmic (log) scale")
-    assert "variable, units and linear scale" in source
+    assert source.index("ordinary linear scale") < source.index("What’s going on here?") < source.index("Try another scale") < source.index("logarithmic (log) scale")
+    assert "Most of the smaller animals are squashed together" in source
+    assert "This is a logarithmic, or log, scale." in source
+    assert "Read the graph furniture" not in source
     assert "Stayed the same" in source
     assert "Changed" in source
 
-    assert not _stage4_body_mass_ready(False, True, True, True)
-    assert not _stage4_body_mass_ready(True, False, True, True)
-    assert not _stage4_body_mass_ready(True, True, False, True)
-    assert not _stage4_body_mass_ready(True, True, True, False)
-    assert _stage4_body_mass_ready(True, True, True, True)
+    assert not _stage4_body_mass_ready(False, True, True)
+    assert not _stage4_body_mass_ready(True, False, True)
+    assert not _stage4_body_mass_ready(True, True, False)
+    assert _stage4_body_mass_ready(True, True, True)
 
 
 def test_stage4_body_brain_orientation_combines_familiar_and_saved_species_without_duplicates():

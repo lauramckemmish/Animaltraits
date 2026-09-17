@@ -79,12 +79,11 @@ STAGE4_SAVED_SPECIES_KEY = "stage4_saved_species"
 STAGE4_ANIMAL_COLLECTION_MIN_SELECTION = 4
 STAGE4_ANIMAL_COLLECTION_MAX_SELECTION = 8
 STAGE4_BODY_MASS_LINEAR_INSPECTED_KEY = "stage4_body_mass_linear_inspected"
-STAGE4_BODY_MASS_FURNITURE_INSPECTED_KEY = "stage4_body_mass_furniture_inspected"
 STAGE4_BODY_MASS_LOG_REVEALED_KEY = "stage4_body_mass_log_revealed"
 STAGE4_BODY_MASS_COMPARISON_INSPECTED_KEY = "stage4_body_mass_comparison_inspected"
 STAGE4_BODY_MASS_SEQUENCE = (
     "linear representation",
-    "graph furniture",
+    "representation problem",
     "logarithmic representation",
     "same and changed comparison",
 )
@@ -627,12 +626,11 @@ def _stage4_body_mass_evidence(data: pd.DataFrame) -> pd.DataFrame:
 
 def _stage4_body_mass_ready(
     linear_inspected: bool,
-    furniture_inspected: bool,
     log_revealed: bool,
     comparison_inspected: bool,
 ) -> bool:
     """Return whether learners have encountered the core representation comparison."""
-    return linear_inspected and furniture_inspected and log_revealed and comparison_inspected
+    return linear_inspected and log_revealed and comparison_inspected
 
 
 def _render_body_mass(data: pd.DataFrame) -> None:
@@ -642,7 +640,6 @@ def _render_body_mass(data: pd.DataFrame) -> None:
     saved_body_mass_species = selected_species_body_mass(body_mass_data, saved_species)
     labels = _stage4_species_labels(body_mass_data, saved_species)
     linear_inspected = bool(st.session_state.get(STAGE4_BODY_MASS_LINEAR_INSPECTED_KEY, False))
-    furniture_inspected = bool(st.session_state.get(STAGE4_BODY_MASS_FURNITURE_INSPECTED_KEY, False))
     log_revealed = bool(st.session_state.get(STAGE4_BODY_MASS_LOG_REVEALED_KEY, False))
     comparison_inspected = bool(st.session_state.get(STAGE4_BODY_MASS_COMPARISON_INSPECTED_KEY, False))
 
@@ -663,7 +660,7 @@ def _render_body_mass(data: pd.DataFrame) -> None:
     st.caption("These are species-level AnimalTraits values. We have not changed the scale yet.")
 
     st.subheader("First, use an ordinary linear scale")
-    st.caption("What can you see? What is hard to see? Look for your animals marked as orange triangles.")
+    st.caption("**What is hard to see?** Look for your animals marked as orange triangles.")
     st.plotly_chart(
         histogram(
             body_mass_data,
@@ -675,28 +672,16 @@ def _render_body_mass(data: pd.DataFrame) -> None:
         width="stretch",
     )
     st.button(
-        "I have inspected the linear graph",
+        "What’s going on here?",
         key="stage4_body_mass_inspect_linear",
         on_click=lambda: st.session_state.__setitem__(STAGE4_BODY_MASS_LINEAR_INSPECTED_KEY, True),
     )
 
     if linear_inspected:
-        st.subheader("Read the graph furniture")
-        st.markdown("**Reading the graph**")
-        st.write(
-            "The graph shows species-level body mass in kilograms. The horizontal axis is an ordinary "
-            "linear scale: equal distances show equal differences in kilograms."
-        )
-        st.caption("Look for: Find the variable, its unit (kg), and the linear scale on the horizontal axis.")
+        st.write("Well. Most of the smaller animals are squashed together. Not very helpful.")
+        st.write("Can we show the same data in a way that lets us see more of it?")
         st.button(
-            "I can identify the variable, units and linear scale",
-            key="stage4_body_mass_inspect_furniture",
-            on_click=lambda: st.session_state.__setitem__(STAGE4_BODY_MASS_FURNITURE_INSPECTED_KEY, True),
-        )
-
-    if furniture_inspected:
-        st.button(
-            "Show the same evidence on a log scale",
+            "Try another scale",
             type="primary",
             key="stage4_body_mass_show_log",
             on_click=lambda: st.session_state.__setitem__(STAGE4_BODY_MASS_LOG_REVEALED_KEY, True),
@@ -715,14 +700,10 @@ def _render_body_mass(data: pd.DataFrame) -> None:
             ),
             width="stretch",
         )
-        st.markdown("**Reading the graph**")
-        st.write(
-            "On this logarithmic scale, each major step is 10 times the one before it. "
-            "Powers-of-ten labels are a compact way to show those values; you do not need to calculate logarithms."
-        )
-        st.caption(
-            "Look for: Notice how the smaller body masses are spread out while the values themselves stay the same."
-        )
+        st.write("Same animals. Same body masses. Much easier to see.")
+        st.write("This is a logarithmic, or log, scale.")
+        st.caption("Each major step is 10 times the one before it. You do not need to calculate logarithms.")
+        st.markdown("**What can you see now that was hard to see before?**")
         st.button(
             "Compare what stayed the same and what changed",
             key="stage4_body_mass_compare_representations",
@@ -737,13 +718,13 @@ def _render_body_mass(data: pd.DataFrame) -> None:
         with changed_column:
             st.markdown("**Changed**")
             st.write("The spacing of the horizontal axis: it now uses a logarithmic scale.")
-        st.success(
+        st.info(
             "When values span a huge range, changing the scale can make patterns easier to see without changing the data."
         )
 
     completion_gate(
         _stage4_body_mass_ready(
-            linear_inspected, furniture_inspected, log_revealed, comparison_inspected
+            linear_inspected, log_revealed, comparison_inspected
         )
     )
 
