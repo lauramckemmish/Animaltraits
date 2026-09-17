@@ -30,7 +30,7 @@ from data import (
 from models import fit_relationship
 from ui_helpers import graph_support, notice_prompt, page_header, sample_note, soft_reveal, variable_card
 
-TAB_LABELS = ["Start here", "Know your data", "One variable", "Two variables", "Three variables"]
+TAB_LABELS = ["Start here", "Know your data", "One variable", "Two variables", "Another angle"]
 
 KNOW_YOUR_DATA_FIELDS = (
     ("phylum", "Categorical", "Taxonomy", "A broad taxonomic group for the animal.", "—"),
@@ -95,8 +95,7 @@ def _render_start(data: pd.DataFrame) -> None:
     st.header("Explore the animal-trait data")
     st.write(
         "Choose how many variables you want to investigate. Start with one variable to understand a distribution, "
-        "use two variables to look for a relationship, and add a third variable to see whether another trait or animal "
-        "class helps explain the pattern."
+        "use two variables to look for a relationship, then look from another angle to test whether it changes."
     )
     st.markdown(
         "**A useful investigation cycle**  \n"
@@ -294,10 +293,10 @@ def _render_two_variables(data: pd.DataFrame) -> None:
 
 
 def _render_three_variables(data: pd.DataFrame) -> None:
-    st.header("Three variables")
+    st.header("Look from another angle")
     st.write(
-        "Choose a horizontal variable, a vertical variable and a third variable shown by colour. "
-        "The third variable can be animal class or another quantitative trait."
+        "You have found a pattern. Now see whether another variable changes the picture. "
+        "Colour can show animal class or another measurement; the class filter is another way to look at a subset."
     )
 
     labels = list(TRAIT_OPTIONS)
@@ -338,7 +337,9 @@ def _render_three_variables(data: pd.DataFrame) -> None:
     )
     st.plotly_chart(fig, use_container_width=True)
     st.caption(f"Showing {count:,} records with values available for all selected variables.")
-    st.info("Look for whether the colours occupy different parts of the graph or reveal a pattern that was hard to see with two variables alone.")
+    notice_prompt("What do you notice?")
+    with soft_reveal("What could I look for?"):
+        st.write("Do the colours occupy different parts of the graph? Does the pattern look similar for different groups? Does adding colour make it clearer or more complicated? If you filter the data, does your earlier observation still hold?")
 
 
 def render(data: pd.DataFrame) -> None:

@@ -754,7 +754,7 @@ def _render_body_brain(data: pd.DataFrame) -> None:
 
     st.write("Do animals with larger bodies tend to have larger brains?")
     st.write(
-        "Start with familiar examples and the graph-ready animals you chose. Then make a broad prediction before looking at the whole dataset."
+        "Before we throw the whole dataset at the question, start with a few animals you know. What do you predict?"
     )
     st.subheader("Familiar examples and your animals")
     orientation_display = orientation[["Animal", "Role", "body mass (kg)", "brain size (kg)"]].rename(
@@ -775,15 +775,15 @@ def _render_body_brain(data: pd.DataFrame) -> None:
     )
 
     if prediction != "Choose a prediction":
-        st.subheader("Compare two measurements for every species")
+        st.subheader("Now let’s see what happens when we add everyone else.")
         st.write(
-            "A scatter plot compares paired measurements: each point is one species, farther right means greater body mass, and higher up means greater brain mass."
+            "Each point is one species. Farther right means greater body mass; higher up means greater brain mass."
         )
         st.caption(
-            "Screen 3 showed why logarithmic scales help with huge ranges. Both axes here use kilograms and span very large ranges."
+            "Both axes use logarithmic scales because body and brain masses span very large ranges."
         )
         st.button(
-            "Inspect the full body–brain evidence",
+            "Show the full body–brain graph",
             type="primary",
             key="stage4_body_brain_inspect_full_evidence",
             on_click=lambda: st.session_state.__setitem__(STAGE4_BODY_BRAIN_FULL_EVIDENCE_KEY, True),
@@ -814,10 +814,10 @@ def _render_body_brain(data: pd.DataFrame) -> None:
             persist_state="session",
         )
         if claim == "Brain mass generally increases as body mass increases.":
-            st.success("Yes. This is a broad relationship, not an exact rule for every species.")
+            st.success("There it is: a broad upward pattern, with plenty of variation.")
             st.caption("The graph shows an association; it does not show that body mass causes brain mass.")
         elif claim != "Choose a claim":
-            st.caption("Look across the whole cloud: it generally rises, but individual species vary.")
+            st.caption("Look across the whole cloud rather than at individual points. What happens overall?")
 
         if claim != "Choose a claim":
             evidence_reasoning = st.selectbox(
@@ -833,7 +833,7 @@ def _render_body_brain(data: pd.DataFrame) -> None:
             )
             if evidence_reasoning == "Across the cloud, larger bodies generally occur with larger brains, with variation.":
                 st.info(
-                    "Compare your prediction with the evidence. A broad pattern can be useful even when the points do not follow an exact rule."
+                    "Messy, but useful. Larger bodies generally come with larger brains — just not as an exact rule."
                 )
         else:
             evidence_reasoning = None

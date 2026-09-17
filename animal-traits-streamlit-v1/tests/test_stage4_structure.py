@@ -117,6 +117,17 @@ def test_stage4_animal_search_uses_the_approved_screen_two_voice():
     assert "What did you notice about what this dataset does and does not contain?" not in source
 
 
+def test_stage4_body_brain_uses_the_approved_screen_four_voice():
+    source = inspect.getsource(year8._render_body_brain)
+
+    assert "Before we throw the whole dataset at the question" in source
+    assert "Now let’s see what happens when we add everyone else." in source
+    assert "Show the full body–brain graph" in source
+    assert "There it is: a broad upward pattern, with plenty of variation." in source
+    assert "The graph shows an association; it does not show that body mass causes brain mass." in source
+    assert "Messy, but useful. Larger bodies generally come with larger brains" in source
+
+
 def test_stage4_scale_magnitude_answer_is_derived_from_the_grounded_references():
     mouse_reference_kg, elephant_reference_kg = comparison_reference_masses(load_data())
 

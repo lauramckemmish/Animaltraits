@@ -6,12 +6,17 @@ from data import playground_data
 
 from experiences.data_exploration_playground import (
     KNOW_YOUR_DATA_FIELDS,
+    TAB_LABELS,
     ONE_VARIABLE_CATEGORICAL_OPTIONS,
     ONE_VARIABLE_NUMERICAL_OPTIONS,
     _one_variable_category_counts,
     _know_your_data_inventory,
     _one_variable_numeric_summary,
 )
+
+
+def test_playground_uses_another_angle_rather_than_three_variables_framing():
+    assert TAB_LABELS[-1] == "Another angle"
 
 
 def test_know_your_data_inventory_includes_every_classroom_dataset_field():
