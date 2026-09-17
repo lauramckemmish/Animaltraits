@@ -550,3 +550,13 @@ def test_stage4_unknown_prediction_gate_and_reset_are_bounded_to_screen_ten():
     assert state["stage4_prediction_model"] == ""
     assert state["stage4_prediction_revealed"] is False
     assert state["stage4_saved_species"] == ["Mus musculus"]
+
+
+def test_stage4_unknown_prediction_chooser_is_a_compact_grid_before_taxonomy_context():
+    chooser_source = inspect.getsource(year8._render_stage4_prediction_animal_cards)
+    screen_source = inspect.getsource(year8._render_predict_when_unknown)
+
+    assert "st.columns(3)" in chooser_source
+    assert "width=\"stretch\"" in chooser_source
+    assert "breadcrumb" not in chooser_source
+    assert "← Choose a different animal" in screen_source

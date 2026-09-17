@@ -1946,24 +1946,20 @@ def _stage4_prediction_ready(
 
 
 def _render_stage4_prediction_animal_cards(choices: pd.DataFrame) -> None:
-    """Render compact, identity-first choices before an animal is committed."""
-    for _, animal in choices.iterrows():
+    """Render a quick-scanning grid before an animal is committed."""
+    columns = st.columns(3)
+    for index, (_, animal) in enumerate(choices.iterrows()):
         common_name = str(animal["Common name"])
         scientific_name = str(animal["Scientific name"])
-        animal_class = str(animal["Animal class"])
-        breadcrumb = " → ".join(
-            [animal_class, str(animal["order"]), str(animal["family"]), str(animal["genus"])]
-        )
-        with st.container(border=True):
-            st.markdown(f"**{common_name}**")
-            st.caption(f"*{scientific_name}*")
-            st.caption(breadcrumb)
+        with columns[index % len(columns)]:
             st.button(
-                f"Choose {common_name}",
+                common_name,
                 key=f"stage4_prediction_choose_{scientific_name}",
                 on_click=_choose_stage4_prediction_animal,
                 args=(scientific_name,),
+                width="stretch",
             )
+            st.caption(f"*{scientific_name}*")
 
 
 def _render_predict_when_unknown(data: pd.DataFrame) -> None:
@@ -2015,6 +2011,11 @@ def _render_predict_when_unknown(data: pd.DataFrame) -> None:
         st.caption(breadcrumb)
         st.write(f"AnimalTraits gives us a body-mass value for this species: **{_format_stage4_mass_kg(body_mass)}**.")
         st.write("It does not give us a brain-mass value.")
+    st.button(
+        "← Choose a different animal",
+        key="stage4_prediction_choose_again",
+        on_click=_reset_stage4_prediction,
+    )
 
     usable_species = usable_body_brain_species(species_data)
     candidates = stage4_prediction_model_candidates(usable_species, animal)
@@ -2108,7 +2109,6 @@ def _render_predict_when_unknown(data: pd.DataFrame) -> None:
             st.caption("This reflects the evidence available for this animal in this dataset; it is a model-based estimate, not a measurement.")
         st.write("AnimalTraits does not give us a brain-mass value for this species to reveal.")
         st.write("Sometimes data science ends with the best-supported prediction we can make — and a judgement about how much confidence to place in it.")
-        st.button("Choose a different animal", key="stage4_prediction_choose_again", on_click=_reset_stage4_prediction)
     completion_gate(bool(st.session_state.get(STAGE4_PREDICTION_REVEALED_KEY, False)))
 
 
