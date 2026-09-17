@@ -641,10 +641,7 @@ def _render_body_mass(data: pd.DataFrame) -> None:
     log_revealed = bool(st.session_state.get(STAGE4_BODY_MASS_LOG_REVEALED_KEY, False))
     comparison_inspected = bool(st.session_state.get(STAGE4_BODY_MASS_COMPARISON_INSPECTED_KEY, False))
 
-    st.write(
-        "On Screen 1, a mouse and an elephant showed how enormous the body-mass range can be. "
-        f"Now use the {len(saved_species)} graph-ready animals you chose on Screen 2 as anchors."
-    )
+    st.write("A mouse and an elephant already showed us how enormous the body-mass range can be. Now use the animals you chose as anchors.")
     if not saved_body_mass_species.empty:
         saved_labels = [labels.get(species, species) for species in saved_body_mass_species["Scientific name"]]
         st.caption("Your animals: " + "; ".join(saved_labels))
@@ -812,7 +809,7 @@ def _render_body_brain(data: pd.DataFrame) -> None:
             persist_state="session",
         )
         if claim == "Brain mass generally increases as body mass increases.":
-            st.success("There it is: a broad upward pattern, with plenty of variation.")
+            st.success("There’s the pattern: broadly upward, with plenty of variation.")
             st.caption("The graph shows an association; it does not show that body mass causes brain mass.")
         elif claim != "Choose a claim":
             st.caption("Look across the whole cloud rather than at individual points. What happens overall?")
@@ -993,7 +990,7 @@ def _render_animal_groups(data: pd.DataFrame) -> None:
             persist_state="session",
         )
         if comparison == "Mammals tend to have larger brain masses than reptiles.":
-            st.success("There it is. At broadly similar body masses, mammals tend to sit higher than reptiles.")
+            st.success("The difference is pretty clear. At broadly similar body masses, mammals tend to sit higher than reptiles.")
             st.caption("This is a tendency, not an exact rule for every species, and the graph does not establish a cause.")
         elif comparison != "Choose a claim":
             st.caption("Compare the overlapping clouds. Look for a tendency, not an exact rule or a cause.")

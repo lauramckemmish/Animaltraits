@@ -126,7 +126,7 @@ def test_stage4_body_brain_uses_the_approved_screen_four_voice():
     assert "Before we throw the whole dataset at the question" in source
     assert "Now let’s see what happens when we add everyone else." in source
     assert "Show the full body–brain graph" in source
-    assert "There it is: a broad upward pattern, with plenty of variation." in source
+    assert "There’s the pattern: broadly upward, with plenty of variation." in source
     assert "The graph shows an association; it does not show that body mass causes brain mass." in source
     assert "Messy, but useful. Larger bodies generally come with larger brains" in source
 
