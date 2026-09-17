@@ -15,6 +15,7 @@ def _card_presentation(entry: dict, *, default_button_label: str) -> dict:
         "title": entry.get("card_title", entry.get("label", entry["name"])),
         "summary": entry.get("card_summary", entry["summary"]),
         "audience_badge": entry.get("audience_badge"),
+        "umbrella": entry.get("umbrella"),
         "thumbnail": entry.get("thumbnail"),
         "thumbnail_caption": entry.get("thumbnail_caption"),
         "button_label": entry.get("card_button_label", default_button_label),
@@ -27,6 +28,8 @@ def _render_catalog_card(entry: dict, *, button_label: str, button_key: str, ope
     with st.container(border=True):
         if presentation["audience_badge"]:
             st.badge(presentation["audience_badge"], color="gray")
+        if presentation["umbrella"]:
+            st.caption(presentation["umbrella"])
         if presentation["thumbnail"]:
             st.image(
                 Path(__file__).resolve().parents[1] / "assets" / presentation["thumbnail"],

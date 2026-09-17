@@ -733,9 +733,15 @@ def render(data: pd.DataFrame, terminal_action) -> None:
     curious_data = species_traits_from_observations(data)
     part = int(st.session_state.get("curious_part", 0))
     part = max(0, min(part, len(STEP_LABELS) - 1))
+    st.badge("CURIOUS", color="gray")
+    st.caption("Wild Data")
     page_header(
-        "From Mouse to Elephant: Can We Predict Brain Size?",
-        subtitle="A CURIOUS data investigation",
+        "Mice to Elephants",
+        subtitle=(
+            "A 15-minute investigation using animal data to model and predict brain size."
+            if part == 0
+            else None
+        ),
         compact=True,
     )
     _, selected = step_tabs(STEP_LABELS, "curious_step_selector", part)

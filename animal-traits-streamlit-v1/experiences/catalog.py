@@ -16,14 +16,22 @@ from config import (
 EXPERIENCES = [
     {
         "name": EXPERIENCE_CURIOUS,
-        "label": "Mouse to Elephant",
-        "summary": "Use real animal data to build a model and test how far you can trust it.",
+        "label": "Mice to Elephants",
+        "audience_badge": "CURIOUS",
+        "umbrella": "Wild Data",
+        "summary": "A 15-minute investigation using animal data to model and predict brain size.",
         "thumbnail": "mouse_to_elephant_thumbnail.png",
         "enabled": True,
     },
     {
         "name": EXPERIENCE_YEAR8,
-        "summary": "A Stage 4 teacher-deliverable classroom pathway.",
+        "label": "Mice to Elephants: And Beyond",
+        "audience_badge": "Stage 4",
+        "umbrella": "Wild Data",
+        "summary": (
+            "A two-lesson investigation where students build and test models, then choose one "
+            "to predict the brain size of a new animal."
+        ),
         "enabled": True,
     },
     {

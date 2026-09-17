@@ -2,10 +2,12 @@
 
 ## Product position
 
-**CURIOUS** remains the existing facilitated outreach experience. **Stage 4** is
-the canonical teacher-deliverable two-lesson school experience, delivered
-through the existing Year 8 route. There is no separate one-lesson classroom
-adaptation: CURIOUS is the existing compact pathway when only one lesson is available.
+**Wild Data** is the shared umbrella identity. **Mice to Elephants** is the base
+**CURIOUS** investigation; **Mice to Elephants: And Beyond** is the extended
+two-lesson **Stage 4** investigation, delivered through the existing Year 8 route.
+CURIOUS and Stage 4 are delivery-context tags, not alternative investigation names.
+Descriptive subtitles belong primarily on landing and opening surfaces, rather than
+in navigation. There is no separate one-lesson classroom adaptation.
 
 ## Learning spine
 

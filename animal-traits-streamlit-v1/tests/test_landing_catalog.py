@@ -21,6 +21,7 @@ class _StreamlitStub:
         self.badges = []
         self.images = []
         self.markdowns = []
+        self.captions = []
         self.writes = []
         self.buttons = []
 
@@ -36,6 +37,9 @@ class _StreamlitStub:
     def markdown(self, body, **_kwargs):
         self.markdowns.append(body)
 
+    def caption(self, body, **_kwargs):
+        self.captions.append(body)
+
     def write(self, body, **_kwargs):
         self.writes.append(body)
 
@@ -44,14 +48,15 @@ class _StreamlitStub:
 
 
 class LandingCatalogueTests(unittest.TestCase):
-    def test_existing_catalogue_entries_keep_their_current_fallbacks(self):
+    def test_curious_catalogue_entry_has_the_settled_identity(self):
         curious = next(entry for entry in catalog.experience_catalog() if entry["name"] == "CURIOUS")
         presentation = landing._card_presentation(curious, default_button_label="Open experience →")
 
-        self.assertEqual(presentation["title"], "Mouse to Elephant")
+        self.assertEqual(presentation["title"], "Mice to Elephants")
         self.assertEqual(presentation["summary"], curious["summary"])
+        self.assertEqual(presentation["audience_badge"], "CURIOUS")
+        self.assertEqual(presentation["umbrella"], "Wild Data")
         self.assertEqual(presentation["button_label"], "Open experience →")
-        self.assertIsNone(presentation["audience_badge"])
         self.assertEqual(presentation["thumbnail"], "mouse_to_elephant_thumbnail.png")
         self.assertIsNone(presentation["thumbnail_caption"])
 
@@ -63,6 +68,7 @@ class LandingCatalogueTests(unittest.TestCase):
             "card_title": "Card title",
             "card_summary": "Card summary",
             "audience_badge": "Workshop",
+            "umbrella": "Wild Data",
             "thumbnail": "example.png",
             "thumbnail_caption": "Image context",
             "card_button_label": "Begin →",
@@ -74,6 +80,7 @@ class LandingCatalogueTests(unittest.TestCase):
                 "title": "Card title",
                 "summary": "Card summary",
                 "audience_badge": "Workshop",
+                "umbrella": "Wild Data",
                 "thumbnail": "example.png",
                 "thumbnail_caption": "Image context",
                 "button_label": "Begin →",
@@ -86,6 +93,7 @@ class LandingCatalogueTests(unittest.TestCase):
             "name": "Route identity",
             "summary": "Plain summary",
             "audience_badge": "Workshop",
+            "umbrella": "Wild Data",
             "thumbnail": "example.png",
             "thumbnail_caption": "Image context",
             "card_button_label": "Begin →",
@@ -100,6 +108,7 @@ class LandingCatalogueTests(unittest.TestCase):
             )
 
         self.assertEqual(stub.badges, [("Workshop", {"color": "gray"})])
+        self.assertEqual(stub.captions, ["Wild Data"])
         self.assertEqual(stub.images[0][1], {"caption": "Image context", "width": "stretch"})
         self.assertEqual(stub.markdowns, ["### Route identity"])
         self.assertEqual(stub.writes, ["Plain summary"])

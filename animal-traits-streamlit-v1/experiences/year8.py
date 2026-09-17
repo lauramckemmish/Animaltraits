@@ -2209,7 +2209,18 @@ def render(data: pd.DataFrame) -> None:
     ):
         st.session_state["stage4_lesson_selector"] = expected_lesson
 
-    page_header("Animal Traits", subtitle="A Stage 4 classroom experience", compact=True)
+    st.badge("Stage 4", color="gray")
+    st.caption("Wild Data")
+    page_header(
+        "Mice to Elephants: And Beyond",
+        subtitle=(
+            "A two-lesson investigation where students build and test models, then choose one "
+            "to predict the brain size of a new animal."
+            if screen_index == 0
+            else None
+        ),
+        compact=True,
+    )
     selected_lesson = st.segmented_control(
         "Lesson",
         LESSON_LABELS,
