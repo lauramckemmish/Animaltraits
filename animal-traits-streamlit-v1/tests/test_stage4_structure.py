@@ -15,6 +15,7 @@ from data import (
 from experiences.year8 import (
     LESSON_LABELS,
     STAGE4_SCREENS,
+    STAGE4_SCALE_MAGNITUDE_OPTIONS,
     STAGE4_ANIMAL_COLLECTION_MAX_SELECTION,
     STAGE4_ANIMAL_COLLECTION_MIN_SELECTION,
     _format_stage4_mass_kg,
@@ -27,6 +28,8 @@ from experiences.year8 import (
     _stage4_saved_species_after_adding,
     _stage4_saved_species_after_removing,
     _stage4_mass_in_kg,
+    _format_stage4_mouse_to_elephant_ratio,
+    _stage4_scale_ready,
     _stage4_body_mass_evidence,
     _stage4_body_mass_ready,
     _stage4_body_brain_ready,
@@ -101,6 +104,45 @@ def test_stage4_aggregate_and_model_values_use_two_significant_figures():
 
 def test_stage4_scale_reuses_the_grounded_mouse_and_external_elephant_references():
     assert comparison_reference_masses(load_data()) == (0.0321, 5550)
+
+
+def test_stage4_animal_search_uses_the_approved_screen_two_voice():
+    source = inspect.getsource(year8._render_find_your_animals)
+
+    assert "That could mean a spelling difference, another name, a broad search" in source
+    assert "both body-mass and brain-mass data, so they cannot go into" in source
+    assert "These can go into the later comparison." in source
+    assert "Save {STAGE4_ANIMAL_COLLECTION_MIN_SELECTION}–{STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} species with both measurements" in source
+    assert "You have enough animals to continue." in source
+    assert "What did you notice about what this dataset does and does not contain?" not in source
+
+
+def test_stage4_scale_magnitude_answer_is_derived_from_the_grounded_references():
+    mouse_reference_kg, elephant_reference_kg = comparison_reference_masses(load_data())
+
+    assert STAGE4_SCALE_MAGNITUDE_OPTIONS == (
+        "100", "1,000", "10,000", "100,000", "1,000,000"
+    )
+    assert _format_stage4_mouse_to_elephant_ratio(
+        mouse_reference_kg, elephant_reference_kg
+    ) == "170,000"
+
+
+def test_stage4_scale_gate_requires_comparison_magnitude_choice_and_reveal():
+    assert not _stage4_scale_ready(True, None, False)
+    assert not _stage4_scale_ready(True, "100,000", False)
+    assert not _stage4_scale_ready(False, "100,000", True)
+    assert _stage4_scale_ready(True, "100,000", True)
+
+
+def test_stage4_scale_render_keeps_answer_hidden_until_the_reveal_and_replaces_old_prompt():
+    source = inspect.getsource(year8._render_start_with_scale)
+
+    assert "So, how close were you?" in source
+    assert "Reveal the answer" in source
+    assert 'disabled=magnitude_choice is None' in source
+    assert "About {rounded_ratio} mice." in source
+    assert "What do you notice about the range from a mouse to an elephant?" not in source
 
 
 def test_stage4_carried_forward_animals_use_bounded_scientific_name_identities():

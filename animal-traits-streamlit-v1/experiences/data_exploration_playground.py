@@ -13,6 +13,8 @@ import pandas as pd
 import streamlit as st
 
 from charts import (
+    playground_boxplot,
+    playground_categorical_bar,
     playground_histogram,
     playground_three_variable_scatter,
     playground_two_variable_scatter,
@@ -24,7 +26,7 @@ from data import (
     filter_animal_classes,
 )
 from models import fit_relationship
-from ui_helpers import graph_support, page_header, sample_note, variable_card
+from ui_helpers import graph_support, notice_prompt, page_header, sample_note, soft_reveal, variable_card
 
 TAB_LABELS = ["Start here", "Know your data", "One variable", "Two variables", "Three variables"]
 
@@ -43,6 +45,25 @@ KNOW_YOUR_DATA_FIELDS = (
     ("brain size (kg)", "Numerical", "Animal trait", "Recorded brain mass where it is available.", "kg"),
     ("brain size - method", "Categorical", "Study information", "The method recorded for the brain-size measurement.", "—"),
 )
+
+ONE_VARIABLE_NUMERICAL_OPTIONS = {
+    **TRAIT_OPTIONS,
+    "Study sample size": "study sample size",
+}
+ONE_VARIABLE_CATEGORICAL_OPTIONS = {
+    "Animal class": "Animal class",
+    "Phylum": "phylum",
+    "Study sample sex": "study sample sex",
+    "Brain size method": "brain size - method",
+}
+ONE_VARIABLE_DESCRIPTIONS = {
+    **TRAIT_DESCRIPTIONS,
+    "study sample size": "How many individuals are represented by this study record.",
+    "Animal class": "A learner-facing animal-class grouping used throughout this app.",
+    "phylum": "A broad taxonomic group recorded in the source data.",
+    "study sample sex": "The sex recorded for the study sample.",
+    "brain size - method": "The method recorded for the brain-size measurement.",
+}
 
 
 def _render_filter(data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
@@ -131,30 +152,76 @@ def _render_know_your_data(data: pd.DataFrame) -> None:
     )
 
 
+def _one_variable_numeric_summary(data: pd.DataFrame, field: str) -> dict[str, float | int]:
+    """Summarise raw numeric values from the current Playground filter."""
+    values = pd.to_numeric(data[field], errors="coerce")
+    usable = values.dropna()
+    return {
+        "usable": len(usable), "missing": int(values.isna().sum()),
+        "mean": float(usable.mean()) if not usable.empty else math.nan,
+        "median": float(usable.median()) if not usable.empty else math.nan,
+        "min": float(usable.min()) if not usable.empty else math.nan,
+        "max": float(usable.max()) if not usable.empty else math.nan,
+    }
+
+
+def _one_variable_category_counts(data: pd.DataFrame, field: str) -> pd.DataFrame:
+    """Return learner-facing category counts without treating missingness as a category."""
+    values = data[field].dropna().copy()
+    if field == "brain size - method":
+        values = values.replace({
+            "immunostaining and histological recontruction": "immunostaining and histological reconstruction"
+        })
+    counts = values.value_counts().rename_axis("Category").reset_index(name="Count")
+    counts["Percentage"] = counts["Count"] / len(values) * 100 if len(values) else 0.0
+    return counts
+
+
+def _format_one_variable_number(value: float) -> str:
+    return "—" if math.isnan(value) else f"{value:,.4g}"
+
+
 def _render_one_variable(data: pd.DataFrame) -> None:
     st.header("One variable")
-    st.write("Choose one animal trait and look at its distribution.")
+    st.write("Choose one variable and inspect its distribution or categories before relating it to another.")
 
-    left, right = st.columns([2, 1])
-    trait_label = left.selectbox(
+    options = {**ONE_VARIABLE_NUMERICAL_OPTIONS, **ONE_VARIABLE_CATEGORICAL_OPTIONS}
+    label = st.selectbox(
         "Variable",
-        list(TRAIT_OPTIONS),
-        index=_trait_index("body mass (kg)"),
-        key="playground_one_trait",
+        list(options), index=0, key="playground_one_variable",
     )
-    bins = right.slider("Histogram ranges", min_value=5, max_value=60, value=25, key="playground_one_bins")
-    field = TRAIT_OPTIONS[trait_label]
-    variable_card(trait_label, TRAIT_DESCRIPTIONS[field], unit=field.split("(")[-1].rstrip(")"))
-    log_x = st.checkbox(
-        "Use a logarithmic horizontal axis",
-        value=False,
-        key="playground_one_log_x",
-        help="Useful when values span many orders of magnitude. The data do not change; only the spacing on the axis changes.",
-    )
+    field = options[label]
+    variable_card(label, ONE_VARIABLE_DESCRIPTIONS[field], unit=field.split("(")[-1].rstrip(")") if "(" in field else None)
 
-    fig, count = playground_histogram(data, field, trait_label, bins=bins, log_x=log_x)
-    st.plotly_chart(fig, use_container_width=True)
-    sample_note(count, len(data), key="playground_one_sample_note")
+    if label in ONE_VARIABLE_NUMERICAL_OPTIONS:
+        controls, _ = st.columns([2, 1])
+        bins = controls.slider("Histogram ranges", min_value=5, max_value=60, value=25, key="playground_one_bins")
+        log_x = st.checkbox(
+            "Use a logarithmic horizontal axis", value=False, key="playground_one_log_x",
+            help="Useful when values span a very wide range. The data stay the same; the axis is spaced by powers of ten.",
+        )
+        fig, count = playground_histogram(data, field, label, bins=bins, log_x=log_x)
+        st.plotly_chart(fig, width="stretch")
+        summary = _one_variable_numeric_summary(data, field)
+        st.caption(f"Usable values: {summary['usable']:,} · Missing: {summary['missing']:,}")
+        metrics = st.columns(4)
+        metrics[0].metric("Mean", _format_one_variable_number(summary["mean"]))
+        metrics[1].metric("Median", _format_one_variable_number(summary["median"]))
+        metrics[2].metric("Minimum", _format_one_variable_number(summary["min"]))
+        metrics[3].metric("Maximum", _format_one_variable_number(summary["max"]))
+        notice_prompt("What do you notice?")
+        with soft_reveal("What could I look for?"):
+            st.write("Where are most values? How spread out are they? Are there gaps or values sitting apart? Does changing the scale make a pattern easier to see? Are the mean and median similar or quite different?")
+        with soft_reveal("Another way to summarise this distribution"):
+            st.plotly_chart(playground_boxplot(data, field, label, log_y=log_x), width="stretch")
+            st.caption("The box contains the middle half of the observations. A wider section means those values are more spread out — not that there are more of them.")
+    else:
+        counts = _one_variable_category_counts(data, field)
+        st.plotly_chart(playground_categorical_bar(counts, label), width="stretch")
+        st.caption(f"Usable values: {counts['Count'].sum():,} · Missing: {len(data) - counts['Count'].sum():,}")
+        notice_prompt("What do you notice?")
+        with soft_reveal("What could I look for?"):
+            st.write("Which categories are common? Which are rare? Is the distribution fairly balanced or very uneven? How much of the dataset is missing for this variable?")
 
 
 def _render_two_variables(data: pd.DataFrame) -> None:

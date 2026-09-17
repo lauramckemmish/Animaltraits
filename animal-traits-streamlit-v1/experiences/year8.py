@@ -72,6 +72,9 @@ STAGE4_MASS_UNIT_TO_KG = {
     "kilograms": 1.0,
     "tonnes": 1000.0,
 }
+STAGE4_SCALE_MAGNITUDE_OPTIONS = ("100", "1,000", "10,000", "100,000", "1,000,000")
+STAGE4_SCALE_MAGNITUDE_CHOICE_KEY = "stage4_scale_magnitude_choice"
+STAGE4_SCALE_MAGNITUDE_REVEALED_KEY = "stage4_scale_magnitude_revealed"
 STAGE4_SAVED_SPECIES_KEY = "stage4_saved_species"
 STAGE4_ANIMAL_COLLECTION_MIN_SELECTION = 4
 STAGE4_ANIMAL_COLLECTION_MAX_SELECTION = 8
@@ -211,6 +214,21 @@ def _screen_labels(screen_indexes: range) -> list[str]:
 def _stage4_mass_in_kg(value: float, unit: str) -> float:
     """Convert a Stage 4 body-mass estimate to the common kilogram unit."""
     return float(value) * STAGE4_MASS_UNIT_TO_KG[unit]
+
+
+def _format_stage4_mouse_to_elephant_ratio(
+    mouse_reference_kg: float, elephant_reference_kg: float
+) -> str:
+    """Return the grounded mouse-to-elephant scale comparison for learners."""
+    ratio = elephant_reference_kg / mouse_reference_kg
+    return f"{round(ratio, -4):,.0f}"
+
+
+def _stage4_scale_ready(
+    comparison_revealed: bool, magnitude_choice: str | None, magnitude_revealed: bool
+) -> bool:
+    """Return whether Screen 1's estimate, judgement and reveal sequence is complete."""
+    return comparison_revealed and magnitude_choice is not None and magnitude_revealed
 
 
 def _format_stage4_mass_kg(value: float) -> str:
@@ -401,11 +419,11 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
         matches = search_student_animals(species_data, animal_query)
         if matches.empty:
             st.warning(
-                "**No match found.** AnimalTraits focuses on terrestrial animals. A no-match can reflect "
-                "spelling, another name, a broad search or dataset coverage; it does not mean the animal does not exist."
+                "**No match found.** That could mean a spelling difference, another name, a broad search, "
+                "or simply that AnimalTraits does not include it. It does not mean the animal does not exist."
             )
         else:
-            st.success(f"Found {len(matches):,} matching species.")
+            st.info(f"Found {len(matches):,} matching species.")
             display_matches = matches[
                 ["Common name", "Scientific name", "Animal class", "Body mass (kg)", "Brain size (kg)"]
             ].rename(columns={"Brain size (kg)": "Brain mass (kg)"})
@@ -425,17 +443,17 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
             usable_matches = _stage4_usable_species(matches)
             if usable_matches.empty:
                 st.caption(
-                    "None of these matches has both measurements needed for the later Stage 4 graphs. "
-                    "You can still search for another animal."
+                    "None of these matches has both body-mass and brain-mass data, so they cannot go into "
+                    "the later comparison. Try another animal."
                 )
             else:
-                st.success(
-                    f"{len(usable_matches):,} matching species have both body-mass and brain-mass evidence. "
-                    "They are graph-ready for the next comparison."
+                st.info(
+                    f"{len(usable_matches):,} matching species have both body-mass and brain-mass data. "
+                    "These can go into the later comparison."
                 )
                 st.subheader("Carry animals forward")
                 st.caption(
-                    f"Save {STAGE4_ANIMAL_COLLECTION_MIN_SELECTION}–{STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} graph-ready species for later graphs."
+                    f"Save {STAGE4_ANIMAL_COLLECTION_MIN_SELECTION}–{STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} species with both measurements. You’ll use them again later."
                 )
                 labels = _stage4_species_labels(
                     species_data, usable_matches["Scientific name"].tolist()
@@ -457,7 +475,7 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
         labels = _stage4_species_labels(species_data, saved_species)
         st.subheader("Your animals")
         st.caption(
-            f"{len(saved_species)} of {STAGE4_ANIMAL_COLLECTION_MIN_SELECTION}–{STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} graph-ready species saved for later Stage 4 graphs."
+            f"{len(saved_species)} of {STAGE4_ANIMAL_COLLECTION_MIN_SELECTION}–{STAGE4_ANIMAL_COLLECTION_MAX_SELECTION} species saved. Each has both body-mass and brain-mass data."
         )
         for scientific_name in saved_species:
             label = labels.get(scientific_name, scientific_name)
@@ -474,15 +492,12 @@ def _render_find_your_animals(data: pd.DataFrame) -> None:
     _render_stage4_provenance()
     st.divider()
     if collection_ready:
-        st.success(
-            "Your graph-ready evidence set is ready for the next comparison."
-        )
-        st.info("What did you notice about what this dataset does and does not contain?")
+        st.success("You have enough animals to continue.")
     else:
         remaining = STAGE4_ANIMAL_COLLECTION_MIN_SELECTION - len(saved_species)
         st.info(
-            f"Keep searching and save {remaining} more graph-ready species before continuing. "
-            "No-match and incomplete results still help us understand this dataset's scope and evidence."
+            f"Save {remaining} more species with both measurements before continuing. "
+            "No-match and incomplete results still tell us something about what this dataset contains."
         )
     completion_gate(collection_ready)
 
@@ -554,7 +569,7 @@ def _render_start_with_scale(data: pd.DataFrame) -> None:
             st.session_state["stage4_scale_elephant_mass_estimate"],
             st.session_state["stage4_scale_elephant_mass_unit"],
         )
-        st.subheader("Compare the estimates")
+        st.subheader("So, how close were you?")
         mouse_column, elephant_column = st.columns(2)
         with mouse_column:
             st.markdown("**Mouse**")
@@ -566,14 +581,41 @@ def _render_start_with_scale(data: pd.DataFrame) -> None:
             st.write(f"Your estimate: **{_format_stage4_mass_kg(learner_elephant_kg)}**")
             st.write(f"Reference: **{_format_stage4_mass_kg(elephant_reference_kg)}**")
             st.caption("Reference from separate published comparison evidence, not AnimalTraits.")
-        st.caption("Both comparisons use kilograms so the scale range is visible.")
         st.image(MOUSE_TO_ELEPHANT_HERO_PATH, width="stretch")
-        st.info("What do you notice about the range from a mouse to an elephant?")
-        st.write(
-            "Animal body sizes span a huge range. Next, explore which animals and measurements are actually present in the dataset."
+        magnitude_choice = st.radio(
+            "About how many mice would have the same mass as one elephant?",
+            STAGE4_SCALE_MAGNITUDE_OPTIONS,
+            index=None,
+            key=STAGE4_SCALE_MAGNITUDE_CHOICE_KEY,
+            persist_state="session",
         )
+        st.button(
+            "Reveal the answer",
+            disabled=magnitude_choice is None,
+            key="stage4_scale_reveal_magnitude",
+            on_click=lambda: st.session_state.__setitem__(
+                STAGE4_SCALE_MAGNITUDE_REVEALED_KEY, True
+            ),
+        )
+        magnitude_revealed = bool(
+            st.session_state.get(STAGE4_SCALE_MAGNITUDE_REVEALED_KEY, False)
+        )
+        if magnitude_revealed:
+            rounded_ratio = _format_stage4_mouse_to_elephant_ratio(
+                mouse_reference_kg, elephant_reference_kg
+            )
+            st.success(f"About {rounded_ratio} mice.")
+            st.write("That is an enormous range — and these are only two animals.")
+            st.write("Next, let’s see what the dataset actually contains.")
 
-    completion_gate(comparison_revealed)
+    magnitude_choice = st.session_state.get(STAGE4_SCALE_MAGNITUDE_CHOICE_KEY)
+    magnitude_revealed = bool(
+        st.session_state.get(STAGE4_SCALE_MAGNITUDE_REVEALED_KEY, False)
+    )
+
+    completion_gate(
+        _stage4_scale_ready(comparison_revealed, magnitude_choice, magnitude_revealed)
+    )
 
 
 def _stage4_body_mass_evidence(data: pd.DataFrame) -> pd.DataFrame:

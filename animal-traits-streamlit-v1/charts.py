@@ -979,6 +979,35 @@ def playground_histogram(
     return fig, len(plot_data)
 
 
+def playground_boxplot(data: pd.DataFrame, field: str, label: str, *, log_y: bool = False):
+    """Build the optional one-variable boxplot without changing source values."""
+    plot_data = data[[field]].copy()
+    plot_data[field] = pd.to_numeric(plot_data[field], errors="coerce")
+    plot_data = plot_data.dropna()
+    if log_y:
+        plot_data = plot_data[plot_data[field] > 0]
+    fig = px.box(plot_data, y=field, points="outliers", title=f"Another summary of {label}")
+    fig.update_layout(yaxis_title=label, xaxis_title=None)
+    if log_y:
+        fig.update_yaxes(type="log")
+    return fig
+
+
+def playground_categorical_bar(counts: pd.DataFrame, label: str):
+    """Build a count-ordered bar chart for one categorical Playground variable."""
+    fig = px.bar(
+        counts,
+        x="Count",
+        y="Category",
+        orientation="h",
+        hover_data={"Percentage": ":.1f"},
+        title=f"Counts for {label}",
+    )
+    fig.update_layout(xaxis_title="Number of animal records", yaxis_title=label, showlegend=False)
+    fig.update_yaxes(categoryorder="array", categoryarray=counts["Category"].tolist()[::-1])
+    return fig
+
+
 def playground_two_variable_scatter(
     data: pd.DataFrame,
     x: str,
