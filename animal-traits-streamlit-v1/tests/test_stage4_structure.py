@@ -35,6 +35,7 @@ from experiences.year8 import (
     _stage4_body_brain_ready,
     _stage4_animal_groups_ready,
     _stage4_cat_model_ready,
+    _stage4_cat_prediction_performance,
     _clear_stage4_cat_comparison_state,
     _stage4_elephant_model_ready,
     _clear_stage4_elephant_comparison_state,
@@ -450,10 +451,10 @@ def test_stage4_cat_uses_the_external_comparison_record_and_model_specific_range
 
 def test_stage4_cat_model_changes_invalidate_only_the_changed_comparison_state():
     state = {
-        "stage4_cat_comparison_1_judgement": "Better",
+        "stage4_cat_comparison_1_judgement": "Closer to the independent evidence",
         "stage4_cat_comparison_1_reason": "It is more biologically similar.",
         "stage4_cat_comparison_1_revealed": True,
-        "stage4_cat_comparison_2_judgement": "Worse",
+        "stage4_cat_comparison_2_judgement": "Farther from the independent evidence",
         "stage4_cat_comparison_2_reason": "It has different evidence.",
         "stage4_cat_comparison_2_revealed": True,
     }
@@ -463,7 +464,7 @@ def test_stage4_cat_model_changes_invalidate_only_the_changed_comparison_state()
     assert state["stage4_cat_comparison_1_judgement"] is None
     assert state["stage4_cat_comparison_1_reason"] == ""
     assert state["stage4_cat_comparison_1_revealed"] is False
-    assert state["stage4_cat_comparison_2_judgement"] == "Worse"
+    assert state["stage4_cat_comparison_2_judgement"] == "Farther from the independent evidence"
     assert state["stage4_cat_comparison_2_revealed"] is True
 
 
@@ -518,10 +519,42 @@ def test_stage4_elephant_model_changes_invalidate_only_the_changed_comparison_st
     assert state["stage4_elephant_comparison_2_revealed"] is False
 
 
-def test_stage4_cat_gate_requires_both_current_comparison_reveals_and_takeaway():
-    assert not _stage4_cat_model_ready(True, False, True, True)
-    assert not _stage4_cat_model_ready(True, True, True, False)
-    assert _stage4_cat_model_ready(True, True, True, True)
+def test_stage4_cat_gate_requires_prediction_evidence_and_both_committed_comparison_reveals():
+    assert not _stage4_cat_model_ready(False, True, True, True, True, True)
+    assert not _stage4_cat_model_ready(True, False, True, True, True, True)
+    assert not _stage4_cat_model_ready(True, True, False, True, True, True)
+    assert not _stage4_cat_model_ready(True, True, True, False, True, True)
+    assert not _stage4_cat_model_ready(True, True, True, True, False, True)
+    assert _stage4_cat_model_ready(True, True, True, True, True, True)
+
+
+def test_stage4_cat_compares_absolute_prediction_error_with_a_small_evidence_scale_tolerance():
+    evidence = 0.0284
+    mammal_prediction = 0.03736
+
+    assert _stage4_cat_prediction_performance(0.0285, mammal_prediction, evidence) == "closer to the independent evidence"
+    assert _stage4_cat_prediction_performance(0.046, mammal_prediction, evidence) == "farther from the independent evidence"
+    # Within 1% of the independent value (0.284 g) avoids a false distinction from display noise.
+    assert _stage4_cat_prediction_performance(0.03755, mammal_prediction, evidence) == "about the same distance away"
+
+
+def test_stage4_cat_uses_the_approved_independent_evidence_testing_sequence():
+    source = inspect.getsource(year8._render_cat_model_testing)
+    comparison_source = inspect.getsource(year8._render_stage4_cat_comparison)
+
+    assert "Time to test the models on something new: a domestic cat." in source
+    assert "The model knows the cat’s body mass. It has not seen the separate cat brain-mass evidence." in source
+    assert source.index("Use the mammal model to predict the cat's brain mass") < source.index("Reveal the separate cat brain-mass evidence")
+    assert "Now we can actually test the prediction." in source
+    assert "Now put the other two models to the same test." in source
+    assert "One cat is evidence — not a universal verdict." in source
+    assert "universally best" not in source
+    assert "TAKEAWAY" not in source
+    assert "Closer to the independent evidence" in comparison_source
+    assert "Farther from the independent evidence" in comparison_source
+    assert "About the same distance away" in comparison_source
+    assert "What makes you think that?" in comparison_source
+    assert "On this cat" in comparison_source
 
 
 def test_stage4_elephant_gate_requires_both_current_comparison_reveals_and_takeaway():

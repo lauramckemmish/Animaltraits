@@ -106,7 +106,6 @@ STAGE4_MAMMAL_MODEL_COMPARISON_SIGNATURE_KEY = "stage4_mammal_model_comparison_s
 STAGE4_CAT_MAMMAL_PREDICTION_REVEALED_KEY = "stage4_cat_mammal_prediction_revealed"
 STAGE4_CAT_EXTERNAL_EVIDENCE_REVEALED_KEY = "stage4_cat_external_evidence_revealed"
 STAGE4_CAT_COMPARISON_SIGNATURE_KEY = "stage4_cat_comparison_signature"
-STAGE4_CAT_TAKEAWAY_ACKNOWLEDGED_KEY = "stage4_cat_takeaway_acknowledged"
 STAGE4_ELEPHANT_MAMMAL_PREDICTION_REVEALED_KEY = "stage4_elephant_mammal_prediction_revealed"
 STAGE4_ELEPHANT_EXTERNAL_EVIDENCE_REVEALED_KEY = "stage4_elephant_external_evidence_revealed"
 STAGE4_ELEPHANT_COMPARISON_SIGNATURE_KEY = "stage4_elephant_comparison_signature"
@@ -1382,18 +1381,43 @@ def _sync_stage4_cat_comparison_state(comparison_one: str, comparison_two: str) 
 
 
 def _stage4_cat_model_ready(
+    mammal_prediction_revealed: bool,
     external_evidence_revealed: bool,
+    comparison_one_committed: bool,
     comparison_one_revealed: bool,
+    comparison_two_committed: bool,
     comparison_two_revealed: bool,
-    takeaway_acknowledged: bool,
 ) -> bool:
     """Return whether Screen 7 has completed its prediction-to-evidence sequence."""
     return (
-        external_evidence_revealed
+        mammal_prediction_revealed
+        and external_evidence_revealed
+        and comparison_one_committed
         and comparison_one_revealed
+        and comparison_two_committed
         and comparison_two_revealed
-        and takeaway_acknowledged
     )
+
+
+def _stage4_cat_prediction_performance(
+    comparison_prediction: float,
+    mammal_prediction: float,
+    independent_evidence: float,
+) -> str:
+    """Compare two predictions on this cat, allowing 1% evidence-mass tolerance.
+
+    A 1% tolerance of the independent brain-mass value is small relative to the
+    displayed measurement (0.284 g for this cat), while avoiding an artificial
+    closer/farther claim from floating-point or display-precision noise.
+    """
+    comparison_error = abs(comparison_prediction - independent_evidence)
+    mammal_error = abs(mammal_prediction - independent_evidence)
+    tolerance = independent_evidence * 0.01
+    if abs(comparison_error - mammal_error) <= tolerance:
+        return "about the same distance away"
+    if comparison_error < mammal_error:
+        return "closer to the independent evidence"
+    return "farther from the independent evidence"
 
 
 def _render_stage4_test_animal_taxonomy(common_name: str, scientific_name: str) -> None:
@@ -1414,25 +1438,38 @@ def _render_stage4_cat_comparison(
     cat_body_mass: float,
     cat_brain_mass: float,
     mammal_prediction: float,
-) -> bool:
+) -> tuple[bool, bool]:
     """Render one independently gated comparison-model prediction for the cat."""
     prefix = _stage4_cat_comparison_prefix(slot)
     evidence = body_brain_model_evidence(usable_species, model_id)
     fit = _stage4_model_fit(evidence)
     if fit is None:
         st.warning(f"{model_label} no longer has enough usable evidence to build a model.")
-        return False
+        return False, False
 
     with st.container(border=True):
         st.markdown(f"**{model_label}**")
-        judgement, reason, committed = bounded_prediction_with_reason(
-            "Compared with the mammal model, will this model predict the cat's brain mass…",
-            prefix,
-            reason_label="Why?",
+        judgement = st.selectbox(
+            "Compared with the mammal model, where do you think this model’s cat prediction will land?",
+            [
+                "Choose a prediction",
+                "Closer to the independent evidence",
+                "Farther from the independent evidence",
+                "About the same distance away",
+            ],
+            key=f"{prefix}_judgement",
+            persist_state="session",
         )
+        reason = st.text_input(
+            "What makes you think that?",
+            key=f"{prefix}_reason",
+            placeholder="A few words is enough",
+            persist_state="session",
+        )
+        committed = judgement != "Choose a prediction" and bool(reason.strip())
         if not committed:
-            st.caption("Choose Better, Worse or About the same and add a few words before revealing this model's prediction.")
-            return False
+            st.caption("Choose where you think this prediction will land and add a few words before revealing it.")
+            return False, False
 
         revealed_key = f"{prefix}_revealed"
         if not st.session_state.get(revealed_key, False):
@@ -1442,24 +1479,29 @@ def _render_stage4_cat_comparison(
                 key=f"{prefix}_reveal_button",
                 on_click=lambda: st.session_state.__setitem__(revealed_key, True),
             )
-            return False
+            return True, False
 
         predicted_brain_mass = predict_power_law(fit, cat_body_mass)
         range_status = prediction_range_status(fit, cat_body_mass)
-        st.success(
-            f"**Model-derived cat prediction:** {_format_stage4_model_prediction_mass(predicted_brain_mass)} brain mass."
+        performance = _stage4_cat_prediction_performance(
+            predicted_brain_mass, mammal_prediction, cat_brain_mass
         )
+        st.write(f"**This model predicts: {_format_stage4_model_prediction_mass(predicted_brain_mass)}.**")
+        st.write(f"**Mammal model predicted: {_format_stage4_model_prediction_mass(mammal_prediction)}.**")
+        st.write(f"**Independent cat evidence: {cat_brain_mass * 1000:.1f} g.**")
         st.write(
-            f"For this model, the cat's body mass is **{range_status}**: it is "
-            + ("inside" if range_status == "interpolation" else "outside")
-            + " the body-mass range of the evidence used to fit this model."
+            f"The cat is **{('inside' if range_status == 'interpolation' else 'outside')}** this model’s body-mass evidence range, so this prediction is **{range_status}**."
         )
-        st.caption(
-            f"**Separate external cat brain-mass evidence:** {cat_brain_mass * 1000:.1f} g. "
-            f"The mammal model predicted {_format_stage4_model_prediction_mass(mammal_prediction)}."
-        )
-        st.write("This one case does not prove which model is universally best.")
-    return True
+        if range_status == "interpolation":
+            st.caption("That is one reason to be less cautious about the prediction — not proof that it will be accurate.")
+        else:
+            st.caption("That means we need extra caution: the prediction goes beyond the body-mass evidence used to build this model. It is not automatically wrong.")
+        if performance == "about the same distance away":
+            st.success("On this cat, this model landed about the same distance from the independent evidence as the mammal model.")
+        else:
+            st.success(f"On this cat, this model landed **{performance}** than the mammal model.")
+        st.caption("That tells us something about this test. It does not make this model universally better.")
+    return True, True
 
 
 def _render_cat_model_testing(data: pd.DataFrame) -> None:
@@ -1480,10 +1522,11 @@ def _render_cat_model_testing(data: pd.DataFrame) -> None:
     mammal_prediction = predict_power_law(mammal_fit, cat_body_mass)
     mammal_range_status = prediction_range_status(mammal_fit, cat_body_mass)
 
-    st.write("A domestic cat is a mammal. First, use the mammal model as a worked example before returning to the two other models you chose.")
-    st.write(f"**Cat body mass (input to the model): {cat_body_mass:.1f} kg.**")
+    st.write("Time to test the models on something new: a domestic cat.")
+    st.write("Start with the mammal model, then put the two other evidence sets you chose through the same test.")
+    st.write(f"**Cat body mass: {cat_body_mass:.1f} kg**")
     _render_stage4_test_animal_taxonomy("Domestic cat", "Felis catus")
-    st.caption("The AnimalTraits mammal evidence built this model. The separate cat brain-mass evidence stays hidden until after the prediction.")
+    st.caption("The model knows the cat’s body mass. It has not seen the separate cat brain-mass evidence.")
     st.plotly_chart(
         body_brain_group_fit_scatter(
             species_data,
@@ -1506,12 +1549,13 @@ def _render_cat_model_testing(data: pd.DataFrame) -> None:
         completion_gate(False)
         return
 
-    st.success(f"**Mammal-model prediction:** {_format_stage4_model_prediction_mass(mammal_prediction)} brain mass.")
-    st.write(
-        f"This is **{mammal_range_status}** because the cat's {cat_body_mass:.1f} kg body mass is "
-        + ("inside" if mammal_range_status == "interpolation" else "outside")
-        + " the body-mass range used to build the mammal model. Interpolation does not guarantee accuracy."
-    )
+    st.success(f"**The mammal model predicts: {_format_stage4_model_prediction_mass(mammal_prediction)}.**")
+    if mammal_range_status == "interpolation":
+        st.write("The cat falls inside the body-mass range used to build this model, so this is interpolation.")
+        st.caption("That gives us one reason for confidence — not a guarantee of accuracy.")
+    else:
+        st.write("The cat falls outside the body-mass range used to build this model, so this is extrapolation.")
+        st.caption("That means we need extra caution — not that the prediction is automatically wrong.")
     if not st.session_state.get(STAGE4_CAT_EXTERNAL_EVIDENCE_REVEALED_KEY, False):
         st.button(
             "Reveal the separate cat brain-mass evidence",
@@ -1524,14 +1568,12 @@ def _render_cat_model_testing(data: pd.DataFrame) -> None:
         completion_gate(False)
         return
 
-    st.info(
-        f"**Separate external cat brain-mass evidence:** {cat_brain_mass * 1000:.1f} g. "
-        "This value was not used to build any of these AnimalTraits models."
-    )
-    st.caption("Source: Translating Time scientific database; Workman et al. (2013).")
+    st.write("Now we can actually test the prediction.")
+    st.info(f"**Independent cat evidence: {cat_brain_mass * 1000:.1f} g.**")
+    st.caption("Separate external evidence from the Translating Time scientific database; Workman et al. (2013). It was not used to build the AnimalTraits models.")
 
-    st.subheader("Test the two other models you built")
-    st.write("You also built two other models. They begin with your Screen 6 choices, and you can still change either one.")
+    st.subheader("Now put the other two models to the same test.")
+    st.write("These start with the evidence sets you chose earlier, but you can still change them.")
     candidates = body_brain_model_comparison_candidates(usable_species)
     comparison_one, comparison_two, candidate_labels = _stage4_comparison_model_selectors(
         candidates,
@@ -1545,10 +1587,12 @@ def _render_cat_model_testing(data: pd.DataFrame) -> None:
         "comparison_two": comparison_two,
     }
 
+    comparison_one_committed = False
     comparison_one_revealed = False
+    comparison_two_committed = False
     comparison_two_revealed = False
     if comparison_one:
-        comparison_one_revealed = _render_stage4_cat_comparison(
+        comparison_one_committed, comparison_one_revealed = _render_stage4_cat_comparison(
             slot=1,
             model_id=comparison_one,
             model_label=candidate_labels[comparison_one],
@@ -1558,7 +1602,7 @@ def _render_cat_model_testing(data: pd.DataFrame) -> None:
             mammal_prediction=mammal_prediction,
         )
     if comparison_two:
-        comparison_two_revealed = _render_stage4_cat_comparison(
+        comparison_two_committed, comparison_two_revealed = _render_stage4_cat_comparison(
             slot=2,
             model_id=comparison_two,
             model_label=candidate_labels[comparison_two],
@@ -1570,23 +1614,19 @@ def _render_cat_model_testing(data: pd.DataFrame) -> None:
 
     both_comparisons_revealed = comparison_one_revealed and comparison_two_revealed
     if both_comparisons_revealed:
-        st.write(
-            "Different models can make different predictions for the same new animal. Testing those predictions against independent evidence gives us information about how the models perform."
-        )
-        takeaway_acknowledged = st.checkbox(
-            "I can see why being closest for one cat does not prove a model is universally best.",
-            key=STAGE4_CAT_TAKEAWAY_ACKNOWLEDGED_KEY,
-            persist_state="session",
-        )
-    else:
-        takeaway_acknowledged = False
+        st.success("Same cat. Same body mass. Different models, different predictions.")
+        st.write("Independent evidence lets us see how each model performed on this case.")
+        st.caption("One cat is evidence — not a universal verdict.")
+        st.write("Next, let’s make the test harder.")
 
     completion_gate(
         _stage4_cat_model_ready(
             True,
+            True,
+            comparison_one_committed,
             comparison_one_revealed,
+            comparison_two_committed,
             comparison_two_revealed,
-            takeaway_acknowledged,
         )
     )
 
