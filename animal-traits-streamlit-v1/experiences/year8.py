@@ -128,6 +128,11 @@ STAGE4_PREDICTION_REVEALED_KEY = "stage4_prediction_revealed"
 MOUSE_TO_ELEPHANT_HERO_PATH = (
     Path(__file__).resolve().parents[1] / "assets" / "mouse_to_elephant_hero.png"
 )
+DATA_SCIENCE_INFOGRAPHIC_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "assets"
+    / "Animal_Traits_Data_Science_Transfer_Infographic_v0.11_final_candidate.png"
+)
 
 STAGE4_SCREENS = (
     Stage4Screen(
@@ -2107,6 +2112,32 @@ def _render_predict_when_unknown(data: pd.DataFrame) -> None:
     completion_gate(bool(st.session_state.get(STAGE4_PREDICTION_REVEALED_KEY, False)))
 
 
+def _render_data_science_closure() -> None:
+    """Close Stage 4 by naming the completed reasoning as data science."""
+    st.markdown("## You’ve just done data science.")
+    st.write(
+        "You used real animal data to find patterns, chose evidence to build models, "
+        "tested predictions against new evidence, and decided how much confidence to place "
+        "in a prediction when there was no answer to reveal."
+    )
+    st.image(DATA_SCIENCE_INFOGRAPHIC_PATH, width="stretch")
+    st.write("The details change, but the process appears in many kinds of data science.")
+    st.write(
+        "Weather forecasts, sport predictions, recommendation systems and language AI all learn "
+        "from previous data to make predictions about new cases."
+    )
+    st.write(
+        "Sometimes we can test a prediction against new evidence straight away. Sometimes, as with "
+        "your final animal, we have to make the best-supported prediction we can and be clear about "
+        "how much confidence we place in it."
+    )
+    st.markdown("**A prediction is not the end of the story.**")
+    st.write(
+        "Ask what evidence the model learned from, whether the new case is similar to that evidence, "
+        "how the model has been tested, and how much confidence the prediction deserves."
+    )
+
+
 def render(data: pd.DataFrame) -> None:
     """Render the first structural pass of the two-lesson Stage 4 experience."""
     screen_index = int(st.session_state.get("stage4_screen", 0))
@@ -2175,6 +2206,8 @@ def render(data: pd.DataFrame) -> None:
         _render_model_judgement()
     elif screen_index == 9:
         _render_predict_when_unknown(data)
+    elif screen_index == 10:
+        _render_data_science_closure()
     else:
         st.write(screen.framing)
     if screen_index == 4:

@@ -489,7 +489,7 @@ def test_stage4_model_judgement_requires_three_intended_responses():
     )
 
 
-def test_stage4_model_judgement_is_sequential_and_screen_ten_is_the_no_answer_key_prediction():
+def test_stage4_model_judgement_is_sequential_and_later_stage4_screens_are_implemented():
     source = inspect.getsource(year8._render_model_judgement)
 
     assert source.index("Which prediction gives you more reason to be cautious?") < source.index(
@@ -499,7 +499,17 @@ def test_stage4_model_judgement_is_sequential_and_screen_ten_is_the_no_answer_ke
         "One of your models happened to predict the cat very closely"
     )
     assert "elif screen_index == 9:\n        _render_predict_when_unknown(data)" in inspect.getsource(year8.render)
-    assert "elif screen_index == 10:\n        _render" not in inspect.getsource(year8.render)
+    assert "elif screen_index == 10:\n        _render_data_science_closure()" in inspect.getsource(year8.render)
+
+
+def test_stage4_data_science_closure_reuses_the_transfer_infographic_without_a_gate():
+    source = inspect.getsource(year8._render_data_science_closure)
+
+    assert "You’ve just done data science." in source
+    assert "DATA_SCIENCE_INFOGRAPHIC_PATH" in source
+    assert "Sometimes we can test a prediction" in source
+    assert "A prediction is not the end of the story." in source
+    assert "completion_gate" not in source
 
 
 def test_stage4_unknown_prediction_choices_use_stable_names_and_display_platypus():
