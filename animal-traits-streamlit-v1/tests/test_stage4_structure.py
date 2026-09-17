@@ -38,6 +38,7 @@ from experiences.year8 import (
     _stage4_cat_prediction_performance,
     _clear_stage4_cat_comparison_state,
     _stage4_elephant_model_ready,
+    _stage4_elephant_prediction_performance,
     _clear_stage4_elephant_comparison_state,
     _stage4_mammal_model_ready,
     _stage4_model_ids_for_level,
@@ -557,10 +558,30 @@ def test_stage4_cat_uses_the_approved_independent_evidence_testing_sequence():
     assert "On this cat" in comparison_source
 
 
-def test_stage4_elephant_gate_requires_both_current_comparison_reveals_and_takeaway():
-    assert not _stage4_elephant_model_ready(True, True, False, True)
-    assert not _stage4_elephant_model_ready(True, True, True, False)
-    assert _stage4_elephant_model_ready(True, True, True, True)
+def test_stage4_elephant_gate_requires_prediction_evidence_and_both_committed_comparison_reveals():
+    assert not _stage4_elephant_model_ready(False, True, True, True, True, True)
+    assert not _stage4_elephant_model_ready(True, False, True, True, True, True)
+    assert not _stage4_elephant_model_ready(True, True, False, True, True, True)
+    assert _stage4_elephant_model_ready(True, True, True, True, True, True)
+
+
+def test_stage4_elephant_compares_absolute_prediction_error_with_the_screen_seven_tolerance():
+    assert _stage4_elephant_prediction_performance(4.9, 13.3, 4.871) == "closer to the independent evidence"
+    assert _stage4_elephant_prediction_performance(20, 13.3, 4.871) == "farther from the independent evidence"
+    assert _stage4_elephant_prediction_performance(13.34, 13.3, 4.871) == "about the same distance away"
+
+
+def test_stage4_elephant_uses_the_approved_extrapolation_testing_sequence():
+    source = inspect.getsource(year8._render_elephant_model_testing)
+    comparison_source = inspect.getsource(year8._render_stage4_elephant_comparison)
+    assert "Same models. Harder test: an African savanna elephant." in source
+    assert source.index("Use the mammal model to predict the elephant's brain mass") < source.index("Reveal the separate elephant brain-mass evidence")
+    assert "Extrapolation does not mean the prediction is wrong." in source
+    assert "Now we can test what happened." in source
+    assert "The cat and elephant gave us two different kinds of test." in source
+    assert "Closer to the independent evidence" in comparison_source
+    assert "On this elephant" in comparison_source
+    assert "TAKEAWAY" not in source
 
 
 def test_stage4_screen_five_is_lesson_one_endpoint_and_screen_nine_is_implemented():

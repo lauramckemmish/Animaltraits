@@ -109,7 +109,6 @@ STAGE4_CAT_COMPARISON_SIGNATURE_KEY = "stage4_cat_comparison_signature"
 STAGE4_ELEPHANT_MAMMAL_PREDICTION_REVEALED_KEY = "stage4_elephant_mammal_prediction_revealed"
 STAGE4_ELEPHANT_EXTERNAL_EVIDENCE_REVEALED_KEY = "stage4_elephant_external_evidence_revealed"
 STAGE4_ELEPHANT_COMPARISON_SIGNATURE_KEY = "stage4_elephant_comparison_signature"
-STAGE4_ELEPHANT_TAKEAWAY_ACKNOWLEDGED_KEY = "stage4_elephant_takeaway_acknowledged"
 STAGE4_MODEL_JUDGEMENT_RANGE_CHOICE_KEY = "stage4_model_judgement_range_choice"
 STAGE4_MODEL_JUDGEMENT_RANGE_COMMITTED_KEY = "stage4_model_judgement_range_committed"
 STAGE4_MODEL_JUDGEMENT_EVIDENCE_CHOICE_KEY = "stage4_model_judgement_evidence_choice"
@@ -1659,18 +1658,31 @@ def _sync_stage4_elephant_comparison_state(comparison_one: str, comparison_two: 
 
 
 def _stage4_elephant_model_ready(
+    mammal_prediction_revealed: bool,
     external_evidence_revealed: bool,
+    comparison_one_committed: bool,
     comparison_one_revealed: bool,
+    comparison_two_committed: bool,
     comparison_two_revealed: bool,
-    takeaway_acknowledged: bool,
 ) -> bool:
     """Return whether Screen 8 has completed its prediction-to-evidence sequence."""
     return (
-        external_evidence_revealed
+        mammal_prediction_revealed
+        and external_evidence_revealed
+        and comparison_one_committed
         and comparison_one_revealed
+        and comparison_two_committed
         and comparison_two_revealed
-        and takeaway_acknowledged
     )
+
+
+def _stage4_elephant_prediction_performance(comparison_prediction: float, mammal_prediction: float, independent_evidence: float) -> str:
+    """Compare predictions on this elephant, allowing the same 1% evidence tolerance as Screen 7."""
+    comparison_error = abs(comparison_prediction - independent_evidence)
+    mammal_error = abs(mammal_prediction - independent_evidence)
+    if abs(comparison_error - mammal_error) <= independent_evidence * 0.01:
+        return "about the same distance away"
+    return "closer to the independent evidence" if comparison_error < mammal_error else "farther from the independent evidence"
 
 
 def _render_stage4_elephant_comparison(
@@ -1682,25 +1694,27 @@ def _render_stage4_elephant_comparison(
     elephant_body_mass: float,
     elephant_brain_mass: float,
     mammal_prediction: float,
-) -> bool:
+) -> tuple[bool, bool]:
     """Render one independently gated comparison-model prediction for the elephant."""
     prefix = _stage4_elephant_comparison_prefix(slot)
     evidence = body_brain_model_evidence(usable_species, model_id)
     fit = _stage4_model_fit(evidence)
     if fit is None:
         st.warning(f"{model_label} no longer has enough usable evidence to build a model.")
-        return False
+        return False, False
 
     with st.container(border=True):
         st.markdown(f"**{model_label}**")
-        _, _, committed = bounded_prediction_with_reason(
-            "Compared with the mammal model, will this model predict the elephant's brain mass…",
-            prefix,
-            reason_label="Why?",
+        judgement = st.selectbox(
+            "Compared with the mammal model, where do you think this model’s elephant prediction will land?",
+            ["Choose a prediction", "Closer to the independent evidence", "Farther from the independent evidence", "About the same distance away"],
+            key=f"{prefix}_judgement", persist_state="session",
         )
+        reason = st.text_input("What makes you think that?", key=f"{prefix}_reason", placeholder="A few words is enough", persist_state="session")
+        committed = judgement != "Choose a prediction" and bool(reason.strip())
         if not committed:
-            st.caption("Choose Better, Worse or About the same and add a few words before revealing this model's prediction.")
-            return False
+            st.caption("Choose where you think this prediction will land and add a few words before revealing it.")
+            return False, False
 
         revealed_key = f"{prefix}_revealed"
         if not st.session_state.get(revealed_key, False):
@@ -1710,24 +1724,24 @@ def _render_stage4_elephant_comparison(
                 key=f"{prefix}_reveal_button",
                 on_click=lambda: st.session_state.__setitem__(revealed_key, True),
             )
-            return False
+            return True, False
 
         predicted_brain_mass = predict_power_law(fit, elephant_body_mass)
         range_status = prediction_range_status(fit, elephant_body_mass)
-        st.success(
-            f"**Model-derived elephant prediction:** {_format_stage4_model_prediction_mass(predicted_brain_mass)} brain mass."
-        )
+        performance = _stage4_elephant_prediction_performance(predicted_brain_mass, mammal_prediction, elephant_brain_mass)
+        st.write(f"**This model predicts: {_format_stage4_model_prediction_mass(predicted_brain_mass)}.**")
+        st.write(f"**Mammal model predicted: {_format_stage4_model_prediction_mass(mammal_prediction)}.**")
+        st.write(f"**Independent elephant evidence: {elephant_brain_mass:.3f} kg.**")
         st.write(
-            f"For this model, the elephant's body mass is **{range_status}**: it is "
-            + ("inside" if range_status == "interpolation" else "outside")
-            + " the body-mass range of the evidence used to fit this model."
+            f"The elephant is **{('inside' if range_status == 'interpolation' else 'outside')}** this model’s body-mass evidence range, so this prediction is **{range_status}**."
         )
-        st.caption(
-            f"**Separate external elephant brain-mass evidence:** {elephant_brain_mass:.3f} kg. "
-            f"The mammal model predicted {_format_stage4_model_prediction_mass(mammal_prediction)}."
-        )
-        st.write("Extrapolation gives us an extra reason for caution; it does not automatically make a prediction wrong.")
-    return True
+        st.caption("That gives us an extra reason for caution. It does not automatically make the prediction wrong." if range_status == "extrapolation" else "That is one reason to be less cautious about the prediction — not proof that it will be accurate.")
+        if performance == "about the same distance away":
+            st.success("On this elephant, this model landed about the same distance from the independent evidence as the mammal model.")
+        else:
+            st.success(f"On this elephant, this model landed **{performance}** than the mammal model.")
+        st.caption("That tells us something about this test. It still does not make one model universally better.")
+    return True, True
 
 
 def _render_elephant_model_testing(data: pd.DataFrame) -> None:
@@ -1750,10 +1764,11 @@ def _render_elephant_model_testing(data: pd.DataFrame) -> None:
     mammal_prediction = predict_power_law(mammal_fit, elephant_body_mass)
     mammal_range_status = prediction_range_status(mammal_fit, elephant_body_mass)
 
-    st.write("An African savanna elephant is a mammal. Use the same model-testing process you used for the cat, then consider what changes when the input is far beyond the fitted evidence range.")
-    st.write(f"**Elephant body mass (input to the model): {elephant_body_mass:,.0f} kg.**")
+    st.write("Same models. Harder test: an African savanna elephant.")
+    st.write("Use the same testing process as before, but pay attention to where the elephant sits relative to the evidence used to build each model.")
+    st.write(f"**Elephant body mass: {elephant_body_mass:,.0f} kg**")
     _render_stage4_test_animal_taxonomy("African savanna elephant", "Loxodonta africana")
-    st.caption("The AnimalTraits mammal evidence built this model. The separate elephant brain-mass evidence stays hidden until after the prediction.")
+    st.caption("The models know the elephant’s body mass. They have not seen the separate elephant brain-mass evidence.")
     st.plotly_chart(
         body_brain_group_fit_scatter(
             species_data,
@@ -1776,12 +1791,14 @@ def _render_elephant_model_testing(data: pd.DataFrame) -> None:
         completion_gate(False)
         return
 
-    st.success(f"**Mammal-model prediction:** {_format_stage4_model_prediction_mass(mammal_prediction)} brain mass.")
-    st.write(
-        f"This is **{mammal_range_status}** because the elephant's {elephant_body_mass:,.0f} kg body mass is "
-        + ("inside" if mammal_range_status == "interpolation" else "outside")
-        + " the body-mass range used to build the mammal model. Extrapolation means using a model beyond the evidence range; it increases caution, not certainty that the prediction is wrong."
-    )
+    st.success(f"**The mammal model predicts: {_format_stage4_model_prediction_mass(mammal_prediction)}.**")
+    if mammal_range_status == "extrapolation":
+        st.write("The elephant falls outside the body-mass range used to build this model. This is extrapolation.")
+        st.write("Now the model is being asked to predict beyond the evidence it was built from. That gives us an extra reason to be cautious.")
+        st.caption("Extrapolation does not mean the prediction is wrong. It means we have less direct evidence for trusting it.")
+    else:
+        st.write("The elephant falls inside the body-mass range used to build this model, so this is interpolation.")
+        st.caption("That gives us one reason for confidence — not a guarantee of accuracy.")
     if not st.session_state.get(STAGE4_ELEPHANT_EXTERNAL_EVIDENCE_REVEALED_KEY, False):
         st.button(
             "Reveal the separate elephant brain-mass evidence",
@@ -1794,14 +1811,12 @@ def _render_elephant_model_testing(data: pd.DataFrame) -> None:
         completion_gate(False)
         return
 
-    st.info(
-        f"**Separate external elephant brain-mass evidence:** {elephant_brain_mass:.3f} kg. "
-        "This value was not used to build any of these AnimalTraits models."
-    )
-    st.caption("Source: Benoit et al. (2019), *Scientific Reports*, Table 1.")
+    st.write("Now we can test what happened.")
+    st.info(f"**Independent elephant evidence: {elephant_brain_mass:.3f} kg.**")
+    st.caption("Separate external evidence from Benoit et al. (2019), *Scientific Reports*, Table 1. It was not used to build the AnimalTraits models.")
 
-    st.subheader("Test the two other models you built")
-    st.write("You also built two other models. They begin with your current choices, and you can still change either one.")
+    st.subheader("Now put the other two models through the same harder test.")
+    st.write("These start with the evidence sets you chose earlier, but you can still change them.")
     candidates = body_brain_model_comparison_candidates(usable_species)
     comparison_one, comparison_two, candidate_labels = _stage4_comparison_model_selectors(
         candidates,
@@ -1815,10 +1830,10 @@ def _render_elephant_model_testing(data: pd.DataFrame) -> None:
         "comparison_two": comparison_two,
     }
 
-    comparison_one_revealed = False
-    comparison_two_revealed = False
+    comparison_one_committed = comparison_one_revealed = False
+    comparison_two_committed = comparison_two_revealed = False
     if comparison_one:
-        comparison_one_revealed = _render_stage4_elephant_comparison(
+        comparison_one_committed, comparison_one_revealed = _render_stage4_elephant_comparison(
             slot=1,
             model_id=comparison_one,
             model_label=candidate_labels[comparison_one],
@@ -1828,7 +1843,7 @@ def _render_elephant_model_testing(data: pd.DataFrame) -> None:
             mammal_prediction=mammal_prediction,
         )
     if comparison_two:
-        comparison_two_revealed = _render_stage4_elephant_comparison(
+        comparison_two_committed, comparison_two_revealed = _render_stage4_elephant_comparison(
             slot=2,
             model_id=comparison_two,
             model_label=candidate_labels[comparison_two],
@@ -1840,23 +1855,23 @@ def _render_elephant_model_testing(data: pd.DataFrame) -> None:
 
     both_comparisons_revealed = comparison_one_revealed and comparison_two_revealed
     if both_comparisons_revealed:
-        st.write(
-            "You have now tested the same models in two very different situations: a cat within the mammal evidence range and an elephant beyond it. The predictions did not all behave in the same way."
-        )
-        takeaway_acknowledged = st.checkbox(
-            "I can see why extrapolation calls for caution and one close prediction does not prove a model is universally best.",
-            key=STAGE4_ELEPHANT_TAKEAWAY_ACKNOWLEDGED_KEY,
-            persist_state="session",
-        )
-    else:
-        takeaway_acknowledged = False
+        st.write("The cat and elephant gave us two different kinds of test.")
+        st.write("With the cat, the mammal-model prediction stayed within the evidence range: interpolation.")
+        st.write(f"With the elephant, the mammal-model prediction reached {'beyond' if mammal_range_status == 'extrapolation' else 'within'} the evidence range: {mammal_range_status}.")
+        st.caption("That difference matters because predictions beyond the evidence deserve more caution.")
+        st.success("Same models. Two very different tests.")
+        st.write("Independent evidence tells us how the models performed in each case.")
+        st.write("How far a prediction reaches beyond the evidence is part of deciding how much to trust it.")
+        st.caption("A close extrapolated prediction can still be useful — but it deserves more caution.")
 
     completion_gate(
         _stage4_elephant_model_ready(
             True,
+            True,
+            comparison_one_committed,
             comparison_one_revealed,
+            comparison_two_committed,
             comparison_two_revealed,
-            takeaway_acknowledged,
         )
     )
 
