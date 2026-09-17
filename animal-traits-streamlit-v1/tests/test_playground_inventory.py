@@ -7,6 +7,7 @@ from data import playground_data
 from experiences.data_exploration_playground import (
     KNOW_YOUR_DATA_FIELDS,
     TAB_LABELS,
+    _render_follow_it_further,
     ONE_VARIABLE_CATEGORICAL_OPTIONS,
     ONE_VARIABLE_NUMERICAL_OPTIONS,
     _one_variable_category_counts,
@@ -16,7 +17,17 @@ from experiences.data_exploration_playground import (
 
 
 def test_playground_uses_another_angle_rather_than_three_variables_framing():
-    assert TAB_LABELS[-1] == "Another angle"
+    assert TAB_LABELS[-2:] == ["Another angle", "Follow it further"]
+
+
+def test_playground_follow_up_handoff_distinguishes_a_pattern_from_an_explanation():
+    import inspect
+
+    source = inspect.getsource(_render_follow_it_further)
+    assert "Follow something interesting" in source
+    assert "What evidence would you need next?" in source
+    assert "does not, by itself, tell you why the pattern exists" in source
+    assert "text_area" not in source
 
 
 def test_know_your_data_inventory_includes_every_classroom_dataset_field():

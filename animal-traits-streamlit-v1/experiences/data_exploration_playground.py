@@ -30,7 +30,7 @@ from data import (
 from models import fit_relationship
 from ui_helpers import graph_support, notice_prompt, page_header, sample_note, soft_reveal, variable_card
 
-TAB_LABELS = ["Start here", "Know your data", "One variable", "Two variables", "Another angle"]
+TAB_LABELS = ["Start here", "Know your data", "One variable", "Two variables", "Another angle", "Follow it further"]
 
 KNOW_YOUR_DATA_FIELDS = (
     ("phylum", "Categorical", "Taxonomy", "A broad taxonomic group for the animal.", "—"),
@@ -94,17 +94,15 @@ def _trait_index(field: str) -> int:
 def _render_start(data: pd.DataFrame) -> None:
     st.header("Explore the animal-trait data")
     st.write(
-        "Choose how many variables you want to investigate. Start with one variable to understand a distribution, "
-        "use two variables to look for a relationship, then look from another angle to test whether it changes."
+        "Know the data, inspect one variable, compare two, then look from another angle to test whether a pattern changes."
     )
     st.markdown(
         "**A useful investigation cycle**  \n"
-        "1. Ask a question  \n"
-        "2. Choose one, two or three variables  \n"
-        "3. Make a graph  \n"
-        "4. Describe the pattern  \n"
-        "5. If useful, change the scale, filter by animal class or fit a model  \n"
-        "6. Decide what the data do—and do not—support"
+        "1. Know the data  \n"
+        "2. Explore one variable  \n"
+        "3. Compare two variables  \n"
+        "4. Look from another angle  \n"
+        "5. Decide what the data do—and do not—support, then choose what to investigate next"
     )
     st.info("The fitting tools are part of this playground because scaling relationships are an important feature of Animal Traits data.")
 
@@ -342,6 +340,20 @@ def _render_three_variables(data: pd.DataFrame) -> None:
         st.write("Do the colours occupy different parts of the graph? Does the pattern look similar for different groups? Does adding colour make it clearer or more complicated? If you filter the data, does your earlier observation still hold?")
 
 
+def _render_follow_it_further() -> None:
+    """Offer a calm, non-persistent handoff from graphs to further inquiry."""
+    st.header("Follow something interesting")
+    st.write("A graph is often the beginning of a scientific question, not the end.")
+    st.markdown("### What did you notice?")
+    st.write("Name a pattern, difference, unusual value, gap, imbalance or limitation that caught your attention.")
+    st.markdown("### What does that make you wonder?")
+    st.write("Ask what might explain it, whether it holds for another group, or whether another variable could matter.")
+    st.markdown("### What evidence would you need next?")
+    st.write("Try another graph or filter, compare another group, find reliable background biology, inspect the original studies, or check whether missing data or measurement method could matter.")
+    st.info("A pattern in the graph is evidence that something is worth investigating. It does not, by itself, tell you why the pattern exists.")
+    st.caption("Interesting next questions can be about animal biology or about how this dataset and its evidence were collected.")
+
+
 def render(data: pd.DataFrame) -> None:
     page_header("Data Exploration Playground")
     st.caption("Open exploration · one, two or three variables · animal-class filtering · model fitting")
@@ -359,3 +371,5 @@ def render(data: pd.DataFrame) -> None:
         _render_two_variables(filtered)
     with tabs[4]:
         _render_three_variables(filtered)
+    with tabs[5]:
+        _render_follow_it_further()
