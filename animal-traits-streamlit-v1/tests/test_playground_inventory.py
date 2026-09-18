@@ -9,7 +9,15 @@ from data import load_data, playground_data
 
 from experiences.data_exploration_playground import (
     KNOW_YOUR_DATA_FIELDS,
+    PLAYGROUND_FACILITATION_POTENTIAL,
+    PLAYGROUND_CURRICULUM_SUMMARY,
+    PLAYGROUND_CURRICULUM_TAGS,
     TAB_LABELS,
+    _render_start,
+    _render_know_your_data,
+    _render_one_variable,
+    _render_three_variables,
+    _render_two_variables,
     _render_follow_it_further,
     ONE_VARIABLE_CATEGORICAL_OPTIONS,
     ONE_VARIABLE_NUMERICAL_OPTIONS,
@@ -43,6 +51,72 @@ def test_playground_has_one_preparation_note_and_three_contextual_facilitator_cu
     assert "facilitator_live_cue" in inspect.getsource(playground._render_follow_it_further)
     assert "facilitator_live_cue" not in inspect.getsource(playground._render_one_variable)
     assert "facilitator_live_cue" not in inspect.getsource(playground._render_three_variables)
+
+
+def test_playground_curriculum_summary_is_stage_5_facilitator_support():
+    import inspect
+
+    source = inspect.getsource(_render_start)
+    assert "curriculum_summary" in source
+    assert "NSW curriculum — Stage 5 Data Science 2" in source
+    assert '"SC5-DA2-01"' in source
+    assert "detailed_content_note=True" in source
+    assert "descriptive analysis of large datasets (L3)" in PLAYGROUND_CURRICULUM_SUMMARY
+    assert "univariate/bivariate analysis (L5)" in PLAYGROUND_CURRICULUM_SUMMARY
+    assert "Stage 4" not in PLAYGROUND_CURRICULUM_SUMMARY
+
+
+def test_playground_curriculum_tags_are_the_approved_local_stage_mapping():
+    import inspect
+
+    assert PLAYGROUND_CURRICULUM_TAGS == {
+        "start_here": [("SC5-DA2-01.L2", "◐")],
+        "know_your_data": [("SC5-DA2-01.L1", "◐"), ("SC5-WS-05.2", "✓")],
+        "one_variable": [("SC5-DA2-01.L3", "✓"), ("L4", "◐"), ("L5", "✓")],
+        "two_variables": [("SC5-DA2-01.L5", "✓"), ("L6", "◐"), ("SC5-WS-06.2", "✓")],
+        "another_angle": [("SC5-DA2-01.L5", "✓"), ("SC5-WS-06.1", "✓"), ("SC5-WS-06.2", "✓")],
+        "follow_it_further": [("SC5-DA2-01.L2", "◐"), ("Q5", "◐"), ("SC5-WS-06.7", "◐")],
+    }
+    renderers = {
+        "start_here": _render_start,
+        "know_your_data": _render_know_your_data,
+        "one_variable": _render_one_variable,
+        "two_variables": _render_two_variables,
+        "another_angle": _render_three_variables,
+        "follow_it_further": _render_follow_it_further,
+    }
+    for stage, renderer in renderers.items():
+        source = inspect.getsource(renderer)
+        assert "curriculum_tags" in source
+        assert f'PLAYGROUND_CURRICULUM_TAGS["{stage}"]' in source
+        assert "Stage 4" not in source
+
+
+def test_playground_facilitation_potential_is_adult_facing_and_preserves_app_alignment():
+    import inspect
+
+    source = inspect.getsource(_render_start)
+    assert "facilitator_preparation" in source
+    assert "PLAYGROUND_FACILITATION_POTENTIAL" in source
+    assert "intentionally open-ended" in PLAYGROUND_FACILITATION_POTENTIAL
+    assert "SC5-DA2-01.L2 ◐" in PLAYGROUND_FACILITATION_POTENTIAL
+    assert "SC5-DA2-01.L4 ◐" in PLAYGROUND_FACILITATION_POTENTIAL
+    assert "SC5-DA2-01.L6 ◐" in PLAYGROUND_FACILITATION_POTENTIAL
+    assert "SC5-DA2-01.Q5 ◐" in PLAYGROUND_FACILITATION_POTENTIAL
+    assert "SC5-WS-06.7 ◐" in PLAYGROUND_FACILITATION_POTENTIAL
+    assert "repeated-species structure" in PLAYGROUND_FACILITATION_POTENTIAL
+    assert "do not change the Playground's own alignment status" in PLAYGROUND_FACILITATION_POTENTIAL
+
+
+def test_playground_facilitation_potential_does_not_change_learner_navigation_or_copy():
+    import inspect
+
+    source = inspect.getsource(_render_start)
+    assert TAB_LABELS == [
+        "Start here", "Know your data", "One variable", "Two variables", "Another angle", "Follow it further"
+    ]
+    assert "Explore the animal-trait data" in source
+    assert "Know the data, inspect one variable, compare two" in source
 
 
 def test_playground_renders_its_simultaneous_notice_prompts_with_stable_unique_keys():

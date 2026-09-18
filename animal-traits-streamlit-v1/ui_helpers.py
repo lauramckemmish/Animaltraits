@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from collections.abc import Iterator
+from collections.abc import Sequence
 from contextlib import contextmanager
 from html import escape
 
@@ -15,6 +16,12 @@ FACILITATOR_NOTES_KEY = "facilitator_notes"
 FACILITATOR_LIVE_LABELS = frozenset(
     {"CORE LEARNING", "STREAMLINE", "EXTENSION", "FACILITATION NOTE"}
 )
+CURRICULUM_ALIGNMENT_LABELS = {
+    "✓": "direct alignment",
+    "◐": "partial alignment",
+    "○": "potential alignment",
+    "—": "not addressed",
+}
 
 
 def _block_continue() -> None:
@@ -166,6 +173,80 @@ def facilitator_live_cue(label: str, content: str, *, key: str | None = None) ->
             unsafe_allow_html=True,
         )
         st.write(content)
+
+
+def curriculum_summary(
+    title: str,
+    outcome: str,
+    summary: str,
+    *,
+    show_legend: bool = True,
+    detailed_content_note: bool = False,
+) -> None:
+    """Render experience-supplied curriculum context in Facilitator notes.
+
+    This deliberately renders rather than interprets curriculum information.
+    Experiences choose the outcome, wording, alignment and whether to use it.
+    """
+    if not facilitator_notes_enabled():
+        return
+
+    legend_html = ""
+    if show_legend:
+        legend_html = (
+            '<p class="curriculum-summary__legend">'
+            '✓ direct alignment · ◐ partial alignment</p>'
+        )
+    detailed_note_html = ""
+    if detailed_content_note:
+        detailed_note_html = (
+            '<p class="curriculum-summary__note">Detailed-content suffixes are '
+            'Data to Discovery shorthand beneath official NESA outcomes.</p>'
+        )
+    with st.container(key="curriculum_summary"):
+        st.markdown(
+            f'<section class="curriculum-summary" aria-label="Curriculum summary">'
+            f'<p class="curriculum-summary__title">{escape(title)}</p>'
+            f'<p class="curriculum-summary__outcome"><span>Official outcome:</span> '
+            f'{escape(outcome)}</p>'
+            f'<p class="curriculum-summary__body">{escape(summary)}</p>'
+            f'{legend_html}{detailed_note_html}'
+            '</section>',
+            unsafe_allow_html=True,
+        )
+
+
+def curriculum_tags(tags: Sequence[tuple[str, str]], *, key: str | None = None) -> None:
+    """Render supplied curriculum identifiers and alignment marks in Facilitator notes.
+
+    ``tags`` preserves every supplied identifier, including intentional local
+    shorthand. The helper only gives canonical marks accessible text; it does
+    not select, shorten, expand or assess curriculum alignments.
+    """
+    if not facilitator_notes_enabled() or not tags:
+        return
+
+    rendered_tags = []
+    for identifier, alignment in tags:
+        if alignment not in CURRICULUM_ALIGNMENT_LABELS:
+            allowed = ", ".join(CURRICULUM_ALIGNMENT_LABELS)
+            raise ValueError(f"Unknown curriculum alignment mark: {alignment}. Use one of: {allowed}.")
+        accessible_label = f"{identifier}: {CURRICULUM_ALIGNMENT_LABELS[alignment]}"
+        rendered_tags.append(
+            f'<span class="curriculum-tags__item" aria-label="{escape(accessible_label)}">'
+            f'{escape(identifier)} <span aria-hidden="true">{escape(alignment)}</span></span>'
+        )
+    rendered_group = (
+        '<div class="curriculum-tags" role="group" aria-label="Curriculum alignment">'
+        '<span class="curriculum-tags__label">Curriculum alignment:</span> '
+        + ' <span class="curriculum-tags__separator" aria-hidden="true">·</span> '.join(rendered_tags)
+        + '</div>'
+    )
+    if key is None:
+        st.markdown(rendered_group, unsafe_allow_html=True)
+        return
+    with st.container(key=f"curriculum_tags_{key}"):
+        st.markdown(rendered_group, unsafe_allow_html=True)
 
 
 def graph_support(reading: str, looking_for: str) -> None:

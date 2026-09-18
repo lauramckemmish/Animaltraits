@@ -78,3 +78,5 @@ The playground mirrors the Exoplanets exploratory mental model:
 - **Filter:** animal class only, applied across the playground
 
 Fitting is deliberately stronger here than in Exoplanets. It is implemented in `models.py` so it can later be reused in appropriate experiences without coupling those experiences to the playground UI.
+
+Its Stage 5 curriculum mapping records **app alignment**: what learners are explicitly asked, enabled or required to do in the Playground. Facilitator notes may also describe **facilitation potential**—teacher questioning, framing or follow-up that can strengthen classroom enactment. This does not change an app-alignment status, and the deliberately open exploration is not incomplete curriculum implementation.

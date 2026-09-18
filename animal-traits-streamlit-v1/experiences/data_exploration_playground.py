@@ -29,6 +29,8 @@ from data import (
 )
 from models import fit_relationship
 from ui_helpers import (
+    curriculum_summary,
+    curriculum_tags,
     facilitator_live_cue,
     facilitator_preparation,
     graph_support,
@@ -40,6 +42,36 @@ from ui_helpers import (
 )
 
 TAB_LABELS = ["Start here", "Know your data", "One variable", "Two variables", "Another angle", "Follow it further"]
+
+PLAYGROUND_CURRICULUM_SUMMARY = (
+    "This experience directly supports descriptive analysis of large datasets (L3) and "
+    "univariate/bivariate analysis (L5), with meaningful contributions to understanding "
+    "large datasets (L1), developing and testing questions (L2), using descriptive "
+    "statistics to recognise patterns (L4), and distinguishing correlation from causation (L6)."
+)
+
+PLAYGROUND_CURRICULUM_TAGS = {
+    "start_here": [("SC5-DA2-01.L2", "◐")],
+    "know_your_data": [("SC5-DA2-01.L1", "◐"), ("SC5-WS-05.2", "✓")],
+    "one_variable": [("SC5-DA2-01.L3", "✓"), ("L4", "◐"), ("L5", "✓")],
+    "two_variables": [("SC5-DA2-01.L5", "✓"), ("L6", "◐"), ("SC5-WS-06.2", "✓")],
+    "another_angle": [("SC5-DA2-01.L5", "✓"), ("SC5-WS-06.1", "✓"), ("SC5-WS-06.2", "✓")],
+    "follow_it_further": [("SC5-DA2-01.L2", "◐"), ("Q5", "◐"), ("SC5-WS-06.7", "◐")],
+}
+
+PLAYGROUND_FACILITATION_POTENTIAL = """#### Classroom facilitation potential
+
+This Playground is intentionally open-ended: learners can work with the dataset, several representations and prompts for noticing, comparison and further questions without being prescribed one investigation or conclusion.
+
+Teacher questioning or task framing can strengthen classroom enactment by asking learners to:
+
+- **SC5-DA2-01.L2 ◐:** “Turn something you noticed into a question, then choose a graph or comparison that could help test it.”
+- **SC5-DA2-01.L4 ◐:** “Why did this representation make the pattern easier or harder to see? What would a different representation reveal?”
+- **SC5-DA2-01.L6 ◐:** “What relationship does this graph show? What would it *not* justify you saying about cause?”
+- **SC5-DA2-01.Q5 ◐:** “State a conclusion and identify the evidence from the data that supports it.”
+- **SC5-WS-06.7 ◐:** “What uncertainty, missing data, repeated-species structure or alternative explanation could affect your conclusion?”
+
+Keep the distinction between graph evidence and a biological explanation visible. These extensions strengthen classroom enactment, but do not change the Playground's own alignment status."""
 
 KNOW_YOUR_DATA_FIELDS = (
     ("phylum", "Categorical", "Taxonomy", "A broad taxonomic group for the animal.", "—"),
@@ -101,6 +133,12 @@ def _trait_index(field: str) -> int:
 
 
 def _render_start(data: pd.DataFrame) -> None:
+    curriculum_summary(
+        "NSW curriculum — Stage 5 Data Science 2",
+        "SC5-DA2-01",
+        PLAYGROUND_CURRICULUM_SUMMARY,
+        detailed_content_note=True,
+    )
     facilitator_preparation(
         """### Facilitator notes
 
@@ -110,8 +148,12 @@ Your main job is not to explain the graphs. Help learners inspect evidence, say 
 
 **Enough technical understanding:** this is an observation-level dataset, so species can repeat. Fields include animal traits and study metadata; missing does not mean zero. Log scales change axis spacing, not values. Boxplots support cautious group comparison. Brain-size method is study metadata—you do not need to teach the laboratory methods.
 
-**If time is short:** learners do not need every tab. Preserve: inspect evidence → notice something → compare or test it → identify what evidence might come next."""
+**If time is short:** learners do not need every tab. Preserve: inspect evidence → notice something → compare or test it → identify what evidence might come next.
+
+"""
+        + PLAYGROUND_FACILITATION_POTENTIAL
     )
+    curriculum_tags(PLAYGROUND_CURRICULUM_TAGS["start_here"], key="playground_start_here")
     st.header("Explore the animal-trait data")
     st.write(
         "Know the data, inspect one variable, compare two, then look from another angle to test whether a pattern changes."
@@ -153,6 +195,7 @@ def _render_know_your_data(data: pd.DataFrame) -> None:
         "Clarify trait versus study-information fields only when it matters. A missing value means this record lacks that measurement; it is not zero or evidence that the animal lacks it.",
         key="playground_know_data",
     )
+    curriculum_tags(PLAYGROUND_CURRICULUM_TAGS["know_your_data"], key="playground_know_your_data")
     st.header("Know your data")
     st.write("Before making a graph, inspect what this dataset actually contains.")
     st.caption(
@@ -206,6 +249,7 @@ def _format_one_variable_number(value: float) -> str:
 
 
 def _render_one_variable(data: pd.DataFrame) -> None:
+    curriculum_tags(PLAYGROUND_CURRICULUM_TAGS["one_variable"], key="playground_one_variable")
     st.header("One variable")
     st.write("Choose one variable and inspect its distribution or categories before relating it to another.")
 
@@ -254,6 +298,7 @@ def _render_two_variables(data: pd.DataFrame) -> None:
         "Ask what the graph shows before discussing fit, association or cause. A fitted line is a summary, not proof; keep the usable-record note in view when measurements are missing.",
         key="playground_two_variables",
     )
+    curriculum_tags(PLAYGROUND_CURRICULUM_TAGS["two_variables"], key="playground_two_variables")
     st.header("Two variables")
     st.write("Choose two variables and investigate whether they appear to be related.")
 
@@ -321,6 +366,7 @@ def _render_two_variables(data: pd.DataFrame) -> None:
 
 
 def _render_three_variables(data: pd.DataFrame) -> None:
+    curriculum_tags(PLAYGROUND_CURRICULUM_TAGS["another_angle"], key="playground_another_angle")
     st.header("Look from another angle")
     st.write(
         "You have found a pattern. Now see whether another variable changes the picture. "
@@ -378,6 +424,7 @@ def _render_follow_it_further() -> None:
         "Ask what evidence could test or distinguish possible explanations. Do not require a final causal answer: limitations and unresolved questions are legitimate scientific outcomes.",
         key="playground_follow_further",
     )
+    curriculum_tags(PLAYGROUND_CURRICULUM_TAGS["follow_it_further"], key="playground_follow_it_further")
     st.write("A graph is often the beginning of a scientific question, not the end.")
     st.markdown("### What did you notice?")
     st.write("Name a pattern, difference, unusual value, gap, imbalance or limitation that caught your attention.")

@@ -223,6 +223,34 @@ class SharedContractTests(unittest.TestCase):
         self.assertTrue(stub.session_state["curious_context_evidence"])
         self.assertEqual(stub.session_state["curious_scientific_choice"], "A careful interpretation")
 
+    def test_curriculum_helpers_render_only_for_facilitator_notes_and_preserve_supplied_tags(self):
+        stub = StreamlitStub()
+        tags = [("SC5-DA2-01.L5", "✓"), ("L6", "◐"), ("SC5-WS-06.2", "✓")]
+        with patch.object(ui_helpers, "st", stub):
+            ui_helpers.curriculum_summary("Title", "SC5-DA2-01", "Summary")
+            ui_helpers.curriculum_tags(tags, key="learner_hidden")
+        self.assertEqual(stub.markdowns, [])
+
+        stub.session_state[ui_helpers.FACILITATOR_NOTES_KEY] = True
+        with patch.object(ui_helpers, "st", stub):
+            ui_helpers.curriculum_summary(
+                "NSW curriculum — Stage 5 Data Science 2",
+                "SC5-DA2-01",
+                "Supplied experience summary.",
+                detailed_content_note=True,
+            )
+            ui_helpers.curriculum_tags(tags, key="stage_example")
+
+        summary, rendered_tags = stub.markdowns[-2:]
+        self.assertIn("SC5-DA2-01", summary)
+        self.assertIn("✓ direct alignment", summary)
+        self.assertIn("Data to Discovery shorthand", summary)
+        for identifier, alignment in tags:
+            self.assertIn(identifier, rendered_tags)
+            self.assertIn(alignment, rendered_tags)
+        self.assertNotIn("SC5-DA2-01.L6", rendered_tags)
+        self.assertEqual(stub.containers[-1]["key"], "curriculum_tags_stage_example")
+
     def test_visual_system_uses_one_navy_facilitator_family(self):
         import visual_system
 

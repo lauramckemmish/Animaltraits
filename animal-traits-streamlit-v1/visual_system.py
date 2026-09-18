@@ -63,6 +63,17 @@ def apply_visual_system() -> None:
     [class*="st-key-facilitator_live_"] [data-testid="stMarkdownContainer"] p {{ overflow-wrap:anywhere; word-break:normal; }}
     .facilitator-live__label {{ display:block; color:var(--unsw-facilitator); font-size:.72rem; font-weight:750; letter-spacing:.08em; line-height:1.2; }}
     [class*="st-key-facilitator_live_"] p {{ margin-bottom:.15rem; line-height:1.4; }}
+    .st-key-curriculum_summary {{ border-left:3px solid var(--unsw-facilitator); background:rgba(41,76,112,.045); padding:.45rem .65rem 1.05rem; margin:.45rem 0 .7rem; }}
+    .curriculum-summary p {{ margin:0 0 .22rem; }}
+    .curriculum-summary__title {{ color:var(--unsw-facilitator); font-size:.82rem; font-weight:750; letter-spacing:.03em; }}
+    .curriculum-summary__outcome {{ font-size:.82rem; }}
+    .curriculum-summary__outcome span, .curriculum-summary__legend, .curriculum-summary__note {{ color:rgba(49,51,63,.82); font-size:.76rem; }}
+    .curriculum-summary__body {{ font-size:.9rem; line-height:1.4; }}
+    .curriculum-summary__note {{ margin-bottom:0 !important; }}
+    [class*="st-key-curriculum_tags_"] {{ margin:-.3rem 0 .55rem; }}
+    .curriculum-tags {{ color:rgba(49,51,63,.88); font-size:.78rem; line-height:1.5; overflow-wrap:anywhere; }}
+    .curriculum-tags__label {{ color:var(--unsw-facilitator); font-weight:700; }}
+    .curriculum-tags__item {{ white-space:nowrap; }}
     .type-major-section {{ font-size:clamp(1.35rem, 2.2vw, 1.65rem); line-height:1.2; }}
     .type-subsection {{ font-size:1.25rem; line-height:1.25; }}
     .type-resource-identity {{ font-size:clamp(1.25rem, 2.1vw, 1.55rem); line-height:1.2; }}
