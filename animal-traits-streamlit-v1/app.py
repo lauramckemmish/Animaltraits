@@ -14,13 +14,22 @@ from config import (
     EXPERIENCE_YEAR8,
 )
 from data import load_data
-from experiences import curious, data_exploration_playground, find_your_animal, landing, router, year8
+from experiences import curious, data_exploration_playground, find_your_animal, landing, portfolio, router, year8
 from ui_helpers import facilitator_notes_control
 from visual_system import apply_visual_system, sidebar_data_source, sidebar_identity, validate_shared_assets
 
 st.set_page_config(page_title=config.SHORT_NAME, page_icon=APP_ICON, layout="wide")
 apply_visual_system()
 validate_shared_assets(config.SIDEBAR_INSTITUTIONAL_LOGO, config.ABOUT_INSTITUTIONAL_LOGO)
+
+# Translate a public launch once before ordinary local navigation takes over.
+# Removing only the public parameter preserves the existing navigation and
+# session-state behaviour after the handoff.
+public_experience_id = st.query_params.get(portfolio.PUBLIC_QUERY_PARAMETER)
+if public_experience_id is not None:
+    if not router.select_portfolio_experience(public_experience_id):
+        router.go_home()
+    del st.query_params[portfolio.PUBLIC_QUERY_PARAMETER]
 
 data = load_data()
 current = router.current_experience()

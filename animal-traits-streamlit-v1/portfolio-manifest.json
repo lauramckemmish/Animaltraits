@@ -1,0 +1,80 @@
+{
+  "schema_version": "data-to-discovery/1.0",
+  "resource": {
+    "resource_id": "animal-traits",
+    "title": "Animal Traits Data Science",
+    "summary": "Animal Traits is a classroom-ready resource for learning with authentic animal-trait data.",
+    "repository": "https://github.com/lauramckemmish/Animaltraits",
+    "app_url": "https://animaltraits-curious.streamlit.app"
+  },
+  "experiences": [
+    {
+      "experience_id": "animal-traits/mice-to-elephants",
+      "title": "Mice to Elephants",
+      "summary": "A 15-minute investigation using animal data to model and predict brain size.",
+      "kind": "guided_experience",
+      "published": true,
+      "stages": [],
+      "duration_minutes": {"minimum": 15, "maximum": 15},
+      "science_focus": ["animal-traits", "comparative-biology"],
+      "data_science_focus": ["modelling", "prediction", "data-visualisation"],
+      "curriculum": [],
+      "umbrellas": ["wild-data"],
+      "delivery_modes": ["facilitated"],
+      "programmes": ["CURIOUS"],
+      "evidence_types": ["curated_dataset", "observational_measurements", "derived_model"],
+      "launch": {"url": "https://animaltraits-curious.streamlit.app/?experience=animal-traits/mice-to-elephants"}
+    },
+    {
+      "experience_id": "animal-traits/mice-to-elephants-and-beyond",
+      "title": "Mice to Elephants: And Beyond",
+      "summary": "A two-lesson investigation where students build and test models, then choose one to predict the brain size of a new animal.",
+      "kind": "guided_experience",
+      "published": true,
+      "stages": ["Stage 4"],
+      "duration_minutes": null,
+      "science_focus": ["animal-traits", "comparative-biology"],
+      "data_science_focus": ["modelling", "prediction", "interpolation", "extrapolation", "model-evaluation"],
+      "curriculum": [
+        {
+          "framework": "nsw-science-7-10",
+          "outcomes": [
+            {
+              "outcome_code": "SC4-DA1-01",
+              "alignment": "DIRECT",
+              "detailed_content": [
+                {"content_id": "SC4-DA1-01.M2", "alignment": "DIRECT"},
+                {"content_id": "SC4-DA1-01.A1", "alignment": "DIRECT"},
+                {"content_id": "SC4-DA1-01.M4", "alignment": "DIRECT"},
+                {"content_id": "SC4-DA1-01.C3", "alignment": "DIRECT"},
+                {"content_id": "SC4-DA1-01.C1", "alignment": "PARTIAL"}
+              ]
+            }
+          ]
+        }
+      ],
+      "umbrellas": ["wild-data"],
+      "delivery_modes": ["classroom"],
+      "programmes": [],
+      "evidence_types": ["curated_dataset", "observational_measurements", "derived_model"],
+      "launch": {"url": "https://animaltraits-curious.streamlit.app/?experience=animal-traits/mice-to-elephants-and-beyond"}
+    },
+    {
+      "experience_id": "animal-traits/data-exploration-playground",
+      "title": "Data Exploration Playground",
+      "summary": "Open exploration using one, two or three variables, with animal-class filtering and optional model fitting.",
+      "kind": "explore_resource",
+      "published": true,
+      "stages": [],
+      "duration_minutes": null,
+      "science_focus": ["animal-traits", "comparative-biology"],
+      "data_science_focus": ["data-exploration", "data-visualisation", "variable-selection", "missing-data"],
+      "curriculum": [],
+      "umbrellas": ["wild-data"],
+      "delivery_modes": ["independent"],
+      "programmes": [],
+      "evidence_types": ["curated_dataset", "observational_measurements", "derived_model"],
+      "launch": {"url": "https://animaltraits-curious.streamlit.app/?experience=animal-traits/data-exploration-playground"}
+    }
+  ]
+}

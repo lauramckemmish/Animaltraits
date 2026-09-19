@@ -6,6 +6,7 @@ import streamlit as st
 
 from config import EXPERIENCE_CURIOUS
 from experiences.catalog import enabled_experience_names, experience_display_label
+from experiences import portfolio
 
 LANDING = "Home"
 
@@ -27,6 +28,19 @@ def open_experience(name: str) -> None:
         st.session_state["curious_part"] = 0
         st.session_state.pop("curious_step_selector", None)
         st.session_state["curious_scroll_to_top"] = True
+
+
+def select_portfolio_experience(experience_id: str | None) -> bool:
+    """Open one stable public ID through the existing local router.
+
+    ``False`` leaves navigation unchanged so the application shell can use its
+    normal Home fallback for an invalid public launch.
+    """
+    destination = portfolio.destination_for_id(experience_id)
+    if destination is None or destination.catalogue_name not in _enabled_experiences():
+        return False
+    open_experience(destination.catalogue_name)
+    return True
 
 
 def go_home() -> None:
